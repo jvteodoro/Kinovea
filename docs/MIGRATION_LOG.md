@@ -42,6 +42,15 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Known limitation: float checks use `1e-6` absolute tolerance for arithmetic/rotation results; SVD/pseudo-inverse checks characterize one well-conditioned full-rank matrix and a diagonal rank-deficient matrix. This does not prove domain-level calibration or geometry workflow behavior.
 - Follow-up: if extracting these contracts, preserve AForge attribution and compare the suite with Windows legacy results before claiming regression parity. Characterize `ProjectiveMapper` and calibration callers separately.
 
+## 2026-10-11 — Bitmap adapter boundary diagnosis
+- Baseline: commit `3fb66f01`; inspected `Kinovea.Video.Bitmap` and `Kinovea.Video` source/project files. Both target net48; Bitmap references Services and Video and a direct log4net assembly. The shared `VideoFrame.Image`, `IFrameGenerator.Generate`, and `VideoSummary.Thumbs` contracts expose `System.Drawing.Bitmap`.
+- Change: documented the adapter boundary, observable behaviors, Linux build outcomes, and a platform/fixture characterization plan. No application or project source changed.
+- Verification: direct `dotnet build Kinovea.Video.Bitmap/Kinovea.Video.Bitmap.csproj -v:minimal` exited 1 during restore with 0 reported warnings/errors; diagnostic `dotnet build Kinovea.Video.Bitmap/Kinovea.Video.Bitmap.csproj -m:1 -v:minimal` exited 1 with MSB3644 because net48 reference assemblies are unavailable. No runtime tests were run.
+- Regression evidence: none. Bitmap decoding, pixel equivalence, EXIF behavior, rotation and frame lifecycle are `UNVERIFIED`.
+- Known limitation: source inspection cannot establish GDI+ decoder output or Windows EXIF handling. Linux cannot execute the legacy net48 project in this environment; no port or portable runtime claim is made.
+- Decision support: proposed ADR 0002 defers an in-place portable retarget because `System.Drawing.Common` is Windows-only on modern .NET and Bitmap relies on shared GDI+-typed Video contracts. Microsoft platform guidance and call-site evidence are linked from the ADR and evidence record. No image library or FFmpeg backend is selected.
+- Follow-up: capture Windows legacy results with generated/licensed fixtures for supported formats and EXIF orientations, then design the portable pixel/frame boundary before attempting a portable reader.
+
 ## Append new entries in this format
 `YYYY-MM-DD — <task/slice> — <commit>`
 - Baseline:
