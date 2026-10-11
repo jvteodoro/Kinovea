@@ -174,7 +174,8 @@ static void MeasureAllocations()
     const int width = 640;
     const int height = 480;
     const int iterations = 100;
-    for (int i = 0; i < 10; i++)
+    const int warmupIterations = 256;
+    for (int i = 0; i < warmupIterations; i++)
     {
         using PixelBuffer warmup = SyntheticPixelProducer.CreateRgb24(width, height);
     }

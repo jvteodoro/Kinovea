@@ -23,4 +23,4 @@ Test command: `dotnet run --project tests/PortablePixels.Tests/PortablePixels.Te
 
 ## Allocation sample
 
-`--measure` warms up ten 640x480 RGB24 frames, then measures 100 create/fill/dispose cycles using `GC.GetAllocatedBytesForCurrentThread`. It prints pixel payload bytes, observed managed allocation bytes and overhead separately. Runtime/JIT/allocator differences make the measured number platform-specific; CI stores Linux and Windows reports as separate artifacts. The producer and `PixelBuffer.Create` contain no pixel copy by source inspection. This is a small allocation sample, not a throughput benchmark or performance guarantee.
+`--measure` warms up 256 640x480 RGB24 frames, then measures 100 create/fill/dispose cycles using `GC.GetAllocatedBytesForCurrentThread`. It prints pixel payload bytes, observed managed allocation bytes and overhead separately. Runtime/JIT/allocator differences make the measured number platform-specific; CI stores Linux and Windows reports as separate artifacts. The producer and `PixelBuffer.Create` contain no pixel copy by source inspection. This is a small allocation sample, not a throughput benchmark or performance guarantee.
