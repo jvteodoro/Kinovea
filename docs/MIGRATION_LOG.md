@@ -95,7 +95,15 @@ Append chronological entries; do not erase unsuccessful experiments.
 ## 2026-10-11 — Bitmap harness compile corrections
 - Baseline: run `38174665514` on `windows-2022` at source `cd8d9869736d04914b1d6fb6212669da7948c273`.
 - Change: add a direct `Kinovea.Services` project reference for the `ImageRotation` API type and alias `System.Drawing.Bitmap` in harness sources to prevent collision with the enclosing `Kinovea.Bitmap` namespace. Production projects are unchanged.
-- Verification: source and documentation checks pending before commit. The next Windows run has not started.
-- Regression evidence: none; run 38174665514 failed during compilation and skipped the reader.
-- Known limitation: no generated fixtures, reports, or pixel evidence from either Windows run; behavior remains `UNVERIFIED`.
-- Follow-up: push the harness fix and inspect the next workflow result and artifact.
+- Verification: source/documentation checks passed and the commit was pushed. Run `38174835118` confirmed the prior Services/type fixes, then failed with CS0012/CS0246 because `Kinovea.Video` API types lacked a direct project reference.
+- Regression evidence: none; run 38174835118 failed during compilation and skipped the reader.
+- Known limitation: no generated fixtures, reports, or pixel evidence from any Windows run; behavior remains `UNVERIFIED`.
+- Follow-up: add the direct `Kinovea.Video` reference, then run the workflow again.
+
+## 2026-10-11 — Bitmap harness Video reference correction
+- Baseline: run `38174835118` on `windows-2022`, source `5a6dbee08aae5e918ad65d5ced4982e34150e611`.
+- Change: add a direct `Kinovea.Video` project reference because old-style project references did not expose its public API types transitively to the harness. Production code is unchanged.
+- Verification: XML/YAML, source syntax and diff checks pending before commit. Next Windows build is not yet run.
+- Regression evidence: none; characterization executable remains skipped.
+- Known limitation: no reader observations or golden output exist; behavior remains `UNVERIFIED`.
+- Follow-up: push and inspect the next Windows build, then proceed to runtime characterization only if compilation succeeds.
