@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Resources;
 
-[assembly: AssemblyTitle("Kinovea.Video.Gif")]
+[assembly: AssemblyTitle("Kinovea.Video.GIF")]
 [assembly: AssemblyDescription("Kinovea - Reader for animated Gif")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Kinovea")]

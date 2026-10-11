@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "Kinovea",
+  "project_id": "ff3f4f5f-4c23-4f8b-8b78-2716d6cca5ed"
+}

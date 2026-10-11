@@ -36,7 +36,7 @@ This small project is responsible for the code that checks if a new version is a
 **Kinovea.Video**
 
 This project contains a "plugin" manager that loads video readers and route file-open commands to the appropriate reader. 
-The actual video readers are implemented in the various projects named Kinovea.Video.Bitmap, Kinovea.Video.FFMpeg, Kinovea.Video.Gif, etc.
+The actual video readers are implemented in the various projects named Kinovea.Video.Bitmap, Kinovea.Video.FFMpeg, Kinovea.Video.GIF, etc.
 
 Video reader plugins implement interfaces/abstract classes defined in Kinovea.Video. They are not really *plugins* in the sense that all of them are loaded from a static list rather than discovered dynamically.
 
