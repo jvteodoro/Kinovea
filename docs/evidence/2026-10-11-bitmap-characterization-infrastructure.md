@@ -27,10 +27,11 @@ Expected artifact files are `environment.json`, `source-hashes.json`, `runtime-m
 | Roslyn C# 7.3 syntax parse of the three harness `.cs` files | 0 | Syntax trees reported no parser errors. This is syntax-only and does not type-check or build the harness. |
 | `git diff --check` | 0 | No whitespace errors. |
 | `dotnet msbuild tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj -target:Build -property:Configuration=Release -property:Platform=AnyCPU -verbosity:minimal` | 1 | MSB3644: .NET Framework v4.8 reference assemblies are unavailable on this Linux host. This does not validate the harness compile. |
-| Workflow run on `windows-2022` | NOT_RUN | No Windows runner was available during this task. |
-| Reader characterization execution | NOT_RUN | No behavioral results or pixel outputs were produced here. |
+| Workflow run `38174132063`, job `114572777464` | 1 | `windows-2022` image `20261004.326.1`; Visual Studio MSBuild and .NET Framework 4.8 targeting-pack check passed; NuGet restore passed with `NU1902` for log4net 2.0.14. Build failed with nine CS0227 errors in `Kinovea.Services/Bitmap/BitmapHelper.cs` and `Kinovea.Services/Infrastructure/NativeMethods.cs`: workflow selected `Release|AnyCPU`, where unsafe blocks are disabled. The uploaded artifact is [bitmap-characterization-38174132063-1](https://github.com/jvteodoro/Kinovea/actions/runs/38174132063/artifacts/11714599252), 258671 bytes, SHA-256 `dae3cb2c0498f91e5e412d2aa289695a121aa35811dbb725f7350f735eda312e`. This establishes a CI build configuration failure only. |
+| Reader characterization execution in run `38174132063` | NOT_RUN | Build failure skipped the harness. No fixtures, test report, or pixel evidence were generated. |
+| Local Windows rerun after x64 configuration correction | NOT_RUN | No local Windows runner is available. The updated workflow has not yet run on GitHub. |
 
-No `pwsh`, Windows PowerShell, Mono, or Visual Studio MSBuild executable was present on the host. The MSBuild failure above is an environment targeting-pack failure, not a test result. XML validation and source inspection do not establish that the harness compiles or passes on Windows.
+No `pwsh`, Windows PowerShell, Mono, or Visual Studio MSBuild executable was present on the implementation host. The local MSBuild failure above is an environment targeting-pack failure, not a test result. The subsequent GitHub run confirms that the targeting pack and restore are available; its build failure is a project configuration mismatch, not a reader test result. The harness and workflow now explicitly build and run x64 to match the existing legacy configuration that enables unsafe blocks. XML validation and source inspection do not establish that the corrected harness compiles or passes on Windows.
 
 ## Oracle approval process and limits
 

@@ -83,8 +83,8 @@ The suite covers affine/projective vertex mapping, interior forward/backward rou
 
 ```powershell
 nuget restore Kinovea.Services/packages.config -PackagesDirectory packages -NonInteractive -Verbosity normal
-msbuild tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj /t:Rebuild /m /nologo /verbosity:minimal /p:Configuration=Release /p:Platform=AnyCPU
-tests/Bitmap.Characterization/bin/Release/Kinovea.Bitmap.Characterization.exe --output artifacts/bitmap-characterization
+msbuild tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj /t:Rebuild /m /nologo /verbosity:minimal /p:Configuration=Release /p:Platform=x64
+tests/Bitmap.Characterization/bin/x64/Release/Kinovea.Bitmap.Characterization.exe --output artifacts/bitmap-characterization
 ```
 
 The run produces `environment.json`, `source-hashes.json`, `fixture-manifest.json`, `runtime-metadata.json`, `test-results.json`, a text summary, generated fixture inputs, and native plus RGBA pixel files. Workflow artifacts upload under `if: always()`, including after restore, build, or characterization failures. A build pass is not a behavior pass; only `test-results.json` with all assertions/cases passing is behavioral evidence.
@@ -97,4 +97,4 @@ Fixture inputs are generated in the artifact directory from a documented pixel f
 3. A reviewer approves a dedicated PR that adds an immutable versioned snapshot under `tests/Bitmap.Characterization/golden/approved/<baseline-id>/`, with provenance metadata naming the workflow run, commit, runner image, fixture hashes, source hashes, and reviewer. Keep this golden-data commit separate from harness/CI changes.
 4. Future output changes are reviewed as diffs against that approved snapshot. Never auto-copy candidate artifacts over approved data or regenerate expected hashes during a test run. An intentional baseline update needs a separate explicit review and commit preserving the prior baseline or its history.
 
-No Windows run or approved golden data exists yet. Current Bitmap decoding, alpha/channel interpretation, orientation, pixel format/stride, timestamp, rotation and lifecycle outcomes remain `UNVERIFIED` until artifacts are produced and reviewed.
+Windows run `38174132063` verified the targeting pack and restore, but its build failed before the characterization executable ran. The failure was caused by compiling the Services reference as `Release|AnyCPU`, which disables unsafe blocks. The workflow and harness now select `Release|x64`, matching an existing Services configuration with unsafe enabled. The corrected configuration awaits a Windows rerun; no approved golden data exists. Current Bitmap decoding, alpha/channel interpretation, orientation, pixel format/stride, timestamp, rotation and lifecycle outcomes remain `UNVERIFIED` until artifacts are produced and reviewed.

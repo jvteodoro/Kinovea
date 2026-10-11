@@ -41,7 +41,7 @@ jobs:
         run: |
           msbuild tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj `
             /t:Rebuild /m /nologo /verbosity:minimal `
-            /p:Configuration=Release /p:Platform=AnyCPU `
+            /p:Configuration=Release /p:Platform=x64 `
             "/flp:logfile=artifacts/bitmap-characterization/msbuild.log;verbosity=normal" `
             /bl:artifacts/bitmap-characterization/msbuild.binlog
           if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE" }
@@ -49,7 +49,7 @@ jobs:
       - name: Run reader characterization
         shell: pwsh
         run: |
-          $exe = "tests/Bitmap.Characterization/bin/Release/Kinovea.Bitmap.Characterization.exe"
+          $exe = "tests/Bitmap.Characterization/bin/x64/Release/Kinovea.Bitmap.Characterization.exe"
           if (-not (Test-Path -LiteralPath $exe)) { throw "Characterization executable was not produced: $exe" }
           & $exe --output artifacts/bitmap-characterization
           if ($LASTEXITCODE -ne 0) { throw "Characterization failed with exit code $LASTEXITCODE" }

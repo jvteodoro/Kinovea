@@ -83,3 +83,11 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Regression evidence:
 - Known limitation:
 - Follow-up:
+
+## 2026-10-11 — Bitmap characterization CI x64 configuration correction
+- Baseline: workflow run `38174132063` on `windows-2022`, source `1d14a2722b6cbf4fda992ca760ec39d03931d844`.
+- Change: configured the headless harness and workflow for `Release|x64`, matching the legacy `Kinovea.Services` configuration that enables unsafe blocks. Updated local command documentation, migration matrix, ADR evidence and CI evidence record. Production source and reader behavior were not changed.
+- Verification: run `38174132063` confirmed the .NET Framework 4.8 targeting pack and NuGet restore, then failed with nine CS0227 errors while building Services under AnyCPU. The diagnostic artifact was uploaded. `xmllint --noout tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj`, workflow YAML parsing plus x64 build/run path assertions, and `git diff --check` passed for the correction. The updated Windows build and reader run have not executed yet.
+- Regression evidence: none. The harness was skipped by CI; no reader tests, fixtures, or pixel results were generated. Decoder behavior remains `UNVERIFIED`.
+- Known limitation: corrected x64 configuration has not yet run on Windows; no local Visual Studio MSBuild is available.
+- Follow-up: run the updated workflow on GitHub. Only after the executable passes should candidate fixtures be repeated and reviewed for approval.
