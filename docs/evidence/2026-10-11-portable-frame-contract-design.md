@@ -1,40 +1,48 @@
-# Design investigation: portable frame contract
+# Evidence: ADR 0003 minimal portable frame boundary
 
-Status: **Design proposal only; no production API change**  
-Repository base requested: `port/net10-linux` at `125dbbb907f554162bc31e54f95090876a19773f`.  
-Workspace HEAD at inspection: `93151c03378a5105f74d8127f99d331ad7242dd6` (`test/bitmap-baseline-review`).  
-Host: Gentoo Linux, x86_64; .NET SDK 10.0.111 per repository environment record.  
-Legacy oracle: Windows .NET Framework 4.8 candidate only; baseline is `PENDING_HUMAN_APPROVAL`.
+Status: documentation design; not an implementation or parity result.
+Base branch: `port/net10-linux` at `125dbbb907f554162bc31e54f95090876a19773f`.
+PR branch before revision: `design/portable-frame-contract` at `e01dc1b41cab64a58acedd463ef189e526c16fd0`.
+Host: Gentoo Linux x86_64; repository environment identifies .NET SDK 10.0.111.
+Legacy oracle: candidate Windows .NET Framework 4.8 runs only; status `PENDING_HUMAN_APPROVAL`.
 
-## Investigation commands
+## Review source
 
-- `git status --short --branch` => existing branch is `test/bitmap-baseline-review`; untracked user work includes `.beads/issues.jsonl`, `docs/COMMIT_POLICY.md`, `docs/MIGRATION_PLAN.md`, `docs/adr/0001-incremental-port.md`, and `tasks/`.
-- `git rev-parse port/net10-linux` => `125dbbb907f554162bc31e54f95090876a19773f`.
-- `git switch -c docs/portable-frame-contract port/net10-linux` => `NOT_RUN`; Git could not create `.git/index.lock` because `.git` is read-only in this workspace.
-- `rg` source searches for `Bitmap`, `VideoFrame`, `IFrameGenerator`, `Thumbs`, frame callbacks, `BitmapConverter`, and frame disposal, followed by direct reads of the contracts, caches and characterization audit.
-- No builds or behavior tests were run; this is a documentation and source-inspection task.
+Read PR #2's architectural review posted by `jvteodoro` at https://github.com/jvteodoro/Kinovea/pull/2#pullrequestreview-5485255332. It requests minimal behavior change, required-versus-optional classification, parallel legacy/new paths, explicit pixel layout/signed-stride handling, unchanged timestamps and EXIF results, characterization before ownership redesign, honest `ReadOnlyMemory` limits, separate test categories, staged net10 core and synthetic producer, and no decoder selection. ADR 0003 now addresses these individually in its compatibility matrix, options comparison, lifetime section, staged rollout and acceptance criteria.
 
-## Verified source observations
+## Production source inspection
 
-- `Kinovea.Video/Caching/VideoFrame.cs`: `VideoFrame` is not `IDisposable`; it holds a `Bitmap` reference and two `long`s. `Empty()` uses null image and `-1` timestamps.
-- `Kinovea.Video/VideoReaders/IFrameGenerator.cs`: comments assign generated image memory to the generator; methods return `Bitmap`; `DisposePrevious(Bitmap)` is a callback hook.
-- `Kinovea.Video/Caching/SingleFrame.cs`, `Cache.cs`, and `PreBuffer2.cs`: default eviction/disposal paths call `frame.Image.Dispose()`; optional `VideoFrameDisposer` delegates override that. The cache design has synchronous and asynchronous paths, so borrowed storage lifetime needs explicit rules.
-- `Kinovea.Video/Delegates.cs`: `ImageRetriever(VideoFrame, Bitmap)` is the image-output callback. `PlayerScreenUserInterface2.GetFlushedImage` implements it; document/video/image exporters assign this method to settings.
-- `Kinovea.Video/VideoSummary.cs`: thumbnails are a mutable `List<Bitmap>` with no documented disposal/ownership contract.
-- Readers: Bitmap and SVG generate VideoFrame values; GIF constructs frames directly. Bitmap and SVG call `DisposePrevious` when replacing current generated images.
-- ScreenManager consumers include OpenCvSharp `BitmapConverter.ToMat` calls in lens calibration, camera motion, template tracking and metadata; playback rendering, `ImageChanged` events, image sequence/video exporters, and thumbnails remain Bitmap-shaped.
-- Other Bitmap uses include UI icons, drawings, capture viewport images, and XML-embedded image serialization. The dependency map in ADR 0003 labels its scope and calls for a wider implementation-time audit.
+Inspected actual code, not only prior design docs:
 
-## Measured candidate observations
+- `Kinovea.Video/Caching/VideoFrame.cs`: plain wrapper; stores Bitmap, `Timestamp`, `PreviousTimestamp`; empty object is `(null, -1, -1)`; no `IDisposable`.
+- `Kinovea.Video/VideoReaders/IFrameGenerator.cs`: states generator owns generated image memory; exposes `Bitmap Generate` and `DisposePrevious(Bitmap)`.
+- `Kinovea.Video/Delegates.cs`: `VideoFrameDisposer(VideoFrame)` and `ImageRetriever(VideoFrame, Bitmap)`.
+- `Kinovea.Video.Bitmap/FrameGeneratorImageFile.cs`: one stored image returned for every timestamp; `DisposePrevious` does nothing; `Close` disposes the stored image; `SetResolution(96,96)`; existing EXIF rotation mapping physically rotates only supported rotations.
+- `Kinovea.Video.Bitmap/VideoReaderBitmap.cs`: fixed 25 fps, 250 timestamp duration, interval calculation; `UpdateCurrent` returns early for same timestamp, invokes `DisposePrevious` before replacing the current image, and computes previous timestamp by subtracting average timestamps/frame. `Close` closes generator; behavior after close is not to be redefined here.
+- `Kinovea.Video/Caching/SingleFrame.cs`, `Cache.cs`, `PreBuffer2.cs`: cache cleanup delegates to `VideoFrameDisposer` if supplied, otherwise disposes `frame.Image`; PreBuffer2 has a decoding thread and eviction. This establishes existing disposal points, not a proven need for reference counting.
+- `Kinovea.Video/VideoSummary.cs` stores `List<Bitmap>`; reader summary methods generate GDI+ resized thumbnails.
+- `Kinovea.ScreenManager/PlayerScreen/FrameServerPlayer.cs`: `EnumerateImages` gets output from the `ImageRetriever` into a staging bitmap and yields clones; exporters consume those images. `PlayerScreenUserInterface2.GetFlushedImage` fills caller output.
+- OpenCvSharp `BitmapConverter.ToMat` calls are present in lens calibration, camera tracking, template matching and metadata. Capture code uses `BitmapHelper` methods to interpret RGB24/RGB32/Y800/JPEG buffers with pitch and top-down flags. These are distinct interop edges.
 
-Candidate Windows observations and their limitations are in `docs/evidence/2026-10-11-bitmap-golden-audit.md`. Formats/strides: BMP 7x5 `Format32bppRgb`, 28 bytes/row; PNG 13x9 `Format32bppArgb`, stride 52; JPEG 11x7 `Format24bppRgb`, pixel payload 33 bytes/row and stride 36. The audit explicitly does not establish raw channel byte order, alpha premultiplication, independent full-image EXIF outputs or leak behavior. Fixed image reader time interval is 40 ms with observed initial timestamp zero. EXIF transforms and mirror behavior are only partially asserted.
+## Candidate Windows observations and limits
 
-## Commands/results and limitations
+The reviewed audit reports two runs (38175088092, 38175219336), same source SHA `0a9e8a5f847b77e030355dd2f38a7de97a4a2572`, 19 cases/537 assertions each, and 72 input/pixel files byte-identical. Recorded examples: BMP 7x5 Format32bppRgb/stride 28; PNG 13x9 Format32bppArgb/stride 52; JPEG 11x7 Format24bppRgb/stride 36. EXIF rotations 3/6/8 map to 180/90/270; mirror tags map to no internal rotation. Reader time metadata is fixed by current source.
 
-- `git diff --check` => exit 0; no whitespace errors.
-- Windows baseline comparison => `NOT_RUN` in this environment.
-- Linux/.NET 10 parity => `NOT_RUN`; no portable reader exists in the task scope.
-- Production build/tests => `NOT_RUN`; production sources are not changed.
-- Git branch creation and commit => blocked by read-only `.git` despite workspace files being writable. No attempt was made to alter permissions or metadata.
+Do not overstate those results: raw native channel order was not independently decoded/asserted; partial-alpha premultiplication is not calculated against an independent oracle; EXIF expected-rotation helper duplicates production assumptions and mirror pixel transforms lack independent expected rasters; timestamp tests omit several bounds; closed-image observation did not assert exact failure; no long-run handle/leak test was performed. Candidate remains pending approval and does not establish Linux parity.
 
-See [ADR 0003](../adr/0003-portable-frame-representation.md) for proposed API shape, invariants, ownership rules, producer/consumer map, tradeoffs, conversion boundaries, test thresholds, staged migration and decisions requiring approval.
+## Review decision applied
+
+- Chose a parallel net10 seam (Option B), retaining legacy APIs and Windows path during rollout.
+- Kept timestamp `long` values and algorithms intact; rational timebases are deferred.
+- Kept cache eviction and generator disposal behavior; leases, copy-on-write, pooling and global immutability are deferred pending a demonstrated call-site requirement.
+- Proposed a format-preserving byte buffer with explicit channel order, alpha, signed stride and row-zero offset. `ReadOnlyMemory<byte>` is documented as a borrowed, non-revocable view; async/native retention must copy or use the native owner lifetime.
+- Required Linux synthetic contract tests separately from Windows legacy compatibility tests. No new expected legacy behavior is inferred from code where measurement is missing.
+- First implementation milestone is limited to a new net10 contract, synthetic producer and portable contract tests; production reader/caches/UI untouched. The reviewer's suggested “small net10 core plus synthetic producer” is reflected in stage 1.
+
+## Verification and limitations
+
+- Commands: source reads and targeted `rg` searches over the production paths named above; `gh api` for PR reviews, review comments and issue comments.
+- Review thread result: one submitted architectural review; no inline review comments or issue comments returned.
+- Builds/runtime tests: `NOT_RUN` (documentation-only change).
+- `git diff --check`: run before commit; result recorded in the migration log.
+- Remaining scope gap: unrelated ScreenManager Bitmap resources and drawings are not fully inventoried. Later implementation must audit each changed consumer before modifying shared APIs.
