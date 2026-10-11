@@ -47,6 +47,12 @@ The sample warms up 256 frames, then measures 100 create/fill/dispose operations
 - Disposal is idempotent for sequential calls; thread-safe concurrent disposal/access is not promised or tested.
 - The PR diff against `port/net10-linux` has no legacy production changes. It adds an isolated net10 library and test harness only; no Bitmap reader parity is asserted.
 
+## Lifetime review record
+
+Reviewed source commit `2cf83cd12fca01e14d4eeab5fb2555906a1013f8`; its Linux and Windows jobs passed in [GitHub Actions run 38182247261](https://github.com/jvteodoro/Kinovea/actions/runs/38182247261), with 10 tests passing per platform. The row-by-row tested/source-inspected/unsupported/unverified mapping and adapter prerequisites are in [PORTABLE_PIXEL_CORE.md](../PORTABLE_PIXEL_CORE.md).
+
+This documentation-only review did not execute runtime tests: `NOT_RUN`. It did not change the implementation. `git diff --check` is the documentation validation gate. No claim of thread safety, native-memory safety, or Bitmap reader parity is made.
+
 ## Limitations
 
 This verifies only the standalone managed pixel-buffer contract and synthetic producer on the recorded SDK/runtime versions. It does not validate System.Drawing channel semantics, alpha-premultiplication compatibility, EXIF behavior, any real decoder, legacy timestamps, `VideoFrame`, caches, OpenCV, FFmpeg, capture, rendering, thumbnails or exports. Windows Bitmap characterization remains separate and candidate-only; no legacy regression or reader-port claim is made.

@@ -141,3 +141,11 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Regression evidence: portable contract tests only. No `VideoReaderBitmap`, legacy Windows behavior, or cross-platform reader parity test ran. Existing Windows candidate stays `PENDING_HUMAN_APPROVAL`; Bitmap reader remains unported.
 - Limitations: core currently supports only Rgb24 and Rgba32; no decoder/conversion or Kinovea consumer is integrated. `ReadOnlyMemory<byte>` values already copied by callers cannot be revoked, so lifetime is caller-scoped and documented.
 - Follow-up: review PR #3, then select one real producer/consumer boundary for characterization and an adapter without changing legacy timing or algorithms.
+
+## 2026-10-11 — Document portable pixel lifetime review
+- Baseline: reviewed implementation `2cf83cd12fca01e14d4eeab5fb2555906a1013f8`; Linux and Windows CI run `38182247261` passed 10 portable contract tests on each platform.
+- Change: clarify `PixelBuffer` ownership transfer and disposal, borrowed `ReadOnlyMemory<byte>` limits, unsupported concurrent access/disposal, and boundary-specific prerequisites for GDI+, FFmpeg, OpenCV, asynchronous caches, and camera callbacks. Documentation only; no production code or lifetime mechanism changed.
+- Verification: source/tests/CI evidence reviewed; `git diff --check` run. Runtime tests for this documentation-only update: `NOT_RUN`.
+- Regression evidence: existing portable tests cover failed and successful owner transfer, one sequential release after repeated disposal, post-disposal access rejection, and the non-revocable borrowed-view caveat. No concurrent or native-owner tests exist. Bitmap reader parity is not claimed.
+- Limitations: thread-safe disposal/access and native or pooled memory lifetime remain unsupported or unverified as detailed in `docs/PORTABLE_PIXEL_CORE.md`.
+- Follow-up: before each real adapter, implement its ownership-boundary tests and verify whether the consumer retains storage after return; review asynchronous/native lifetime separately.

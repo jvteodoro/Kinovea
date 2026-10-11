@@ -35,7 +35,7 @@ These are present in the checkout but are not entries in the original solution a
 
 | Project | Target | Dependencies | Current verification | Scope and limits |
 |---|---|---|---|---|
-| `Kinovea.PortablePixels` — [project](../src/Kinovea.PortablePixels/Kinovea.PortablePixels.csproj) | `net10.0` | .NET BCL only (`System.Buffers`) | Targeted contract is `PORTABLE_TESTED`: Linux local build/tests and Linux+Windows .NET 10 CI passed 10 tests on final source SHA `41b0ae8384f9af6117cb241ae83d4989c7c6f20d`; CI run `38181952234`. | Isolated pixel-memory contract and synthetic RGB24 producer. Supports only `Rgb24`/`Rgba32`; no decode, conversion, UI, OpenCV, FFmpeg, camera, frame/timestamp or legacy reader integration. This status does not promote `Kinovea.Video.Bitmap` or `Kinovea.Video` to PORTED. See [API invariants](PORTABLE_PIXEL_CORE.md) and [verification evidence](evidence/2026-10-11-portable-pixel-core.md). |
+| `Kinovea.PortablePixels` — [project](../src/Kinovea.PortablePixels/Kinovea.PortablePixels.csproj) | `net10.0` | .NET BCL only (`System.Buffers`) | Targeted contract is `PORTABLE_TESTED`: Linux local build/tests and Linux+Windows .NET 10 CI passed 10 tests on implementation commit `2cf83cd12fca01e14d4eeab5fb2555906a1013f8`; CI run `38182247261`. | Isolated pixel-memory contract and synthetic RGB24 producer. Sequential ownership/disposal is covered; concurrent access/disposal is unsupported, native/pool owners are unverified, and no decoder or Kinovea consumer is integrated. This status does not promote `Kinovea.Video.Bitmap` or `Kinovea.Video` to PORTED. See [API invariants](PORTABLE_PIXEL_CORE.md) and [verification evidence](evidence/2026-10-11-portable-pixel-core.md). |
 
 ## Dependency-aware order and test prerequisites
 
