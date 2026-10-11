@@ -192,7 +192,7 @@ static void MeasureAllocations()
     long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
     long pixelBytes = (long)width * height * 3 * iterations;
     Console.WriteLine($"Allocation sample: {iterations} frames, {width}x{height} RGB24");
-    Console.WriteLine($"Pixel payload bytes: {pixelBytes}; managed allocated bytes: {allocated}; overhead bytes: {allocated - pixelBytes}");
+    Console.WriteLine($"Pixel payload bytes: {pixelBytes}; managed allocated bytes: {allocated}; non-payload allocation bytes: {allocated - pixelBytes}");
     Console.WriteLine("Pixel copies: 0 in producer and PixelBuffer.Create (source inspection); one byte[] allocation plus owner and PixelBuffer objects per frame.");
 }
 
