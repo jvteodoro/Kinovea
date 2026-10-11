@@ -70,10 +70,11 @@ static void PositiveStrideRows()
 {
     var owner = new TrackingMemoryOwner(new byte[]
     {
-        1, 2, 3, 4, 5, 6, 0xEE,
-        7, 8, 9, 10, 11, 12, 0xEE
+        0xEE, 1, 2, 3, 4, 5, 6, 0xEE,
+        7, 8, 9, 10, 11, 12, 0xEE, 0xEE
     });
-    using PixelBuffer pixels = PixelBuffer.Create(2, 2, PixelFormat.Rgb24, AlphaMode.None, 7, 0, owner);
+    using PixelBuffer pixels = PixelBuffer.Create(2, 2, PixelFormat.Rgb24, AlphaMode.None, 7, 1, owner);
+    Assert.Equal(1, pixels.RowZeroOffset);
     Assert.SequenceEqual(new byte[] { 1, 2, 3, 4, 5, 6 }, pixels.GetRowSpan(0).ToArray());
     Assert.SequenceEqual(new byte[] { 7, 8, 9, 10, 11, 12 }, pixels.GetRowSpan(1).ToArray());
     Assert.Throws<ArgumentOutOfRangeException>(() => pixels.GetRowSpan(2));
