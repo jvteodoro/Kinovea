@@ -51,6 +51,22 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Decision support: proposed ADR 0002 defers an in-place portable retarget because `System.Drawing.Common` is Windows-only on modern .NET and Bitmap relies on shared GDI+-typed Video contracts. Microsoft platform guidance and call-site evidence are linked from the ADR and evidence record. No image library or FFmpeg backend is selected.
 - Follow-up: capture Windows legacy results with generated/licensed fixtures for supported formats and EXIF orientations, then design the portable pixel/frame boundary before attempting a portable reader.
 
+## 2026-10-11 — parallel restore graph diagnosis follow-up
+- Baseline: previous parallel restore investigation; Gentoo Linux, .NET SDK `10.0.111`, MSBuild `18.0.11`.
+- Change: added a clean two-project SDK-style `net10.0` restore probe and checked process identity/shim indicators. No application or project files changed.
+- Verification: with both probe `obj/` directories removed before each run, `dotnet restore /tmp/kinovea-cur-sdk-probe/Probe.sln -m:2 -v:minimal` exited 1 silently; `-m:1` and `-m:2 -p:RestoreUseStaticGraphEvaluation=true` each exited 0 and restored both projects. The original solution restored with `-m:2 -p:RestoreUseStaticGraphEvaluation=true` (exit 0, two NU1900 network warnings). Default parallel restore's diagnostic log stops in `_FilterRestoreGraphProjectInputItems`/`_IsProjectRestoreSupported` with zero emitted errors. UID checks found real/effective UID 1000; no fakeroot command or `LD_PRELOAD`/`FAKEROOTKEY` was present. `git diff --check` passed.
+- Regression evidence: none; restore is not a code or runtime test. No application behavior changed.
+- Known limitation: root exception remains hidden. The independent SDK-style repro rules out a Kinovea-specific project-evaluation cause, but it does not distinguish an SDK/MSBuild defect from an environment/runtime interaction. The static graph option is verified for restore only. The similar fakeroot report at MSBuild issue #9731 does not match observed process identity and is not claimed as the cause. Full build still fails; Windows and runtime tests are `NOT_RUN`.
+- Follow-up: retain default failures in evidence; use `-p:RestoreUseStaticGraphEvaluation=true` only as a documented restore diagnostic on this host, and recheck with another SDK/host to localize the fault.
+
+## 2026-10-11 — ProjectiveMapper source characterization
+- Baseline: ProjectiveMapper, Vector3 and Ellipse sources in checkout `43c8fae5c0ccdaec7f94a42870661bc1ac70d2c3`; ScreenManager remains net48 and tied to GDI+/WinForms and other Windows dependencies.
+- Change: added a `net10.0` harness linking the exact ProjectiveMapper, Vector3 and Ellipse source. The test project supplies a narrowly documented QuadrilateralF contract substitute and no-op logger to avoid bringing unrelated GDI+ drawing/log4net assemblies into this math-only harness. Updated the matrix, test strategy and evidence. Production code was unchanged.
+- Verification: `dotnet run --project tests/ProjectiveMapper.Characterization/ProjectiveMapper.Characterization.csproj --configuration Release` on Gentoo Linux with SDK `10.0.111` / runtime `10.0.11` exited 0: `PASS: 40 ProjectiveMapper characterization assertions`. Build reports source nullable warnings; none were suppressed. `git diff --check` passed.
+- Regression evidence: Linux execution of linked source only. No Windows .NET Framework oracle or calibration workflow output is available; parity remains `UNVERIFIED`.
+- Known limitation: production QuadrilateralF, GDI+ operations, real log4net assembly and calibration callers were not run. The characterization pins the parameterless constructor's uninitialized state, invalid-input behaviors, ellipse fixture output, and a suspicious `Backward(Vector3)` Y expression/result; these observations are not an endorsement of the results.
+- Follow-up: compare pinned behaviors against a Windows legacy build before changing/extracting ProjectiveMapper; test production QuadrilateralF and calibration integration when a suitable platform/runtime is available.
+
 ## Append new entries in this format
 `YYYY-MM-DD — <task/slice> — <commit>`
 - Baseline:
