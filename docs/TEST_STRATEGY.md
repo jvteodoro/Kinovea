@@ -77,3 +77,24 @@ dotnet run --project tests/ProjectiveMapper.Characterization/ProjectiveMapper.Ch
 ```
 
 The suite covers affine/projective vertex mapping, interior forward/backward round trips, quadrilateral overloads, default construction, invalid update behavior and homogeneous mapping. It deliberately pins the current homogeneous `Backward(Vector3)` Y result, whose implementation uses `mapMatrix[1,2]` where the other inverse terms use `unmapMatrix`; do not treat this characterization as approval to change or preserve that behavior without a legacy oracle. This source-linked harness does not execute production `QuadrilateralF` or calibration callers. Windows parity and application integration remain `UNVERIFIED`.
+
+## Windows .NET Framework Bitmap oracle
+`.github/workflows/bitmap-characterization.yml` runs on `windows-2022`, uses Visual Studio MSBuild, restores the packages needed by the actual `Kinovea.Video.Bitmap` project reference, checks for the .NET Framework 4.8 targeting pack, builds the headless harness, and invokes `Kinovea.Video.Bitmap.VideoReaderBitmap` through its public `Open`/navigation/geometry/summary APIs. The harness does not use `new Bitmap(path)` as a reader proxy. Run it locally from PowerShell with the same commands used by CI:
+
+```powershell
+nuget restore Kinovea.Services/packages.config -PackagesDirectory packages -NonInteractive -Verbosity normal
+msbuild tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj /t:Rebuild /m /nologo /verbosity:minimal /p:Configuration=Release /p:Platform=AnyCPU
+tests/Bitmap.Characterization/bin/Release/Kinovea.Bitmap.Characterization.exe --output artifacts/bitmap-characterization
+```
+
+The run produces `environment.json`, `source-hashes.json`, `fixture-manifest.json`, `runtime-metadata.json`, `test-results.json`, a text summary, generated fixture inputs, and native plus RGBA pixel files. Workflow artifacts upload under `if: always()`, including after restore, build, or characterization failures. A build pass is not a behavior pass; only `test-results.json` with all assertions/cases passing is behavioral evidence.
+
+Fixture inputs are generated in the artifact directory from a documented pixel formula: 7x5 BMP, transparent 13x9 PNG, 11x7 JPEG and JPEG EXIF orientation tags 1 through 9, plus malformed PNG. JPEG bytes use the Windows GDI+ encoder at a fixed quality and therefore record their fixture SHA-256 and encoder/runtime metadata on each run. The manifest marks every run `CANDIDATE_NOT_APPROVED`; generated inputs and outputs never write into the approved-golden directory.
+
+### Golden review and approval
+1. Review a successful artifact from a specific workflow run and source commit. Confirm targeting-pack and runtime metadata, production and harness source hashes, every fixture hash, all test results, and pixel evidence files.
+2. Repeat on a clean `windows-2022` run with the same source revision. Compare fixture and pixel hashes; investigate any difference before considering approval. Do not normalize away or change pixels to make runs match.
+3. A reviewer approves a dedicated PR that adds an immutable versioned snapshot under `tests/Bitmap.Characterization/golden/approved/<baseline-id>/`, with provenance metadata naming the workflow run, commit, runner image, fixture hashes, source hashes, and reviewer. Keep this golden-data commit separate from harness/CI changes.
+4. Future output changes are reviewed as diffs against that approved snapshot. Never auto-copy candidate artifacts over approved data or regenerate expected hashes during a test run. An intentional baseline update needs a separate explicit review and commit preserving the prior baseline or its history.
+
+No Windows run or approved golden data exists yet. Current Bitmap decoding, alpha/channel interpretation, orientation, pixel format/stride, timestamp, rotation and lifecycle outcomes remain `UNVERIFIED` until artifacts are produced and reviewed.

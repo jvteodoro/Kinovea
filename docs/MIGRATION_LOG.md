@@ -67,6 +67,14 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Known limitation: production QuadrilateralF, GDI+ operations, real log4net assembly and calibration callers were not run. The characterization pins the parameterless constructor's uninitialized state, invalid-input behaviors, ellipse fixture output, and a suspicious `Backward(Vector3)` Y expression/result; these observations are not an endorsement of the results.
 - Follow-up: compare pinned behaviors against a Windows legacy build before changing/extracting ProjectiveMapper; test production QuadrilateralF and calibration integration when a suitable platform/runtime is available.
 
+## 2026-10-11 — Windows Bitmap characterization infrastructure
+- Baseline: ADR 0002 is `PROPOSED`; `Kinovea.Video.Bitmap` targets net48 and uses the existing GDI+ reader. Linux lacks .NET Framework 4.8 reference assemblies.
+- Change: added a `windows-2022` GitHub Actions workflow, a headless net48 harness referencing the production Bitmap project, deterministic in-memory fixture generation (BMP/PNG/JPEG plus EXIF orientations 1–9), raw/normalized pixel evidence capture, runtime/source hashes, JSON manifests and explicit test reports. Documented golden review and separate approval process. Production reader code and behavior were not changed; no replacement imaging library or System.Drawing migration was made.
+- Verification: project XML validation passed with `xmllint`, workflow YAML parsed and its `windows-2022`/target-pack/always-upload structure was checked, C# sources passed Roslyn 7.3 syntax parsing, and `git diff --check` passed. `dotnet msbuild tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj -target:Build -property:Configuration=Release -property:Platform=AnyCPU -verbosity:minimal` exited 1 with MSB3644 because this Linux host lacks net48 reference assemblies. No Visual Studio MSBuild, PowerShell, Mono or Windows runner was available locally. Windows build, workflow, fixture generation and reader tests are `NOT_RUN`. See `docs/evidence/2026-10-11-bitmap-characterization-infrastructure.md`.
+- Regression evidence: none yet. Harness assertions are source-derived expectations, not observed Windows outputs. No golden baseline has been approved; all Bitmap behavior remains `UNVERIFIED`.
+- Known limitation: CI has been authored but not executed. NuGet restore, transitive legacy project build, runner pack check, JPEG/EXIF generation, pixel capture and artifact upload remain to be verified on GitHub `windows-2022`.
+- Follow-up: run the workflow; review its complete artifact and repeat with the same source SHA. Resolve all failures and nondeterministic differences before adding an approved golden-data commit. Keep ADR 0002 `PROPOSED` until its required architectural review.
+
 ## Append new entries in this format
 `YYYY-MM-DD — <task/slice> — <commit>`
 - Baseline:

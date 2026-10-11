@@ -30,6 +30,8 @@ Treat pixel storage format, channel order, alpha representation, row stride/orie
 ## Consequences and required evidence
 
 - The next executable characterization requires Windows/.NET Framework 4.8/GDI+ and synthetic or licensed BMP/JPEG/PNG fixtures, including EXIF orientation cases. The detailed plan is in `docs/evidence/2026-10-11-bitmap-boundary.md`.
+- The workflow and headless harness are implemented at `.github/workflows/bitmap-characterization.yml` and `tests/Bitmap.Characterization`. They invoke the actual `VideoReaderBitmap` project reference and collect pixel, runtime, source-hash, fixture-manifest and test-report artifacts. Their Windows execution is still `NOT_RUN`; no measured reader output is available yet. See `docs/evidence/2026-10-11-bitmap-characterization-infrastructure.md`.
+- Candidate artifacts do not approve a golden baseline. Golden approval requires a reviewed Windows run and a separate commit containing the exact fixture and output hashes plus reviewer and source revision metadata. ADR status remains `PROPOSED`; this infrastructure change does not complete architectural review.
 - After those results exist, a separate design task must propose the frame representation and lifecycle contract, including conversion points for ScreenManager/OpenCV/export consumers.
 - Any package selection needs a separate license, native/runtime packaging, and pixel-parity review. This ADR does not approve a package or backend replacement.
 - Until a Windows oracle and Linux tests of a candidate boundary exist, Bitmap/Video remain unported and regression parity remains `UNVERIFIED`.
