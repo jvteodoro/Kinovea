@@ -16,13 +16,18 @@ public enum PixelFormat
 public enum AlphaMode
 {
     None = 0,
+
+    /// <summary>Color components are not multiplied by alpha.</summary>
     Straight = 1,
+
+    /// <summary>Color components have already been multiplied by alpha.</summary>
     Premultiplied = 2
 }
 
 /// <summary>
 /// Owns a two-dimensional view over a caller-supplied memory owner. Ownership
-/// transfers to this instance only when <see cref="Create"/> succeeds.
+/// transfers to this instance only when <see cref="Create"/> succeeds; after
+/// success, the caller must relinquish the owner and must not mutate its memory.
 /// </summary>
 /// <remarks>
 /// Logical row y begins at <c>RowZeroOffset + y * StrideBytes</c>. Stride is a
