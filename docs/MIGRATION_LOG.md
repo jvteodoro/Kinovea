@@ -26,6 +26,14 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Known limitation: the immediate failure trigger is inner parallel restore-graph processing in this environment. MSBuild/NuGet still emits no underlying exception, so the lower-level engine cause is unresolved. The serial build also confirms the missing `Microsoft.CSharp.Targets` import in `Kinovea.Camera.csproj:291`.
 - Follow-up: retain serial restore/build as a diagnostic command only; do not alter project files as part of this investigation. Add a narrowly scoped investigation if MSBuild's silent parallel failure must be fixed rather than avoided operationally. Timecode characterization remains the next application-facing task.
 
+## 2026-10-11 — timecode source characterization
+- Baseline: `Kinovea.Services/TimeHelper.cs` and its enum/delegate contracts in checkout `815c5579ddc2686914d29546e4bf606e84f7e353`; no formatter implementation was changed. Existing `Kinovea.Tests/Time/TimecodeFormatTest.cs` only logs outputs and has no assertions; its net48 project references the broad legacy UI/media graph.
+- Change: added a package-free `net10.0` console characterization project that links those exact four source files. Added assertions for all `GetTimestring` enum branches, `GetTimecodeType` mappings, culture, frame-rate precision, negative/zero/large time, midpoint rounding/carry, normalization endpoints/zero duration/zero total frames, timestamp narrowing boundaries and identity mapping. Updated strategy, matrix and this log.
+- Verification: `dotnet run --project tests/Timecode.Characterization/Timecode.Characterization.csproj --configuration Release` on Gentoo Linux with SDK `10.0.111` / runtime `10.0.11` exited 0: `PASS: 50 timecode characterization assertions`. `git diff --check` exited 0.
+- Regression evidence: source-linked Linux observations only. No Windows .NET Framework execution or known output oracle was available; legacy parity is `UNVERIFIED`, not `REGRESSION_VERIFIED`.
+- Known limitation: selected observations reflect .NET 10/Linux globalization and checked inputs; they do not establish Windows globalization behavior or application integration. The existing legacy demo was not run because its project references net48 and unavailable platform/media projects.
+- Follow-up: use these assertions as a characterization gate before extracting or changing timecode code; capture and compare a Windows legacy oracle when available.
+
 ## Append new entries in this format
 `YYYY-MM-DD — <task/slice> — <commit>`
 - Baseline:
