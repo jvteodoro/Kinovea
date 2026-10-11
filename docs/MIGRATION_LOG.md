@@ -123,3 +123,12 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Regression evidence: measured only against explicit harness assertions for the inspected legacy code, not against another runtime or previously approved baseline. This supports a repeatable Windows oracle but is not a `REGRESSION_VERIFIED` migration claim.
 - Known limitation: no approved golden snapshot or architectural review exists. Coverage is limited to the specified synthetic BMP/PNG/JPEG inputs and current Windows/GDI+ environment; Linux/.NET 10, GUI and broader image behavior remain unverified. NuGet restore emits NU1902 for log4net 2.0.14.
 - Follow-up: reviewer should inspect candidate manifests and binary outputs, then add a separate approved golden-data commit if accepted. Conduct ADR 0002 architectural review separately; retain its `PROPOSED` status until then.
+
+
+## 2026-10-11 — Preserve candidate Bitmap oracle and make CI manual
+- Baseline: two clean `windows-2022` runs at source SHA `0a9e8a5f847b77e030355dd2f38a7de97a4a2572`, each passing 19 cases and 537 assertions; 72 fixture/pixel files matched byte-for-byte.
+- Change: preserve the first run's synthetic input fixtures, legacy reader pixel files, manifests, metadata and report under `tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/`. Change the workflow trigger to manual dispatch only. Document that this candidate is not approved golden data.
+- Verification: verify snapshot file hashes against its recorded checksum manifest; validate workflow YAML and ensure `workflow_dispatch` is the sole trigger; run `git diff --check`. No reader build or test rerun is needed for this artifact/documentation and trigger-only change; the recorded Windows runs remain the behavioral evidence.
+- Regression evidence: candidate report records 19 cases, 537 assertions and zero failures. Repeat run confirmed fixture/pixel reproducibility.
+- Known limitation: candidate is not reviewer-approved; behavior outside its cases is `UNVERIFIED`. This change does not alter production code.
+- Follow-up: conduct separate golden review before copying this candidate into `approved/`; keep ADR 0002 `PROPOSED` pending architectural review.

@@ -1,0 +1,33 @@
+{
+  "capturedUtc": "2026-10-11T21:08:23.0478079Z",
+  "gitSha": "0a9e8a5f847b77e030355dd2f38a7de97a4a2572",
+  "runnerOs": "Windows",
+  "runnerImage": "20261004.326.1",
+  "machineName": "runnervmtn0fv",
+  "osVersion": "Microsoft Windows NT 10.0.20348.0",
+  "processArchitecture": 64,
+  "powershellVersion": "7.6.6",
+  "dotnetFrameworkRelease": 533325,
+  "visualStudioPath": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise",
+  "visualStudioMsBuildPath": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\MSBuild\\Current\\Bin\\MSBuild.exe",
+  "visualStudioMsBuildAvailable": true,
+  "msbuildPath": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\MSBuild\\Current\\Bin\\MSBuild.exe",
+  "msbuildVersion": "17.14.60.43110",
+  "netFramework48TargetingPackRoot": "C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.8",
+  "netFramework48TargetingPackAvailable": true,
+  "netFramework48ReferenceAssemblies": [
+    {
+      "name": "mscorlib.dll",
+      "available": true
+    },
+    {
+      "name": "System.dll",
+      "available": true
+    },
+    {
+      "name": "System.Drawing.dll",
+      "available": true
+    }
+  ],
+  "frameworkListSha256": "e7f1f8a36f6dd41334a22a156f2822dce0e6b66186a35c643c8dfd784f7c018a"
+}

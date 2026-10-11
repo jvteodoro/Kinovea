@@ -48,3 +48,10 @@ These passing assertions and repeatable files are candidate characterization evi
 Candidate artifacts must be reviewed against their workflow source commit, production/harness source hashes, fixture hashes, runner/targeting-pack metadata, test report, and pixel files. Repeat the same source revision on a clean `windows-2022` runner and investigate all differences before approval. A reviewer then adds a versioned, immutable baseline in a separate reviewed commit under `tests/Bitmap.Characterization/golden/approved/<baseline-id>/`, recording run ID, source SHA, runner image, fixture/source/output hashes, and reviewer. The generator and workflow write only to artifacts and never overwrite approved data. Baseline changes require a separate review and commit.
 
 No approved baseline exists yet. The successful artifacts contain measured results for the listed fixtures and operations; behavior outside those tested inputs and assertions remains `UNVERIFIED`. This does not establish handling for broader/corrupt variants, other encodings, UI integration, other Windows/GDI+ versions, Linux/.NET 10, or parity with an independently approved expected-output fixture. ADR 0002 remains `PROPOSED` pending the required architectural review.
+
+
+## Preserved candidate snapshot and workflow schedule
+
+The first successful run's generated inputs and binary pixel evidence are preserved at `tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/`. This directory includes 13 fixture files, 59 pixel evidence files, the environment and runtime manifests, source hashes, fixture manifest, and test reports, plus a SHA-256 listing. The snapshot is tied to source SHA `0a9e8a5f847b77e030355dd2f38a7de97a4a2572` and run `38175088092`; repeat run `38175219336` confirmed identical fixture and pixel bytes. It remains `CANDIDATE_NOT_APPROVED`, not a golden baseline.
+
+The workflow now has only the `workflow_dispatch` trigger. Pushes and pull requests do not start Windows jobs. A reviewer can still request a fresh run manually when needed. Production sources are unchanged by this scheduling and evidence-storage change.

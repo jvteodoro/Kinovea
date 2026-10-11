@@ -1,8 +1,6 @@
 name: Legacy Bitmap characterization
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 permissions:

@@ -1,0 +1,94 @@
+[
+  {
+    "path": "Kinovea.Video.Bitmap/VideoReaderBitmap.cs",
+    "sha256": "3372934dd44a8ad98b83894debe69a58925407622e1960b09d85e82d40688b37"
+  },
+  {
+    "path": "Kinovea.Video.Bitmap/FrameGeneratorImageFile.cs",
+    "sha256": "867539df52a8b68d6f113f9d532e29707eaf0781ad08d3440ffcef1dd72636c3"
+  },
+  {
+    "path": "Kinovea.Video/VideoReaders/VideoReader.cs",
+    "sha256": "9675dc550ca8c641cb4843331e160da7cfcf5b4cb270fed22284dbc33290ead0"
+  },
+  {
+    "path": "Kinovea.Video/VideoReaders/IFrameGenerator.cs",
+    "sha256": "34486a9d8dd46bb88c794b9d6fde58042c065ba58325454d896a236ee788a967"
+  },
+  {
+    "path": "Kinovea.Video/Caching/VideoFrame.cs",
+    "sha256": "e67f9bd666748ab2696f15b57180707c27ec19fb5a43cb394ee4778914b7cf92"
+  },
+  {
+    "path": "Kinovea.Video/Caching/PlayerState.cs",
+    "sha256": "2d258ca9861db8772650663b8ea7ea3376ab66b921a13a308c41d8b00a9ac95f"
+  },
+  {
+    "path": "Kinovea.Video/Caching/PlayerAction.cs",
+    "sha256": "3c922d71beb8cabd026ee00f886da8032dfd2e74db5131658eb0a24bc9e3f7f3"
+  },
+  {
+    "path": "Kinovea.Video/VideoInfo.cs",
+    "sha256": "f8cccb2b19d64e2cf30a9cbe09c48f37f12a695337794f9de6a2ccea596eb682"
+  },
+  {
+    "path": "Kinovea.Video/VideoSummary.cs",
+    "sha256": "22b2005cd33fb9d2cfb80dc7d495f5d4044dc8e1e094d5e9b857b2b6a19db1e3"
+  },
+  {
+    "path": "Kinovea.Video/VideoGeometry/VideoGeometry.cs",
+    "sha256": "8c204aff7f8c4da170339423c830892521b3b030cfebaec22464fa79d1243818"
+  },
+  {
+    "path": "Kinovea.Video/VideoGeometry/VideoGeometryRequest.cs",
+    "sha256": "c842859f7495b15193315b1463d52ba9ffe59bdd267e1b70a7364ff8831cc713"
+  },
+  {
+    "path": "Kinovea.Services/Types/ImageRotation.cs",
+    "sha256": "557176eca5db9d672ee967f0b7682dbac4068f93d7ba5c86a74e76e05190706f"
+  },
+  {
+    "path": "Kinovea.Services/Types/VideoSection.cs",
+    "sha256": "b05d1686ffb06f544514343f9af38862d6fba3b73cda2e86a258e105c7eeec2e"
+  },
+  {
+    "path": "Kinovea.Video.Bitmap/Kinovea.Video.Bitmap.csproj",
+    "sha256": "01451dde65df62c118340baa104da570f4643f1f89c009356e471a3fb29e06f6"
+  },
+  {
+    "path": "Kinovea.Video/Kinovea.Video.csproj",
+    "sha256": "a726c6ca710af99094ec366957e9904878ff83f3ca8e4f5a18ec49ebac180a95"
+  },
+  {
+    "path": "Kinovea.Services/Kinovea.Services.csproj",
+    "sha256": "148988c106eab0c5b1ddf96612b0342f6760fa7360d90be1e4a611ab47777d9d"
+  },
+  {
+    "path": "Kinovea.Services/packages.config",
+    "sha256": "2c1a4a32c3f511770c015dae0fd79786ac452ea86829e555eac572c509e83271"
+  },
+  {
+    "path": "tests/Bitmap.Characterization/Program.cs",
+    "sha256": "b0bcb0cb5c0968aae2037dcea0727651de2ecf873534765d83ce0490d9546d4e"
+  },
+  {
+    "path": "tests/Bitmap.Characterization/FixtureFactory.cs",
+    "sha256": "09bdef0f670fee8d5f2a1557fee0ba22b714a231df8b12fe2f878cb933e23573"
+  },
+  {
+    "path": "tests/Bitmap.Characterization/EvidenceWriter.cs",
+    "sha256": "6f7d1ce873395954c91c51e141f9f523894c8552d662eeac4cbf51d97e1a3cf7"
+  },
+  {
+    "path": "tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj",
+    "sha256": "6039f800ceb90b4fea47df4c07a26038acab0cc1e44e106d179c7eb0554d76e0"
+  },
+  {
+    "path": "scripts/bitmap-characterization/prepare-artifacts.ps1",
+    "sha256": "e786e08fbe2ed4c7f5e0a8a4a8fef350b9badb104a24c249f701678a8c2482b3"
+  },
+  {
+    "path": ".github/workflows/bitmap-characterization.yml",
+    "sha256": "f0eedf9812b768a288e782de9772f3a52ccc2ec6b898b646aade4265a843f531"
+  }
+]

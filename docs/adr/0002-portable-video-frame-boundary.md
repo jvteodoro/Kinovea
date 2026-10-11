@@ -35,3 +35,5 @@ Treat pixel storage format, channel order, alpha representation, row stride/orie
 - After those results exist, a separate design task must propose the frame representation and lifecycle contract, including conversion points for ScreenManager/OpenCV/export consumers.
 - Any package selection needs a separate license, native/runtime packaging, and pixel-parity review. This ADR does not approve a package or backend replacement.
 - Until a Windows oracle and Linux tests of a candidate boundary exist, Bitmap/Video remain unported and regression parity remains `UNVERIFIED`.
+
+The characterization workflow is manual-dispatch only to avoid consuming Windows runner resources on every push or pull request. Repeatable candidate inputs and outputs from the two successful runs are preserved under `tests/Bitmap.Characterization/golden/candidate/`; this storage does not change the ADR status or approve a golden baseline.
