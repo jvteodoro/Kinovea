@@ -132,3 +132,20 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Regression evidence: candidate report records 19 cases, 537 assertions and zero failures. Repeat run confirmed fixture/pixel reproducibility.
 - Known limitation: candidate is not reviewer-approved; behavior outside its cases is `UNVERIFIED`. This change does not alter production code.
 - Follow-up: conduct separate golden review before copying this candidate into `approved/`; keep ADR 0002 `PROPOSED` pending architectural review.
+
+
+## 2026-10-11 — Portable frame contract architecture proposal
+- Baseline: requested `port/net10-linux` head `125dbbb907f554162bc31e54f95090876a19773f`; Windows Bitmap evidence remains candidate data with status `PENDING_HUMAN_APPROVAL`.
+- Change: drafted ADR 0003 describing an explicit format/stride/alpha/timebase contract, ownership and disposal rules, a no-pool initial policy, producer/consumer map, conversion boundaries, tradeoffs, test gates and migration stages. Updated the matrix and test strategy. No production API or behavior changed.
+- Verification: source inspection only; `git diff --check` passed. No builds or behavior tests run.
+- Regression evidence: Windows candidate observations are cited as measured but remain pending human approval. Raw channel order, alpha premultiplication, independent EXIF pixel transforms, negative stride and resource leak behavior remain `UNVERIFIED`; Linux parity is `NOT_RUN`.
+- Limitations: implementation-wide Bitmap inventory remains incomplete for unrelated UI resources/drawing images; the design evidence identifies this boundary.
+- Follow-up: review and resolve ADR 0003 questions, complete missing Windows characterization, then implement the approved contract in a separate task on `port/net10-linux`.
+
+## 2026-10-11 — Revise ADR 0003 for minimal behavior-preserving migration
+- Baseline: PR #2 review `5485255332`; branch `design/portable-frame-contract` at `e01dc1b41cab64a58acedd463ef189e526c16fd0`; target `port/net10-linux` at `125dbbb907f554162bc31e54f95090876a19773f`.
+- Change: selected a parallel portable pixel seam while preserving legacy contracts. Added per-change compatibility classifications, Option A/B/C comparison, signed-stride and `ReadOnlyMemory` lifetime limits, legacy behavior guarantees, non-goals, and staged Windows/Linux regression and rollback criteria. Inspected actual reader/generator/cache/export/OpenCV code. Updated evidence, matrix and test strategy.
+- Verification: PR reviews/comments and issue comments queried with `gh api`; one architectural review was returned and no inline/issue comments were returned. Source inspection and `git diff --check`; no runtime test/build run.
+- Regression evidence: Windows characterization remains candidate `PENDING_HUMAN_APPROVAL`; no new behavior is asserted. Raw channels, premultiplication, EXIF pixel maps and disposal remain gaps; Linux parity `NOT_RUN`.
+- Limitations: UI rendering library and eventual decoder/native interop remain unresolved. No production code changed.
+- Follow-up: review the revised ADR, then implement only the isolated net10 pixel contract plus synthetic producer and conformance tests after approval.
