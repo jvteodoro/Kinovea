@@ -1,0 +1,64 @@
+name: Legacy Bitmap characterization
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  characterize:
+    runs-on: windows-2022
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Visual Studio MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Set up NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Capture runner metadata and verify .NET Framework 4.8 targeting pack
+        shell: pwsh
+        run: ./scripts/bitmap-characterization/prepare-artifacts.ps1 -ArtifactsPath artifacts/bitmap-characterization
+
+      - name: Restore legacy project packages
+        shell: pwsh
+        run: |
+          nuget restore Kinovea.Services/packages.config -PackagesDirectory packages -NonInteractive -Verbosity normal *>&1 |
+            Tee-Object -FilePath artifacts/bitmap-characterization/nuget-restore.log
+          if ($LASTEXITCODE -ne 0) { throw "NuGet restore failed with exit code $LASTEXITCODE" }
+
+      - name: Build headless harness and actual legacy reader references
+        shell: pwsh
+        run: |
+          msbuild tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj `
+            /t:Rebuild /m /nologo /verbosity:minimal `
+            /p:Configuration=Release /p:Platform=AnyCPU `
+            "/flp:logfile=artifacts/bitmap-characterization/msbuild.log;verbosity=normal" `
+            /bl:artifacts/bitmap-characterization/msbuild.binlog
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE" }
+
+      - name: Run reader characterization
+        shell: pwsh
+        run: |
+          $exe = "tests/Bitmap.Characterization/bin/Release/Kinovea.Bitmap.Characterization.exe"
+          if (-not (Test-Path -LiteralPath $exe)) { throw "Characterization executable was not produced: $exe" }
+          & $exe --output artifacts/bitmap-characterization
+          if ($LASTEXITCODE -ne 0) { throw "Characterization failed with exit code $LASTEXITCODE" }
+
+      - name: Upload characterization evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: bitmap-characterization-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/bitmap-characterization/
+          if-no-files-found: warn
+          retention-days: 90
