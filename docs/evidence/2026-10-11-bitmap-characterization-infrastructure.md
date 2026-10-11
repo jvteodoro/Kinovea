@@ -6,7 +6,7 @@
 - Available .NET: SDK `10.0.111`, runtime `10.0.11`.
 - Windows/.NET Framework 4.8/GDI+: `NOT_RUN` on this host.
 - Fixtures: generator source added; Windows-generated fixture hashes and decoded outputs are `NOT_RUN`.
-- Golden baseline: none approved or committed.
+- At this infrastructure checkpoint, no reviewer-approved golden baseline was committed; the later candidate snapshot is separately identified and remains pending review.
 
 ## Implemented runner
 
@@ -41,7 +41,7 @@ Expected artifact files are `environment.json`, `source-hashes.json`, `runtime-m
 
 No `pwsh`, Windows PowerShell, Mono, or Visual Studio MSBuild executable was present on the implementation host. The local MSBuild failure above is an environment targeting-pack failure, not a test result. Two later GitHub runs at the same source SHA completed the reader characterization and produced matching bytes for all 72 fixture/pixel files. Measured behavior includes: BMP decoded as 7x5 `Format32bppRgb` (32 bpp, stride 28); transparent PNG decoded as 13x9 `Format32bppArgb` (32 bpp, stride 52) with one fully transparent and two partially transparent pixels; JPEG decoded as `Format24bppRgb` (24 bpp, row payload 33, stride 36); EXIF orientations 3/6/8 applied rotations 180/90/270 degrees with 6/8 yielding 7x11 frames, while the remaining tested values retained zero rotation; DPI was 96x96. Reader metadata reported 25 fps, first/last timestamp 0, duration 250, interval 40 ms; requests at timestamps 37 and 80 were accepted with previous timestamps 36 and 79, and a working-zone-external request left the current frame unchanged. Close set Loaded false and the disposed frame image rejected access with `ArgumentException`; reopening succeeded. Manual rotation and summary-thumbnail cases passed and binary pixels were captured. See the candidate test report for full assertions and hashes.
 
-These passing assertions and repeatable files are candidate characterization evidence, not an approved golden baseline. No golden data was committed. Approval remains a separate reviewer-controlled change per `docs/TEST_STRATEGY.md`; ADR 0002 remains `PROPOSED` pending architectural review. The results do not establish Linux/.NET 10 support, application end-to-end behavior, or compatibility for GIF/SVG/video readers.
+These passing assertions and repeatable files are candidate characterization evidence, not an approved golden baseline. The candidate snapshot was later committed under `tests/Bitmap.Characterization/golden/candidate/`; no reviewer-approved baseline exists. Approval remains a separate reviewer-controlled change per `docs/TEST_STRATEGY.md`; ADR 0002 remains `PROPOSED` pending architectural review. The results do not establish Linux/.NET 10 support, application end-to-end behavior, or compatibility for GIF/SVG/video readers.
 
 ## Oracle approval process and limits
 
@@ -52,6 +52,6 @@ No approved baseline exists yet. The successful artifacts contain measured resul
 
 ## Preserved candidate snapshot and workflow schedule
 
-The first successful run's generated inputs and binary pixel evidence are preserved at `tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/`. This directory includes 13 fixture files, 59 pixel evidence files, the environment and runtime manifests, source hashes, fixture manifest, and test reports, plus a SHA-256 listing. The snapshot is tied to source SHA `0a9e8a5f847b77e030355dd2f38a7de97a4a2572` and run `38175088092`; repeat run `38175219336` confirmed identical fixture and pixel bytes. It remains `CANDIDATE_NOT_APPROVED`, not a golden baseline.
+The first successful run's generated inputs and binary pixel evidence are preserved at `tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/`. This directory includes 14 fixture input files, 58 pixel evidence files, the environment and runtime manifests, source hashes, fixture manifest, and test reports, plus a SHA-256 listing. The snapshot is tied to source SHA `0a9e8a5f847b77e030355dd2f38a7de97a4a2572` and run `38175088092`; repeat run `38175219336` confirmed identical fixture and pixel bytes. It remains `CANDIDATE_NOT_APPROVED`, not a golden baseline.
 
 The workflow now has only the `workflow_dispatch` trigger. Pushes and pull requests do not start Windows jobs. A reviewer can still request a fresh run manually when needed. Production sources are unchanged by this scheduling and evidence-storage change.
