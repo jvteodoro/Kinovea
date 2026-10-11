@@ -98,3 +98,8 @@ Fixture inputs are generated in the artifact directory from a documented pixel f
 4. Future output changes are reviewed as diffs against that approved snapshot. Never auto-copy candidate artifacts over approved data or regenerate expected hashes during a test run. An intentional baseline update needs a separate explicit review and commit preserving the prior baseline or its history.
 
 Windows runs `38175088092` and `38175219336` both passed on the same source SHA with 19 cases and 537 assertions. Comparing downloaded artifacts showed all 72 fixture and pixel files byte-for-byte identical; GDI+ version was `10.0.20348.5622` on both. The observed values and artifact hashes are recorded in `docs/evidence/2026-10-11-bitmap-characterization-infrastructure.md`. These are candidate outputs; no reviewer-approved golden snapshot exists yet. The scope does not cover other image formats, app UI integration, or cross-platform runtime behavior.
+
+
+### Portable frame contract design
+
+The proposed platform-neutral representation and ownership rules are in [ADR 0003](adr/0003-portable-frame-representation.md), with source inventory and evidence limits in [the design investigation](evidence/2026-10-11-portable-frame-contract-design.md). The proposal favors a small format-preserving pixel descriptor plus explicit conversions; this remains **PROPOSED** pending architectural review. The Windows candidate data is not approved and leaves raw channel order, alpha premultiplication, independent EXIF pixel transforms, negative stride, and resource leak behavior unverified. Strengthen those Windows characterizations before using the candidate as a behavioral gate. No Linux parity test or portable frame implementation has run as part of this design task.

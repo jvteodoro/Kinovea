@@ -132,3 +132,12 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Regression evidence: candidate report records 19 cases, 537 assertions and zero failures. Repeat run confirmed fixture/pixel reproducibility.
 - Known limitation: candidate is not reviewer-approved; behavior outside its cases is `UNVERIFIED`. This change does not alter production code.
 - Follow-up: conduct separate golden review before copying this candidate into `approved/`; keep ADR 0002 `PROPOSED` pending architectural review.
+
+
+## 2026-10-11 — Portable frame contract architecture proposal
+- Baseline: requested `port/net10-linux` head `125dbbb907f554162bc31e54f95090876a19773f`; Windows Bitmap evidence remains candidate data with status `PENDING_HUMAN_APPROVAL`.
+- Change: drafted ADR 0003 describing an explicit format/stride/alpha/timebase contract, ownership and disposal rules, a no-pool initial policy, producer/consumer map, conversion boundaries, tradeoffs, test gates and migration stages. Updated the matrix and test strategy. No production API or behavior changed.
+- Verification: source inspection only; `git diff --check` passed. No builds or behavior tests run.
+- Regression evidence: Windows candidate observations are cited as measured but remain pending human approval. Raw channel order, alpha premultiplication, independent EXIF pixel transforms, negative stride and resource leak behavior remain `UNVERIFIED`; Linux parity is `NOT_RUN`.
+- Limitations: implementation-wide Bitmap inventory remains incomplete for unrelated UI resources/drawing images; the design evidence identifies this boundary.
+- Follow-up: review and resolve ADR 0003 questions, complete missing Windows characterization, then implement the approved contract in a separate task on `port/net10-linux`.
