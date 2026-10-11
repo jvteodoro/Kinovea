@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
+using SystemBitmap = System.Drawing.Bitmap;
 
 namespace Kinovea.Bitmap.Characterization
 {
@@ -94,7 +95,7 @@ namespace Kinovea.Bitmap.Characterization
         private static void AddBitmapFixture(List<FixtureSpec> fixtures, string directory, string id, string fileName, string format, int width, int height, bool transparent, int? orientation)
         {
             string path = System.IO.Path.Combine(directory, fileName);
-            using (var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb))
+            using (var bitmap = new SystemBitmap(width, height, PixelFormat.Format32bppArgb))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -148,7 +149,7 @@ namespace Kinovea.Bitmap.Characterization
 
         private static byte[] EncodeJpeg(int width, int height)
         {
-            using (var bitmap = new Bitmap(width, height, PixelFormat.Format24bppRgb))
+            using (var bitmap = new SystemBitmap(width, height, PixelFormat.Format24bppRgb))
             {
                 for (int y = 0; y < height; y++)
                 {

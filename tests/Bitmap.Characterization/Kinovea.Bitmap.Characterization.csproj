@@ -47,6 +47,10 @@
       <Project>{C0148B9E-A511-4631-A075-AE483D4153A8}</Project>
       <Name>Kinovea.Video.Bitmap</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Kinovea.Services\Kinovea.Services.csproj">
+      <Project>{8AA92254-A016-4A84-925C-F5B07E02F8A8}</Project>
+      <Name>Kinovea.Services</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using SystemBitmap = System.Drawing.Bitmap;
 using Kinovea.Services;
 using Kinovea.Video;
 using Kinovea.Video.Bitmap;
@@ -188,7 +189,7 @@ namespace Kinovea.Bitmap.Characterization
                         test.Equal(255, actual.A, "BMP first pixel alpha channel");
                     }
 
-                    Bitmap firstImage = reader.Current.Image;
+                    SystemBitmap firstImage = reader.Current.Image;
                     bool timestampMove = reader.MoveRequest(false, 37);
                     test.Equal(true, timestampMove, "arbitrary timestamp move accepted");
                     test.Equal(37L, reader.Current.Timestamp, "arbitrary timestamp stored");
@@ -275,7 +276,7 @@ namespace Kinovea.Bitmap.Characterization
             {
                 test.Equal("4x2", summary.Thumbs[0].Width + "x" + summary.Thumbs[0].Height, "summary thumbnail dimensions");
                 test.Observation("thumbnail", CaptureBitmap(summary.Thumbs[0], "summary-thumbnail", outputDirectory, test));
-                foreach (Bitmap thumbnail in summary.Thumbs) thumbnail.Dispose();
+                foreach (SystemBitmap thumbnail in summary.Thumbs) thumbnail.Dispose();
             }
             test.Equal(false, reader.Loaded, "reader loaded state after summary extraction");
         }
@@ -303,7 +304,7 @@ namespace Kinovea.Bitmap.Characterization
             }
         }
 
-        private static Dictionary<string, object> CaptureBitmap(Bitmap bitmap, string id, string outputDirectory, CaseRecorder test)
+        private static Dictionary<string, object> CaptureBitmap(SystemBitmap bitmap, string id, string outputDirectory, CaseRecorder test)
         {
             Dictionary<string, object> capture = EvidenceWriter.CaptureBitmap(bitmap, id, outputDirectory);
             test.Equal<object>(null, capture["nativeCaptureError"], id + " native stride/pixel capture succeeds");

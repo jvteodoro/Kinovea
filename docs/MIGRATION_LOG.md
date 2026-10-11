@@ -87,7 +87,15 @@ Append chronological entries; do not erase unsuccessful experiments.
 ## 2026-10-11 — Bitmap characterization CI x64 configuration correction
 - Baseline: workflow run `38174132063` on `windows-2022`, source `1d14a2722b6cbf4fda992ca760ec39d03931d844`.
 - Change: configured the headless harness and workflow for `Release|x64`, matching the legacy `Kinovea.Services` configuration that enables unsafe blocks. Updated local command documentation, migration matrix, ADR evidence and CI evidence record. Production source and reader behavior were not changed.
-- Verification: run `38174132063` confirmed the .NET Framework 4.8 targeting pack and NuGet restore, then failed with nine CS0227 errors while building Services under AnyCPU. The diagnostic artifact was uploaded. `xmllint --noout tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj`, workflow YAML parsing plus x64 build/run path assertions, and `git diff --check` passed for the correction. The updated Windows build and reader run have not executed yet.
+- Verification: run `38174132063` confirmed the .NET Framework 4.8 targeting pack and NuGet restore, then failed with nine CS0227 errors while building Services under AnyCPU. Run `38174665514` built x64 Services successfully, then failed on harness compile errors recorded in the evidence file. The diagnostic artifacts were uploaded. Local XML/YAML/path assertions and diff checks passed; reader execution remains NOT_RUN.
 - Regression evidence: none. The harness was skipped by CI; no reader tests, fixtures, or pixel results were generated. Decoder behavior remains `UNVERIFIED`.
-- Known limitation: corrected x64 configuration has not yet run on Windows; no local Visual Studio MSBuild is available.
-- Follow-up: run the updated workflow on GitHub. Only after the executable passes should candidate fixtures be repeated and reviewed for approval.
+- Known limitation: no local Visual Studio MSBuild is available, and the harness still has compile errors pending the follow-up fix below.
+- Follow-up: rebuild and execute after correcting the harness project reference and type name collisions. Only after the executable passes should candidate fixtures be repeated and reviewed for approval.
+
+## 2026-10-11 — Bitmap harness compile corrections
+- Baseline: run `38174665514` on `windows-2022` at source `cd8d9869736d04914b1d6fb6212669da7948c273`.
+- Change: add a direct `Kinovea.Services` project reference for the `ImageRotation` API type and alias `System.Drawing.Bitmap` in harness sources to prevent collision with the enclosing `Kinovea.Bitmap` namespace. Production projects are unchanged.
+- Verification: source and documentation checks pending before commit. The next Windows run has not started.
+- Regression evidence: none; run 38174665514 failed during compilation and skipped the reader.
+- Known limitation: no generated fixtures, reports, or pixel evidence from either Windows run; behavior remains `UNVERIFIED`.
+- Follow-up: push the harness fix and inspect the next workflow result and artifact.

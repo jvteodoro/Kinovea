@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web.Script.Serialization;
+using SystemBitmap = System.Drawing.Bitmap;
 
 namespace Kinovea.Bitmap.Characterization
 {
@@ -39,7 +40,7 @@ namespace Kinovea.Bitmap.Characterization
                 return ToLowerHex(sha.ComputeHash(bytes));
         }
 
-        public static Dictionary<string, object> CaptureBitmap(Bitmap bitmap, string id, string outputDirectory)
+        public static Dictionary<string, object> CaptureBitmap(SystemBitmap bitmap, string id, string outputDirectory)
         {
             string pixelDirectory = Path.Combine(outputDirectory, "pixels");
             Directory.CreateDirectory(pixelDirectory);
@@ -171,7 +172,7 @@ namespace Kinovea.Bitmap.Characterization
                 { "frameworkDescription", ".NET Framework 4.8 targeting executable; actual runtime version recorded by Environment.Version" },
                 { "processBitness", IntPtr.Size * 8 },
                 { "culture", CultureInfo.CurrentCulture.Name },
-                { "systemDrawingAssemblyVersion", typeof(Bitmap).Assembly.GetName().Version.ToString() },
+                { "systemDrawingAssemblyVersion", typeof(SystemBitmap).Assembly.GetName().Version.ToString() },
                 { "gdiplusPath", gdiplusPath },
                 { "gdiplusFileVersion", gdiplusVersion },
                 { "log4netAssemblyVersion", typeof(log4net.ILog).Assembly.GetName().Version.ToString() },
