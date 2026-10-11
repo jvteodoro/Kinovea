@@ -103,7 +103,15 @@ Append chronological entries; do not erase unsuccessful experiments.
 ## 2026-10-11 — Bitmap harness Video reference correction
 - Baseline: run `38174835118` on `windows-2022`, source `5a6dbee08aae5e918ad65d5ced4982e34150e611`.
 - Change: add a direct `Kinovea.Video` project reference because old-style project references did not expose its public API types transitively to the harness. Production code is unchanged.
-- Verification: XML/YAML, source syntax and diff checks pending before commit. Next Windows build is not yet run.
-- Regression evidence: none; characterization executable remains skipped.
+- Verification: XML/YAML, source syntax and diff checks passed and the change was pushed. Run `38174949059` compiled the harness and started it, then failed during JPEG fixture generation before any reader case ran.
+- Regression evidence: none; run 38174949059 recorded zero cases and zero assertions.
 - Known limitation: no reader observations or golden output exist; behavior remains `UNVERIFIED`.
-- Follow-up: push and inspect the next Windows build, then proceed to runtime characterization only if compilation succeeds.
+- Follow-up: correct the JPEG encoder parameter type and rerun the workflow.
+
+## 2026-10-11 — Bitmap JPEG fixture encoder correction
+- Baseline: run `38174949059` on `windows-2022`, source `851edb7315abb085710d4b7136628a53c7ed151f`.
+- Change: pass JPEG quality as Int64 to GDI+ `Encoder.Quality` and print fatal setup errors into the job log. No production behavior changed.
+- Verification: source/documentation validation pending before commit. The corrected Windows run has not started.
+- Regression evidence: none. CI compiled successfully but fixture generation failed before reader characterization (zero cases/assertions).
+- Known limitation: characterization remains unexecuted and no golden baseline exists.
+- Follow-up: push and inspect the next Windows workflow run and generated report.

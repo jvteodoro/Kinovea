@@ -107,6 +107,8 @@ namespace Kinovea.Bitmap.Characterization
             Console.WriteLine("Characterization status: " + (Failures.Count == 0 ? "PASS" : "FAIL"));
             Console.WriteLine("Cases: " + Cases.Count.ToString(CultureInfo.InvariantCulture) + "; assertions: " + assertionCount.ToString(CultureInfo.InvariantCulture) + "; failed: " + (assertionCount - passedAssertions).ToString(CultureInfo.InvariantCulture));
             Console.WriteLine("Evidence directory: " + outputDirectory);
+            if (fatalError != null)
+                Console.Error.WriteLine("Fatal characterization setup error: " + fatalError);
             return Failures.Count == 0 && fatalError == null ? 0 : 1;
         }
 

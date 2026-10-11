@@ -171,7 +171,8 @@ namespace Kinovea.Bitmap.Characterization
                 using (var stream = new MemoryStream())
                 using (var parameters = new EncoderParameters(1))
                 {
-                    parameters.Param[0] = new EncoderParameter(Encoder.Quality, JpegQuality);
+                    // GDI+ expects JPEG quality in the encoder's 64-bit LONG parameter type.
+                    parameters.Param[0] = new EncoderParameter(Encoder.Quality, (long)JpegQuality);
                     bitmap.Save(stream, jpegEncoder, parameters);
                     return stream.ToArray();
                 }
