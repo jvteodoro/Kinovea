@@ -98,3 +98,14 @@ Fixture inputs are generated in the artifact directory from a documented pixel f
 4. Future output changes are reviewed as diffs against that approved snapshot. Never auto-copy candidate artifacts over approved data or regenerate expected hashes during a test run. An intentional baseline update needs a separate explicit review and commit preserving the prior baseline or its history.
 
 Windows runs `38175088092` and `38175219336` both passed on the same source SHA with 19 cases and 537 assertions. Comparing downloaded artifacts showed all 72 fixture and pixel files byte-for-byte identical; GDI+ version was `10.0.20348.5622` on both. The observed values and artifact hashes are recorded in `docs/evidence/2026-10-11-bitmap-characterization-infrastructure.md`. These are candidate outputs; no reviewer-approved golden snapshot exists yet. The scope does not cover other image formats, app UI integration, or cross-platform runtime behavior.
+
+## Portable pixel core v0.1
+
+The standalone `src/Kinovea.PortablePixels` project targets `net10.0` and has no Kinovea legacy assembly dependency. Run its package-free automated contract tests and allocation sample with:
+
+```sh
+dotnet build src/Kinovea.PortablePixels/Kinovea.PortablePixels.csproj --configuration Release
+dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj --configuration Release -- --measure
+```
+
+`.github/workflows/portable-pixel-core.yml` runs these tests on `ubuntu-latest` and `windows-latest` and uploads per-platform output even on failure. The suite verifies byte layout, row addressing/padding, alpha labels, descriptor bounds/overflow, ownership and disposal. API invariants map to named executable tests in [PORTABLE_PIXEL_CORE.md](PORTABLE_PIXEL_CORE.md). This is portable-contract conformance only; it does not exercise or validate `VideoReaderBitmap`, legacy compatibility, a decoder, or any Kinovea consumer.

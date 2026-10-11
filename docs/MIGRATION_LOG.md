@@ -132,3 +132,12 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Regression evidence: candidate report records 19 cases, 537 assertions and zero failures. Repeat run confirmed fixture/pixel reproducibility.
 - Known limitation: candidate is not reviewer-approved; behavior outside its cases is `UNVERIFIED`. This change does not alter production code.
 - Follow-up: conduct separate golden review before copying this candidate into `approved/`; keep ADR 0002 `PROPOSED` pending architectural review.
+
+## 2026-10-11 — Implement portable pixel core v0.1
+- Baseline: `port/net10-linux` at `125dbbb907f554162bc31e54f95090876a19773f`; revised ADR 0003 on PR #2; implementation SHA `029f1fa4027db0ccd05dec2fc0360bf59a8ca7ff` (core commit `55ae91760bf3f8996dd0881852e5ce38410210f1`).
+- Change: add standalone `net10.0` `Kinovea.PortablePixels` with RGB24/RGBA32 descriptors, signed stride and row-zero mapping, owner transfer/disposal, and deterministic synthetic RGB24 producer. Add 10 package-free automated tests and Linux/Windows workflow. No legacy source or behavior changed. Implementation PR: #3.
+- Verification: local Gentoo Linux SDK 10.0.111 Release library build passed (0 warnings/errors); 10 tests passed. GitHub Actions run `38181217214` passed 10 tests on Ubuntu 24.04 x64 and Windows 10.0.26100 x64 using SDK 10.0.401/runtime 10.0.12. Each platform report and SHA-256 is recorded in `docs/evidence/2026-10-11-portable-pixel-core.md`; `git diff --check` passed.
+- Allocation: 100 iterations of 640x480 RGB24 measured 92,170,400 managed bytes on Linux and 92,178,520 on Windows for 92,160,000 payload bytes. Producer/Create perform no pixel copies by source inspection; one byte array, owner object and PixelBuffer wrapper are allocated per frame. No throughput or optimization claim.
+- Regression evidence: portable contract tests only. No `VideoReaderBitmap`, legacy Windows behavior, or cross-platform reader parity test ran. Existing Windows candidate stays `PENDING_HUMAN_APPROVAL`; Bitmap reader remains unported.
+- Limitations: core currently supports only Rgb24 and Rgba32; no decoder/conversion or Kinovea consumer is integrated. `ReadOnlyMemory<byte>` values already copied by callers cannot be revoked, so lifetime is caller-scoped and documented.
+- Follow-up: review PR #3, then select one real producer/consumer boundary for characterization and an adapter without changing legacy timing or algorithms.
