@@ -37,3 +37,6 @@ Treat pixel storage format, channel order, alpha representation, row stride/orie
 - Until a Windows oracle and Linux tests of a candidate boundary exist, Bitmap/Video remain unported and regression parity remains `UNVERIFIED`.
 
 The characterization workflow is manual-dispatch only to avoid consuming Windows runner resources on every push or pull request. Repeatable candidate inputs and outputs from the two successful runs are preserved under `tests/Bitmap.Characterization/golden/candidate/`; this storage does not change the ADR status or approve a golden baseline.
+
+
+The repeatable Windows candidate has now been independently hash-audited and versioned as `bitmap-windows-net48-v1`, with status `PENDING_HUMAN_APPROVAL`. The harness currently captures outputs but has specific assertion gaps: partial-alpha RGB/premultiplication is not independently checked, EXIF mirror pixel transforms and lifecycle disposal expectations are weak, and many metadata/timestamp expectations derive from current implementation semantics. These findings are tracked in `docs/evidence/2026-10-11-bitmap-golden-audit.md`. An independent reviewer must approve the baseline in a separate reviewed commit before it can be used as `REGRESSION_VERIFIED` parity evidence. Linux/.NET 10 remains untested.

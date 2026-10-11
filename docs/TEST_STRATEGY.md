@@ -98,3 +98,24 @@ Fixture inputs are generated in the artifact directory from a documented pixel f
 4. Future output changes are reviewed as diffs against that approved snapshot. Never auto-copy candidate artifacts over approved data or regenerate expected hashes during a test run. An intentional baseline update needs a separate explicit review and commit preserving the prior baseline or its history.
 
 Windows runs `38175088092` and `38175219336` both passed on the same source SHA with 19 cases and 537 assertions. Comparing downloaded artifacts showed all 72 fixture and pixel files byte-for-byte identical; GDI+ version was `10.0.20348.5622` on both. The observed values and artifact hashes are recorded in `docs/evidence/2026-10-11-bitmap-characterization-infrastructure.md`. These are candidate outputs; no reviewer-approved golden snapshot exists yet. The scope does not cover other image formats, app UI integration, or cross-platform runtime behavior.
+
+
+### Versioned Bitmap baseline audit and comparison
+
+The two Windows artifacts are independently audited in `docs/evidence/2026-10-11-bitmap-golden-audit.md`; the versioned manifest `tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/baseline-manifest.v1.json` records fixture/pixel hashes, source revision, source-hash line-ending interpretation, both run environments, reports, and archive provenance. Its status is `PENDING_HUMAN_APPROVAL`; the reviewer and approval timestamp are unset. Do not change it to `APPROVED` without a human review and separate approval commit.
+
+Run the read-only package audit and comparator unit checks with Python 3 (standard library only):
+
+```sh
+python3 scripts/bitmap-characterization/compare-baseline.py --mode audit
+python3 -m unittest discover -s tests/Bitmap.Characterization/tools -v
+(cd tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f && sha256sum -c SHA256SUMS.txt)
+```
+
+After the baseline has an explicit human approval, the Windows legacy comparison command runs the pinned .NET Framework harness and compares all fixture and binary pixel SHA-256 values without writing under `golden/`:
+
+```powershell
+py -3 scripts/bitmap-characterization/compare-baseline.py --mode windows-legacy --manifest tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/baseline-manifest.v1.json --output artifacts/bitmap-baseline-compare/run
+```
+
+The verifier restores and rebuilds the `Release|x64` .NET Framework harness, checks the targeting pack, then runs it. It refuses full comparison while approval provenance is incomplete, outside Windows, if pinned harness sources changed, if output points under `golden/`, or if the output directory is nonempty. It reports missing, extra and changed files, fixture manifest differences, failed tests and suite-shape differences. Its `linux-net10-parity` mode is a separate command path requiring a distinct net10.0 harness that writes the same fixture/pixel evidence layout and declares `targetFramework: net10.0` in runtime metadata. No such harness exists yet, so Linux parity remains `UNVERIFIED`; the mode does not reuse or execute the Windows legacy harness.
