@@ -18,6 +18,14 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Known limitation: full-solution restore fails before the known compile-stage blockers are reported, and the current diagnostic output does not expose its cause. Windows/MSVC, Windows runtime behavior, camera hardware, FFmpeg decode/seek, and legacy behavioral oracles were not available/run. Per-project full build outcomes are not inferred from the two direct diagnostic project builds.
 - Follow-up: reproduce and explain the restore graph failure in a dedicated build-forensics issue; then add a source-isolated timecode characterization suite before any migration. Preserve the exact legacy outputs and culture/rounding behavior as the oracle.
 
+## 2026-10-11 — parallel restore graph diagnosis
+- Baseline: Task 001 commit `327cfbea597cae48a8e3e29ec5c95b4434f7d25b`; same Gentoo/.NET SDK 10.0.111 environment.
+- Change: added controlled restore-parallelism findings to the evidence record. No application source, solution, or project file changed.
+- Verification: full-solution restore with `-m:1` or `-m:2 -p:BuildInParallel=false` exits 0 (4 NU1503 warnings); the same restore with `-m:2`, `-m:4`, and `-m:8` exits 1 silently. Project-only restore for Camera and DirectShow succeeds at `-m:2`. Two-project solutions fail at `-m:2` and pass at `-m:1`, including a probe with independent classic projects. Full `dotnet build Kinovea.VS2019.sln -m:1 -v:minimal` exits 1 with 4 warnings and 20 errors: 15 MSB3644, 3 MSB4019, 2 MSB4278. Full build with `-m:2 -p:BuildInParallel=false` still exits 1, with 4 warnings and 0 reported errors; this is not a validated build workaround.
+- Regression evidence: none; no behavior or runtime tests were run.
+- Known limitation: the immediate failure trigger is inner parallel restore-graph processing in this environment. MSBuild/NuGet still emits no underlying exception, so the lower-level engine cause is unresolved. The serial build also confirms the missing `Microsoft.CSharp.Targets` import in `Kinovea.Camera.csproj:291`.
+- Follow-up: retain serial restore/build as a diagnostic command only; do not alter project files as part of this investigation. Add a narrowly scoped investigation if MSBuild's silent parallel failure must be fixed rather than avoided operationally. Timecode characterization remains the next application-facing task.
+
 ## Append new entries in this format
 `YYYY-MM-DD — <task/slice> — <commit>`
 - Baseline:

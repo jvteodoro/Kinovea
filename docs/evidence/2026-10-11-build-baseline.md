@@ -48,3 +48,29 @@ The full-solution command was run without changing its project list, target fram
 ## Limitations and follow-up
 
 The diagnostic capture identifies the failed restore graph target but not its root cause. Keep the failed result visible; do not treat a zero-error summary as a successful build. Next, isolate and explain the restore graph failure on the same checkout and SDK. Then establish a source-only timecode characterization suite, with Windows/legacy oracle comparison requested before claiming regression verification. No application code or behavior was changed for this task.
+
+## Follow-up investigation: parallel solution restore
+
+The silent failure is reproducible when solution restore uses more than one MSBuild node, and does not reproduce when restore is serialized:
+
+| Command | Exit | Result |
+|---|---:|---|
+| `dotnet restore Kinovea.VS2019.sln -m:1 -v:diag` | 0 | Restore graph completes. It emits four NU1503 warnings for the classic `Kinovea.Camera`, `Kinovea.Camera.DirectShow`, `Kinovea.Camera.HTTP`, and C++/CLI `PlayerServer` projects; no errors. |
+| `dotnet restore Kinovea.VS2019.sln -m:2 -v:minimal` | 1 | No diagnostic output; graph stops at `_FilterRestoreGraphProjectInputItems`. |
+| `dotnet restore Kinovea.VS2019.sln -m:4 -v:minimal` | 1 | No diagnostic output. |
+| `dotnet restore Kinovea.VS2019.sln -m:8 -v:minimal` | 1 | No diagnostic output. |
+| `dotnet restore Kinovea.VS2019.sln -m:2 -p:BuildInParallel=false -v:minimal` | 0 | Restore completes with the same four NU1503 warnings. |
+| `dotnet restore Kinovea.VS2019.sln -m:2 -nr:false -v:minimal` | 1 | No output; disabling node reuse does not resolve the failure. |
+| `dotnet restore Kinovea.VS2019.sln -m:2 -tl:off -v:minimal` | 1 | No output; disabling the terminal logger does not resolve the failure. |
+| `dotnet restore Kinovea.Camera/Kinovea.Camera.csproj -m:2 -v:minimal` | 0 | Project-only restore succeeds. |
+| `dotnet restore Kinovea.Camera.DirectShow/Kinovea.Camera.DirectShow.csproj -m:2 -v:minimal` | 0 | Project-only restore succeeds. |
+| `dotnet restore /tmp/KinoveaRestoreProbe.sln -m:2 -v:minimal` | 1 | A two-project solution containing those two valid project paths/GUIDs fails with no output. |
+| `dotnet restore /tmp/KinoveaRestoreProbe.sln -m:1 -v:minimal` | 0 | Same two-project solution serially emits two NU1503 warnings and completes. |
+| `dotnet restore /tmp/KinoveaIndependentProbe.sln -m:2 -v:minimal` | 1 | A two-project probe containing independent, classic `Kinovea.Services` and `Tools/UnusedResources/Converter` projects (both with valid project GUIDs and no project references) also fails with no output. |
+| `dotnet restore /tmp/KinoveaIndependentProbe.sln -m:1 -v:minimal` | 0 | Same independent probe completes. |
+| `dotnet build Kinovea.VS2019.sln -m:1 -v:minimal` | 1 | Serialized restore succeeds, then the build reports 4 warnings and 20 errors. Errors: 15 MSB3644 (.NET Framework v4.8 targeting pack), 3 MSB4019 from `Kinovea.Camera.csproj:291` importing `$(MSBuildBinPath)/Microsoft.CSharp.Targets`, and 2 MSB4278 (missing Visual Studio C++ targets for PlayerServer). Warnings: four NU1503 as listed above. |
+| `dotnet build Kinovea.VS2019.sln -m:2 -p:BuildInParallel=false -v:minimal` | 1 | Restore completes with four NU1503 warnings, but the solution build phase still exits 1 with 0 errors reported. The property is therefore confirmed only as a restore diagnostic; it is not a verified full-build workaround. |
+
+`-m:1` changes MSBuild parallelism only: it does not remove projects, skip restore, suppress diagnostics, or retarget the build. Setting `BuildInParallel=false` also allows restore to complete at `-m:2`, but does not make the full build diagnostic or successful. The controlled probes show the immediate trigger is inner parallel project scheduling during solution restore: a single project restore works with `-m:2`, while minimal two-project solutions fail at `-m:2` and pass at `-m:1`, even when their projects have no references to each other. Disabling node reuse or terminal logging has no effect. The failure is therefore not explained by a missing path or a project-reference cycle. The MSBuild/NuGet task still emits no underlying exception or diagnostic in the parallel case, so the lower-level engine defect/root cause remains unverified. `/tmp/KinoveaRestoreProbe.sln` and `/tmp/KinoveaIndependentProbe.sln` were temporary diagnostics only and are not committed.
+
+The serial full build exposes additional build-system defects that the default parallel invocation masks. `Kinovea.Camera.csproj:291` names `Microsoft.CSharp.Targets` under the SDK directory; that exact file is absent there, while `Microsoft.CSharp.CurrentVersion.targets` is present. This is a confirmed import failure for this Gentoo/.NET SDK environment, separate from the net48 reference-assembly and Visual Studio C++ toolchain blockers. No project or solution files were changed to work around these failures.
