@@ -133,32 +133,36 @@ static void OverflowIsRejected()
 
 static void OwnershipTransfer()
 {
-    var rejected = new TrackingMemoryOwner(new byte[2]);
+    var rejectedTracker = new DisposalTracker();
+    var rejected = new TrackingMemoryOwner(new byte[2], rejectedTracker);
     Assert.Throws<ArgumentException>(() => PixelBuffer.Create(1, 1, PixelFormat.Rgb24, AlphaMode.None, 3, 0, rejected));
-    Assert.Equal(0, rejected.DisposeCount);
+    Assert.Equal(0, rejectedTracker.DisposeCount);
     rejected.Dispose();
+    Assert.Equal(1, rejectedTracker.DisposeCount);
 
-    var accepted = new TrackingMemoryOwner(new byte[3]);
-    PixelBuffer pixels = PixelBuffer.Create(1, 1, PixelFormat.Rgb24, AlphaMode.None, 3, 0, accepted);
+    var acceptedTracker = new DisposalTracker();
+    PixelBuffer pixels = PixelBuffer.Create(1, 1, PixelFormat.Rgb24, AlphaMode.None, 3, 0,
+        new TrackingMemoryOwner(new byte[3], acceptedTracker));
     pixels.Dispose();
-    Assert.Equal(1, accepted.DisposeCount);
+    Assert.Equal(1, acceptedTracker.DisposeCount);
 }
 
 static void Disposal()
 {
-    var owner = new TrackingMemoryOwner(new byte[] { 1, 2, 3 });
-    PixelBuffer pixels = PixelBuffer.Create(1, 1, PixelFormat.Rgb24, AlphaMode.None, 3, 0, owner);
+    var tracker = new DisposalTracker();
+    PixelBuffer pixels = PixelBuffer.Create(1, 1, PixelFormat.Rgb24, AlphaMode.None, 3, 0,
+        new TrackingMemoryOwner(new byte[] { 1, 2, 3 }, tracker));
     pixels.Dispose();
     pixels.Dispose();
-    Assert.Equal(1, owner.DisposeCount);
+    Assert.Equal(1, tracker.DisposeCount);
     Assert.Throws<ObjectDisposedException>(() => _ = pixels.Memory);
     Assert.Throws<ObjectDisposedException>(() => pixels.GetRowSpan(0).ToArray());
 }
 
 static void MemoryViewLifetimeCaveat()
 {
-    var owner = new TrackingMemoryOwner(new byte[] { 9, 8, 7 });
-    PixelBuffer pixels = PixelBuffer.Create(1, 1, PixelFormat.Rgb24, AlphaMode.None, 3, 0, owner);
+    PixelBuffer pixels = PixelBuffer.Create(1, 1, PixelFormat.Rgb24, AlphaMode.None, 3, 0,
+        new TrackingMemoryOwner(new byte[] { 9, 8, 7 }));
     ReadOnlyMemory<byte> borrowed = pixels.Memory;
     pixels.Dispose();
     // A copied ReadOnlyMemory is not revocable; use after disposal is prohibited by contract.
@@ -223,9 +227,19 @@ static class Assert
 sealed class TrackingMemoryOwner : IMemoryOwner<byte>
 {
     private readonly byte[] bytes;
+    private readonly DisposalTracker tracker;
 
-    public TrackingMemoryOwner(byte[] bytes) => this.bytes = bytes;
-    public int DisposeCount { get; private set; }
+    public TrackingMemoryOwner(byte[] bytes, DisposalTracker? tracker = null)
+    {
+        this.bytes = bytes;
+        this.tracker = tracker ?? new DisposalTracker();
+    }
+
     public Memory<byte> Memory => bytes;
-    public void Dispose() => DisposeCount++;
+    public void Dispose() => tracker.DisposeCount++;
+}
+
+sealed class DisposalTracker
+{
+    public int DisposeCount { get; set; }
 }

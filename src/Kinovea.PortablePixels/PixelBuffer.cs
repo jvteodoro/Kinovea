@@ -26,8 +26,8 @@ public enum AlphaMode
 
 /// <summary>
 /// Owns a two-dimensional view over a caller-supplied memory owner. Ownership
-/// transfers to this instance only when <see cref="Create"/> succeeds; after
-/// success, the caller must relinquish the owner and must not mutate its memory.
+/// responsibilities transfer to this instance only when <see cref="Create"/>
+/// succeeds; after success, the caller must not use, dispose, or mutate the owner.
 /// </summary>
 /// <remarks>
 /// Logical row y begins at <c>RowZeroOffset + y * StrideBytes</c>. Stride is a
