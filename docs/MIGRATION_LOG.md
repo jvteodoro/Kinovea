@@ -34,6 +34,14 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Known limitation: selected observations reflect .NET 10/Linux globalization and checked inputs; they do not establish Windows globalization behavior or application integration. The existing legacy demo was not run because its project references net48 and unavailable platform/media projects.
 - Follow-up: use these assertions as a characterization gate before extracting or changing timecode code; capture and compare a Windows legacy oracle when available.
 
+## 2026-10-11 — geometry source characterization
+- Baseline: `Vector3.cs`, `Matrix3x3.cs`, and supporting `SVD.cs` in checkout `02b879d5`; all are AForge-derived and retain their upstream copyright headers. The ScreenManager project itself is net48 and has extensive unrelated UI/media dependencies.
+- Change: added a package-free `net10.0` harness linking those exact three source files, with 319 assertions over vector and matrix contracts, including rotation conventions, tie indices, zero normalization, singular/near-singular inverse behavior, pseudo-inverse and SVD reconstruction. No source behavior or AForge header was edited.
+- Verification: `dotnet run --project tests/Geometry.Characterization/Geometry.Characterization.csproj --configuration Release` on Gentoo Linux with .NET SDK `10.0.111` / runtime `10.0.11` exited 0: `PASS: 319 geometry characterization assertions`. Build emits 3 source warnings: two CS8765 nullability override warnings and CS8981 for the existing lowercase `svd` type. `git diff --check` passed.
+- Regression evidence: linked source observations on .NET 10/Linux only. No Windows .NET Framework execution or verified baseline output is available; parity remains `UNVERIFIED`.
+- Known limitation: float checks use `1e-6` absolute tolerance for arithmetic/rotation results; SVD/pseudo-inverse checks characterize one well-conditioned full-rank matrix and a diagonal rank-deficient matrix. This does not prove domain-level calibration or geometry workflow behavior.
+- Follow-up: if extracting these contracts, preserve AForge attribution and compare the suite with Windows legacy results before claiming regression parity. Characterize `ProjectiveMapper` and calibration callers separately.
+
 ## Append new entries in this format
 `YYYY-MM-DD — <task/slice> — <commit>`
 - Baseline:
