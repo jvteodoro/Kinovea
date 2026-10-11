@@ -1,6 +1,6 @@
 # Verification: portable pixel core v0.1
 
-Implementation commit: `029f1fa4027db0ccd05dec2fc0360bf59a8ca7ff` (includes core commit `55ae91760bf3f8996dd0881852e5ce38410210f1`).  
+Implementation commit: `c95d947ebdf23db6c0d4e588f1a0f8b53f4da5cf` (includes core commit `55ae91760bf3f8996dd0881852e5ce38410210f1`).
 PR: [#3](https://github.com/jvteodoro/Kinovea/pull/3), base `port/net10-linux`.  
 Legacy oracle: not applicable; this suite does not execute the Bitmap reader.
 
@@ -12,7 +12,7 @@ Local Gentoo Linux, x86_64, SDK `10.0.111`, MSBuild `18.0.11`, runtime `10.0.11`
 - `dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj --configuration Release --no-restore -- --measure` => exit 0, 10 passed, 0 failed.
 - `git diff --check` => exit 0.
 
-GitHub Actions run [38181217214](https://github.com/jvteodoro/Kinovea/actions/runs/38181217214) on implementation SHA `029f1fa4027db0ccd05dec2fc0360bf59a8ca7ff` completed successfully on both OS jobs. Each CI job ran:
+GitHub Actions run [38181638505](https://github.com/jvteodoro/Kinovea/actions/runs/38181638505) on implementation SHA `c95d947ebdf23db6c0d4e588f1a0f8b53f4da5cf` completed successfully on both OS jobs. Each CI job ran:
 
 ```sh
 dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj --configuration Release -- --measure
@@ -21,12 +21,12 @@ dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj --co
 | Platform | Runner/runtime | Result | 100-frame allocation sample |
 |---|---|---|---|
 | Linux | `ubuntu-latest`, Ubuntu 24.04 x64; SDK 10.0.401; MSBuild 18.9.11; runtime 10.0.12 | 10 passed, 0 failed | Payload 92,160,000 bytes; allocated 92,170,400 bytes; measured overhead 10,400 bytes |
-| Windows | `windows-latest`, Windows 10.0.26100 x64; SDK 10.0.401; MSBuild 18.9.11; runtime 10.0.12 | 10 passed, 0 failed | Payload 92,160,000 bytes; allocated 92,178,520 bytes; measured overhead 18,520 bytes |
+| Windows | `windows-latest`, Windows 10.0.26100 x64; SDK 10.0.401; MSBuild 18.9.11; runtime 10.0.12 | 10 passed, 0 failed | Payload 92,160,000 bytes; allocated 92,170,400 bytes; measured overhead 10,400 bytes |
 
-Both runners used the same test source and fixture formula. The per-platform full reports are uploaded as artifacts named `portable-pixel-core-Linux` and `portable-pixel-core-Windows` on run 38181217214. SHA-256 of the downloaded report files:
+Both runners used the same test source and fixture formula. The per-platform full reports are uploaded as artifacts named `portable-pixel-core-Linux` and `portable-pixel-core-Windows` on run 38181638505. SHA-256 of the downloaded report files:
 
-- Linux: `82bdde50427d1f25dd4649a6a46398e33f1f6aff707661eb72ed5788160a3c3b`
-- Windows: `0d9e9dc1861ed1b19a6801d8873cc40e43d7c36e35e1792e478403e20efd7d46`
+- Linux: `746fdf169e936b37a0afe09f48df7a956631c25c4c469de3654bf72ab7ca9cd5`
+- Windows: `9f5515084cb3b9ae8bd42ad2d46d64c5fc5610c1f3e6b553b9b51992a2e30fc2`
 
 ## Test coverage
 
@@ -34,7 +34,7 @@ The package-free test executable contains 10 named tests covering RGB channel by
 
 ## Allocation and copy observations
 
-The sample warmed up ten frames, then measured 100 create/fill/dispose operations of 640x480 RGB24 with `GC.GetAllocatedBytesForCurrentThread`. Runtime-specific overhead differs by OS as listed above. The producer allocates one backing byte array and fills it directly; `PixelBuffer.Create` stores the supplied owner and does not copy pixel bytes. The sample is not a throughput benchmark and does not justify pooling or other optimization.
+The sample warms up 256 frames, then measures 100 create/fill/dispose operations of 640x480 RGB24 with `GC.GetAllocatedBytesForCurrentThread`. This latest run measured 10,400 bytes above the 92,160,000-byte pixel payload on both platforms. An earlier Windows run after the same warm-up measured a 40,672-byte delta; its cause is unresolved. Treat these allocation values as descriptive samples, not a stable performance guarantee or threshold. The producer allocates one backing byte array and fills it directly; `PixelBuffer.Create` stores the supplied owner and does not copy pixel bytes, based on source inspection. The sample is not a throughput benchmark and does not justify pooling or other optimization.
 
 ## Limitations
 
