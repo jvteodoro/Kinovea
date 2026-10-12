@@ -119,7 +119,38 @@ internal static class Program
         Equal("System.ArgumentException", steps[17].GetProperty("stateAfter").GetProperty("pixelAccessErrorType").GetString(), "legacy stale Bitmap behavior category");
         Equal(PortableReaderMetadataNeverCompareCandidate(), doc.RootElement.GetProperty("approvalStatus").GetString(), "candidate remains unapproved");
         CompareNavigationTrace(steps, Path.Combine(FindRoot(), "tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures", "bmp-rgb-7x5.bmp"));
-        Console.WriteLine("Legacy reader trace: PASS (20 operations compared; safe stale-frame deviation recorded; candidate evidence)");
+        CompareFailedOpenTrace(sequences.EnumerateArray().Single(x => x.GetProperty("sequenceId").GetString() == "failed-open-recovery"));
+        JsonElement unopened = sequences.EnumerateArray().Single(x => x.GetProperty("sequenceId").GetString() == "close-unopened").GetProperty("steps")[0];
+        Equal("System.NullReferenceException", unopened.GetProperty("errorType").GetString(), "legacy close-before-open defect category");
+        Console.WriteLine("Legacy reader trace: PASS (20 navigation operations; failed-open difference and close-before-open category reviewed; candidate evidence)");
+    }
+
+    private static void CompareFailedOpenTrace(JsonElement sequence)
+    {
+        JsonElement steps = sequence.GetProperty("steps");
+        Equal(7, steps.GetArrayLength(), "failed-open recovery trace operation count");
+        using var reader = new PortableReaderShell();
+        string root = FindRoot();
+        string fixtures = Path.Combine(root, "tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures");
+        Equal("completed", steps[0].GetProperty("result").GetString(), "legacy recovery construction");
+        Equal(PortableOpenResult.NotSupported, reader.Open(Path.Combine(fixtures, "corrupt-image.png")), "portable corrupt open result");
+        Equal("NotSupported", steps[1].GetProperty("result").GetString(), "legacy corrupt open result");
+        Equal(false, steps[1].GetProperty("stateAfter").GetProperty("loaded").GetBoolean(), "legacy failed open unloaded");
+        Equal(false, reader.IsLoaded, "portable failed open unloaded");
+        True(reader.MoveRequest(false, 0), "portable failed-open seek method result");
+        Equal(true, steps[2].GetProperty("result").GetBoolean(), "legacy failed-open seek method result");
+        Equal(0L, steps[2].GetProperty("stateAfter").GetProperty("currentTimestamp").GetInt64(), "legacy failed-open placeholder timestamp");
+        Equal(-1L, reader.Current.Timestamp, "safe difference: no fake frame after failed-open seek");
+        Equal(PortableOpenResult.Success, reader.Open(Path.Combine(fixtures, "bmp-rgb-7x5.bmp")), "portable recovery open");
+        Equal("Success", steps[3].GetProperty("result").GetString(), "legacy recovery open result");
+        True(reader.MoveRequest(false, 0), "portable recovery repeat request");
+        Equal(0L, reader.Current.Timestamp, "portable recovery creates real image frame");
+        Equal(7, reader.Current.Image!.Width, "portable recovery image width");
+        JsonElement placeholder = steps[4].GetProperty("stateAfter").GetProperty("pixelProbe");
+        Equal((byte)0, placeholder.GetProperty("r").GetByte(), "legacy failed-open placeholder red");
+        Equal((byte)0, placeholder.GetProperty("a").GetByte(), "legacy failed-open placeholder alpha");
+        Equal((byte)17, reader.Current.Image!.GetRowSpan(0)[0], "safe recovery uses decoded source pixels");
+        reader.Close();
     }
 
     private static void CompareNavigationTrace(JsonElement legacySteps, string fixture)
