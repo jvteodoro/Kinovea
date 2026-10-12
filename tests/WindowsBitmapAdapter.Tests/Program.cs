@@ -40,6 +40,7 @@ try
     captures = LegacyCapture.ReadAndValidate(captureDirectory);
     foreach (LegacyCapture capture in captures)
         tests.Add(($"legacy reader capture converts: {capture.Id}", () => TestLegacyCapture(capture)));
+tests.Add(("candidate fixture bytes match their provenance manifest", () => TestFixtureProvenance(captureDirectory)));
 }
 catch (Exception ex)
 {
@@ -167,6 +168,8 @@ static void TestOwnershipIndependence()
     var source = MakeBitmap(2, 1, GdiPixelFormat.Format24bppRgb,
         [Color.FromArgb(255, 11, 33, 77), Color.FromArgb(255, 99, 121, 143)]);
     PixelBuffer converted = GdiPlusPixelBufferAdapter.Convert(source);
+    Check(source.GetPixel(0, 0).ToArgb() == Color.FromArgb(255, 11, 33, 77).ToArgb(),
+        "Conversion must not mutate source Bitmap pixels.");
     source.Dispose();
     Check(converted.GetRowSpan(0).SequenceEqual(new byte[] { 11, 33, 77, 99, 121, 143 }),
         "PixelBuffer must remain readable after source Bitmap disposal.");
@@ -213,9 +216,33 @@ static void TestLegacyCapture(LegacyCapture capture)
         Check(converted.Width == capture.Width && converted.Height == capture.Height, "converted dimensions");
         Check(converted.Format == capture.ExpectedPortableFormat, "portable format interpretation");
         Check(converted.AlphaMode == capture.ExpectedAlphaMode, "alpha representation");
-        ComparePortableToLegacyRgba(converted, capture.Rgba, capture.PixelFormat);
+        ComparePortableToLegacyRgba(converted, capture.Rgba, capture.Native, capture.PixelFormat);
     }
 }
+
+static void TestFixtureProvenance(string root)
+{
+    string manifestPath = Path.Combine(root, "fixture-manifest.json");
+    using JsonDocument manifest = JsonDocument.Parse(File.ReadAllBytes(manifestPath));
+    JsonElement document = manifest.RootElement;
+    Check(document.GetProperty("schemaVersion").GetInt32() == 1, "Fixture manifest schema must be version 1.");
+    Check(document.GetProperty("approvalStatus").GetString() == "CANDIDATE_NOT_APPROVED",
+        "Adapter test inputs must not promote or overwrite an approved baseline.");
+    JsonElement fixtures = document.GetProperty("fixtures");
+    Check(fixtures.GetArrayLength() == 13, "Expected the documented thirteen deterministic reader fixtures.");
+    foreach (JsonElement fixture in fixtures.EnumerateArray())
+    {
+        string relative = fixture.GetProperty("fileName").GetString()!;
+        string fullPath = Path.GetFullPath(Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar)));
+        string prefix = Path.GetFullPath(root) + Path.DirectorySeparatorChar;
+        Check(fullPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase), "Fixture path escaped the capture directory.");
+        Check(File.Exists(fullPath), $"Fixture file is missing: {relative}");
+        Check(Hash(File.ReadAllBytes(fullPath)) == fixture.GetProperty("sha256").GetString(),
+            $"Fixture hash mismatch: {relative}");
+    }
+}
+
+static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
 static Bitmap MakeBitmap(int width, int height, GdiPixelFormat format, Color[] pixels)
 {
@@ -298,21 +325,28 @@ static void CheckBitmapMatchesRgba(Bitmap bitmap, byte[] rgba, string label)
     }
 }
 
-static void ComparePortableToLegacyRgba(PixelBuffer buffer, byte[] rgba, GdiPixelFormat sourceFormat)
+static void ComparePortableToLegacyRgba(PixelBuffer buffer, byte[] rgba, byte[] native, GdiPixelFormat sourceFormat)
 {
     bool hasAlpha = buffer.Format == PortablePixelFormat.Rgba32;
     Check(rgba.Length == checked(buffer.Width * buffer.Height * 4), "legacy RGBA payload length");
+    int nativeBytesPerPixel = Image.GetPixelFormatSize(sourceFormat) / 8;
     for (int y = 0; y < buffer.Height; y++)
     {
         ReadOnlySpan<byte> row = buffer.GetRowSpan(y);
         for (int x = 0; x < buffer.Width; x++)
         {
             int expectedOffset = (y * buffer.Width + x) * 4;
+            int nativeOffset = (y * buffer.Width + x) * nativeBytesPerPixel;
             int actualOffset = x * (hasAlpha ? 4 : 3);
-            Check(row[actualOffset] == rgba[expectedOffset] && row[actualOffset + 1] == rgba[expectedOffset + 1] && row[actualOffset + 2] == rgba[expectedOffset + 2],
+            byte expectedR = sourceFormat == GdiPixelFormat.Format32bppPArgb ? native[nativeOffset + 2] : rgba[expectedOffset];
+            byte expectedG = sourceFormat == GdiPixelFormat.Format32bppPArgb ? native[nativeOffset + 1] : rgba[expectedOffset + 1];
+            byte expectedB = sourceFormat == GdiPixelFormat.Format32bppPArgb ? native[nativeOffset] : rgba[expectedOffset + 2];
+            Check(row[actualOffset] == expectedR && row[actualOffset + 1] == expectedG && row[actualOffset + 2] == expectedB,
                 $"legacy pixel RGB mismatch for {sourceFormat} at ({x},{y})");
             if (hasAlpha && sourceFormat == GdiPixelFormat.Format32bppArgb)
                 Check(row[actualOffset + 3] == rgba[expectedOffset + 3], $"legacy pixel alpha mismatch at ({x},{y})");
+            else if (hasAlpha && sourceFormat == GdiPixelFormat.Format32bppPArgb)
+                Check(row[actualOffset + 3] == native[nativeOffset + 3], $"legacy premultiplied alpha mismatch at ({x},{y})");
             else if (!hasAlpha)
                 Check(rgba[expectedOffset + 3] == 255, $"legacy opaque source has nonopaque alpha at ({x},{y})");
         }
