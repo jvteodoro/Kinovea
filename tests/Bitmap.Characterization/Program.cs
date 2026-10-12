@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using SystemBitmap = System.Drawing.Bitmap;
 using Kinovea.Services;
 using Kinovea.Video;
@@ -17,6 +18,7 @@ namespace Kinovea.Bitmap.Characterization
         private static readonly List<Dictionary<string, object>> Failures = new List<Dictionary<string, object>>();
         private static readonly List<Dictionary<string, object>> StateTraces = new List<Dictionary<string, object>>();
         private static readonly List<Dictionary<string, object>> SingleFrameTraces = new List<Dictionary<string, object>>();
+        private static readonly List<Dictionary<string, object>> ProductionCacheTraces = new List<Dictionary<string, object>>();
         private static int assertionCount;
         private static int passedAssertions;
 
@@ -60,6 +62,7 @@ namespace Kinovea.Bitmap.Characterization
                 {
                     CharacterizeSingleFrameOwnership(fixtures.First(f => f.Id == "bmp-rgb-7x5"), test);
                 });
+                RunCase("production-cache-contracts", CharacterizeProductionCacheContracts);
                 RunCase("reader-state-trace", delegate(CaseRecorder test)
                 {
                     CharacterizeReaderStateTrace(fixtures, test);
@@ -119,6 +122,14 @@ namespace Kinovea.Bitmap.Characterization
                         { "sourceType", "Kinovea.Video.SingleFrame" },
                         { "approvalStatus", "CANDIDATE_NOT_APPROVED" },
                         { "sequences", SingleFrameTraces }
+                    });
+                    EvidenceWriter.WriteJson(Path.Combine(outputDirectory, "production-cache-traces.v1.json"), new Dictionary<string, object>
+                    {
+                        { "schemaVersion", 1 },
+                        { "sourceTypes", new[] { "Kinovea.Video.Cache", "Kinovea.Video.PreBuffer2" } },
+                        { "approvalStatus", "CANDIDATE_NOT_APPROVED" },
+                        { "usageClassification", "direct-production-cache-contract-characterization; not full FFmpeg playback" },
+                        { "sequences", ProductionCacheTraces }
                     });
                     File.WriteAllText(Path.Combine(outputDirectory, "test-results.txt"),
                         string.Format(CultureInfo.InvariantCulture,
@@ -356,6 +367,211 @@ namespace Kinovea.Bitmap.Characterization
             test.Equal(12, steps.Count, "SingleFrame trace step count");
             test.Observation("singleFrameProductionCallSites", "none found outside characterization harness and type declaration");
             test.Observation("singleFrameTraceSchemaVersion", 1);
+        }
+
+        private static void CharacterizeProductionCacheContracts(CaseRecorder test)
+        {
+            CharacterizeSynchronousCache(test);
+            CharacterizePreBuffer(test);
+            test.Observation("scope", "Executes Kinovea.Video Cache and PreBuffer2 directly; does not instantiate VideoReaderFFMpeg or GIF reader.");
+            test.Observation("productionCallSites", "VideoReaderGIF owns Cache; VideoReaderFFMpeg owns SingleFrame, PreBuffer2 and Cache.");
+        }
+
+        private static void CharacterizeSynchronousCache(CaseRecorder test)
+        {
+            var images = new List<SystemBitmap>();
+            var frames = new List<VideoFrame>();
+            var disposedTimestamps = new List<long>();
+            var steps = new List<Dictionary<string, object>>();
+            var cache = new Cache(delegate(VideoFrame frame)
+            {
+                disposedTimestamps.Add(frame.Timestamp);
+                frame.Image.Dispose();
+            });
+
+            for (int i = 0; i < 3; i++)
+            {
+                var image = new SystemBitmap(2, 2);
+                images.Add(image);
+                var frame = new VideoFrame(image, i, i - 1);
+                frames.Add(frame);
+                test.Equal(CacheAddResult.Added.ToString(), cache.Add(frame).ToString(), "Cache add frame " + i);
+            }
+
+            cache.AcquireClosest(1);
+            test.Equal(true, Object.ReferenceEquals(frames[1], cache.CurrentFrame), "Cache acquire preserves selected wrapper identity");
+            AddCacheTrace(steps, "acquire-closest", cache.CurrentFrame, frames, disposedTimestamps);
+
+            cache.Trim(1, 1);
+            test.Equal("2,0", String.Join(",", disposedTimestamps), "Cache Trim dispatches custom disposer for evicted frames");
+            test.Equal(true, Object.ReferenceEquals(frames[1], cache.CurrentFrame), "Cache Trim retains current frame in range");
+            test.Equal(true, IsDisposed(images[0]) && IsDisposed(images[2]), "Trimmed external image references are disposed");
+            AddCacheTrace(steps, "trim-to-current", cache.CurrentFrame, frames, disposedTimestamps);
+
+            cache.Clear();
+            test.Equal("2,0,1", String.Join(",", disposedTimestamps), "Cache Clear dispatches disposer for remaining frame");
+            test.Equal(null, cache.CurrentFrame, "Cache Clear removes current frame");
+            AddCacheTrace(steps, "clear", cache.CurrentFrame, frames, disposedTimestamps);
+
+            cache.Dispose();
+            cache.Dispose();
+            test.Equal("2,0,1", String.Join(",", disposedTimestamps), "repeated Cache Dispose does not re-dispose frames");
+            ProductionCacheTraces.Add(new Dictionary<string, object>
+            {
+                { "sequenceId", "cache-trim-clear-custom-disposer" },
+                { "cacheType", "Kinovea.Video.Cache" },
+                { "calls", new[] { "Add(0)", "Add(1)", "Add(2)", "AcquireClosest(1)", "Trim(1,1)", "Clear()", "Dispose()", "Dispose()" } },
+                { "steps", steps }
+            });
+        }
+
+        private static void CharacterizePreBuffer(CaseRecorder test)
+        {
+            var images = new List<SystemBitmap>();
+            var frames = new List<VideoFrame>();
+            var disposedTimestamps = new List<long>();
+            var steps = new List<Dictionary<string, object>>();
+            var buffer = new PreBuffer2(delegate(VideoFrame frame)
+            {
+                disposedTimestamps.Add(frame.Timestamp);
+                frame.Image.Dispose();
+            });
+
+            for (int i = 0; i < 3; i++)
+            {
+                var image = new SystemBitmap(2, 2);
+                images.Add(image);
+                var frame = new VideoFrame(image, i * 10, (i - 1) * 10);
+                frames.Add(frame);
+                test.Equal(CacheAddResult.Added.ToString(), buffer.Add(frame).ToString(), "PreBuffer2 add frame " + i);
+            }
+
+            buffer.AcquireClosest(10);
+            test.Equal(true, Object.ReferenceEquals(frames[1], buffer.CurrentFrame), "PreBuffer2 acquire closest selects current wrapper");
+            test.Equal(true, buffer.AcquireNext(), "PreBuffer2 acquire next succeeds");
+            test.Equal(true, Object.ReferenceEquals(frames[2], buffer.CurrentFrame), "PreBuffer2 acquire next selects contiguous frame");
+            AddPreBufferTrace(steps, "acquire-next", buffer, frames, disposedTimestamps);
+
+            buffer.Purge();
+            test.Equal("10,0", String.Join(",", disposedTimestamps), "PreBuffer2 Purge disposes all noncurrent frames");
+            test.Equal(true, Object.ReferenceEquals(frames[2], buffer.CurrentFrame), "PreBuffer2 Purge retains current frame");
+            test.Equal(true, IsDisposed(images[0]) && IsDisposed(images[1]), "Purged external image references are disposed");
+            AddPreBufferTrace(steps, "purge", buffer, frames, disposedTimestamps);
+
+            buffer.Shutdown();
+            test.Equal("10,0,20", String.Join(",", disposedTimestamps), "PreBuffer2 Shutdown disposes current frame");
+            test.Equal(null, buffer.CurrentFrame, "PreBuffer2 Shutdown clears current frame");
+            var rejected = new VideoFrame(new SystemBitmap(2, 2), 30, 20);
+            CacheAddResult afterShutdown = buffer.Add(rejected);
+            test.Equal(CacheAddResult.Interrupted.ToString(), afterShutdown.ToString(), "PreBuffer2 rejects add after Shutdown");
+            bool rejectedImageUsable = !IsDisposed(rejected.Image);
+            test.Equal(true, rejectedImageUsable, "caller retains rejected frame image after interrupted Add");
+            rejected.Image.Dispose();
+            buffer.Shutdown();
+            ProductionCacheTraces.Add(new Dictionary<string, object>
+            {
+                { "sequenceId", "prebuffer-add-acquire-purge-shutdown" },
+                { "cacheType", "Kinovea.Video.PreBuffer2" },
+                { "calls", new[] { "Add(0)", "Add(10)", "Add(20)", "AcquireClosest(10)", "AcquireNext()", "Purge()", "Shutdown()", "Add(30)" } },
+                { "steps", steps },
+                { "disposerTimestamps", disposedTimestamps.ToArray() },
+                { "postShutdownAddResult", afterShutdown.ToString() },
+                { "postShutdownRejectedImageUsableBeforeCallerCleanup", rejectedImageUsable }
+            });
+
+            CharacterizePreBufferForceAddEviction(test);
+        }
+
+        private static void CharacterizePreBufferForceAddEviction(CaseRecorder test)
+        {
+            var images = new List<SystemBitmap>();
+            var frames = new List<VideoFrame>();
+            var disposedTimestamps = new List<long>();
+            var buffer = new PreBuffer2(delegate(VideoFrame frame)
+            {
+                disposedTimestamps.Add(frame.Timestamp);
+                frame.Image.Dispose();
+            });
+
+            for (int i = 0; i < 32; i++)
+            {
+                SystemBitmap image = new SystemBitmap(1, 1);
+                images.Add(image);
+                VideoFrame frame = new VideoFrame(image, i, i - 1);
+                frames.Add(frame);
+                test.Equal(CacheAddResult.Added.ToString(), buffer.Add(frame).ToString(), "PreBuffer2 fill capacity at " + i);
+            }
+            buffer.AcquireClosest(16);
+            for (int i = 32; i < 40; i++)
+            {
+                SystemBitmap image = new SystemBitmap(1, 1);
+                images.Add(image);
+                VideoFrame frame = new VideoFrame(image, i, i - 1);
+                frames.Add(frame);
+                test.Equal(CacheAddResult.Added.ToString(), buffer.Add(frame).ToString(), "PreBuffer2 refill capacity at " + i);
+            }
+
+            VideoFrame evictedCandidate = frames[8];
+            SystemBitmap forcedImage = new SystemBitmap(1, 1);
+            images.Add(forcedImage);
+            CacheAddResult forced = buffer.ForceAdd(new VideoFrame(forcedImage, 40, 39));
+            bool callbackObservedForEvictedFrame = disposedTimestamps.Contains(evictedCandidate.Timestamp);
+            bool evictedImageUsableBeforeShutdown = !IsDisposed(evictedCandidate.Image);
+            int currentIdentityBeforeShutdown = IdentityOf(frames, buffer.CurrentFrame);
+            long? currentTimestampBeforeShutdown = buffer.CurrentFrame == null ? (long?)null : buffer.CurrentFrame.Timestamp;
+            test.Equal(CacheAddResult.Added.ToString(), forced.ToString(), "PreBuffer2 ForceAdd at capacity succeeds");
+            test.Equal(32, buffer.Count, "PreBuffer2 ForceAdd maintains capacity");
+            test.Observation("forceAddEvictedFrameTimestamp", evictedCandidate.Timestamp);
+            test.Observation("forceAddEvictedFrameDisposerInvoked", callbackObservedForEvictedFrame);
+            test.Observation("forceAddEvictedImageUsableBeforeShutdown", evictedImageUsableBeforeShutdown);
+            test.Observation("forceAddCurrentFrameIdentity", currentIdentityBeforeShutdown);
+
+            buffer.Shutdown();
+            foreach (SystemBitmap image in images)
+                if (!IsDisposed(image)) image.Dispose();
+            ProductionCacheTraces.Add(new Dictionary<string, object>
+            {
+                { "sequenceId", "prebuffer-forceadd-at-capacity" },
+                { "cacheType", "Kinovea.Video.PreBuffer2" },
+                { "capacity", 32 },
+                { "forceAddResult", forced.ToString() },
+                { "currentFrameIdentityAfterForceAdd", currentIdentityBeforeShutdown },
+                { "currentTimestampAfterForceAdd", currentTimestampBeforeShutdown },
+                { "callingThreadId", Thread.CurrentThread.ManagedThreadId },
+                { "evictedFrameTimestamp", evictedCandidate.Timestamp },
+                { "evictedFrameDisposerInvokedBeforeShutdown", callbackObservedForEvictedFrame },
+                { "evictedFrameImageUsableBeforeShutdown", evictedImageUsableBeforeShutdown },
+                { "notes", "Observational characterization only; does not assert that a missing disposer callback is desired behavior." }
+            });
+        }
+
+        private static void AddCacheTrace(List<Dictionary<string, object>> steps, string operation, VideoFrame current,
+            List<VideoFrame> identities, List<long> disposed)
+        {
+            steps.Add(new Dictionary<string, object>
+            {
+                { "operation", operation }, { "currentTimestamp", current == null ? (object)null : current.Timestamp },
+                { "currentFrameIdentity", current == null ? 0 : IdentityOf(identities, current) },
+                { "disposedTimestamps", disposed.ToArray() },
+                { "currentImageUsable", current == null ? (object)null : !IsDisposed(current.Image) },
+                { "callingThreadId", Thread.CurrentThread.ManagedThreadId }
+            });
+        }
+
+        private static void AddPreBufferTrace(List<Dictionary<string, object>> steps, string operation, PreBuffer2 buffer,
+            List<VideoFrame> identities, List<long> disposed)
+        {
+            VideoFrame current = buffer.CurrentFrame;
+            steps.Add(new Dictionary<string, object>
+            {
+                { "operation", operation }, { "count", buffer.Count },
+                { "currentTimestamp", current == null ? (object)null : current.Timestamp },
+                { "currentFrameIdentity", current == null ? 0 : IdentityOf(identities, current) },
+                { "currentPreviousTimestamp", current == null ? (object)null : current.PreviousTimestamp },
+                { "disposedTimestamps", disposed.ToArray() },
+                { "currentImageUsable", current == null ? (object)null : !IsDisposed(current.Image) },
+                { "callingThreadId", Thread.CurrentThread.ManagedThreadId }
+            });
         }
 
         private static void RecordSingleFrameStep(List<Dictionary<string, object>> steps, string operation, string result,

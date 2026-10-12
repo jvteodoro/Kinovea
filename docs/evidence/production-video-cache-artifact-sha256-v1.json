@@ -1,0 +1,454 @@
+{
+  "schemaVersion": 1,
+  "workflowRunId": 38251549851,
+  "sourceCommit": "cbc3c16a7ad811e00b9b73cf153f1796f2d9adfa",
+  "artifactName": "bitmap-characterization-38251549851-1",
+  "fileCount": 89,
+  "files": [
+    {
+      "path": "environment.json",
+      "sizeBytes": 1314,
+      "sha256": "49f3c80283412501bcb9ae8cb3add2907469102006443eafbdecb3ae99d5dd72"
+    },
+    {
+      "path": "fixture-manifest.json",
+      "sizeBytes": 5365,
+      "sha256": "4853cd206cbdf49f591ce55307b99ff3ec09b0f8deeea14b378f597320e8db2a"
+    },
+    {
+      "path": "fixtures/bmp-rgb-7x5.bmp",
+      "sizeBytes": 194,
+      "sha256": "85e0feff83d9920703cbf8be2e6ccc76741da22b4ffe791d5d4c415724de1244"
+    },
+    {
+      "path": "fixtures/corrupt-image.png",
+      "sizeBytes": 9,
+      "sha256": "9f2b222cc66ffcc47742bb2f7dabd3f5f8be0ded008fb37297cc6b8f2ae4b36a"
+    },
+    {
+      "path": "fixtures/jpeg-exif-orientation-01.jpg",
+      "sizeBytes": 815,
+      "sha256": "81a7f1b5e2a68ac703e7ccab93509e5df0423eff6073e3296c9e6936fa8d1480"
+    },
+    {
+      "path": "fixtures/jpeg-exif-orientation-02.jpg",
+      "sizeBytes": 815,
+      "sha256": "0b09c213f9e6eab0e1ee1751e2b55bf5f9eec1f60811248e8c289125dadc6e39"
+    },
+    {
+      "path": "fixtures/jpeg-exif-orientation-03.jpg",
+      "sizeBytes": 815,
+      "sha256": "6954e4a705705de73788e90bfc1d30bb6a471084036e5563912ba24175119230"
+    },
+    {
+      "path": "fixtures/jpeg-exif-orientation-04.jpg",
+      "sizeBytes": 815,
+      "sha256": "7c34ca11358a0f1313af8389a4482bc7d5a2477a3db7695f8c804ea442c8a1dd"
+    },
+    {
+      "path": "fixtures/jpeg-exif-orientation-05.jpg",
+      "sizeBytes": 815,
+      "sha256": "4f5f67d761e73b5e7dd37304eac446ff270bc1f206052bd6c1690cdb09bbdd9c"
+    },
+    {
+      "path": "fixtures/jpeg-exif-orientation-06.jpg",
+      "sizeBytes": 815,
+      "sha256": "869d7256261da154973c8dd8da367df5b1d107b18dc49e9ee96bd3bc589d49aa"
+    },
+    {
+      "path": "fixtures/jpeg-exif-orientation-07.jpg",
+      "sizeBytes": 815,
+      "sha256": "76b434a95f2b57668f0afaea0550ea3059c6216421b2ac8f274820e971fb496b"
+    },
+    {
+      "path": "fixtures/jpeg-exif-orientation-08.jpg",
+      "sizeBytes": 815,
+      "sha256": "5b3448f81d2393444d9c554429c367563f54139c2f94f671b54a15ff240b3b4a"
+    },
+    {
+      "path": "fixtures/jpeg-exif-orientation-09.jpg",
+      "sizeBytes": 815,
+      "sha256": "b368c136083291283ccc79a8ef6b6d07daf85d4de8a619e99a41b9dfb501ca97"
+    },
+    {
+      "path": "fixtures/jpeg-rgb-11x7.jpg",
+      "sizeBytes": 779,
+      "sha256": "3e5eb1af564e615faeb3ce12692efad28ddf71338a59eb8c7639cbe723922c78"
+    },
+    {
+      "path": "fixtures/png-alpha-13x9.png",
+      "sizeBytes": 580,
+      "sha256": "e0759d696bfef305e0a2c1c8fc7b7673e9e46390ef15beb541679c6766041dcd"
+    },
+    {
+      "path": "fixtures/png-exif-orientation-06.png",
+      "sizeBytes": 618,
+      "sha256": "ce1e40b17c68bea8c6294f4820f780b3ae97fa6e82abf1fb5e31df9523fd6808"
+    },
+    {
+      "path": "fixtures/unsupported.gif",
+      "sizeBytes": 6,
+      "sha256": "610f5ae4d76e332636a17bd357fd6ce99029316a99d320280d4d77a746bf29e8"
+    },
+    {
+      "path": "msbuild.binlog",
+      "sizeBytes": 284218,
+      "sha256": "24709326cb309a20c636ce2cb642c46403407db68eba0401c9e96d7158d5fdf2"
+    },
+    {
+      "path": "msbuild.log",
+      "sizeBytes": 25430,
+      "sha256": "6eb573cbd8f2e7f7ab19bd37e07c6ea10defeb708a2a4e65ffae0b5fc6421f7c"
+    },
+    {
+      "path": "nuget-restore.log",
+      "sizeBytes": 3284,
+      "sha256": "f20132259421bf46382716ed21e869a08b3819c373d645c0d7237302c0eb6438"
+    },
+    {
+      "path": "pixels/bmp-rgb-7x5-reopened.native.bin",
+      "sizeBytes": 140,
+      "sha256": "a6fb912fc251f95129fbeb214f04a069fa71bec9463ef98d7511dc5776b17da3"
+    },
+    {
+      "path": "pixels/bmp-rgb-7x5-reopened.rgba",
+      "sizeBytes": 140,
+      "sha256": "9a84e308ce741bf2ff2bf1e85d417fc9812fabddcd49d02e0001ffb9e912dd2d"
+    },
+    {
+      "path": "pixels/bmp-rgb-7x5.native.bin",
+      "sizeBytes": 140,
+      "sha256": "a6fb912fc251f95129fbeb214f04a069fa71bec9463ef98d7511dc5776b17da3"
+    },
+    {
+      "path": "pixels/bmp-rgb-7x5.rgba",
+      "sizeBytes": 140,
+      "sha256": "9a84e308ce741bf2ff2bf1e85d417fc9812fabddcd49d02e0001ffb9e912dd2d"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-01-reopened.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-01-reopened.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-01.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-01.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-02-reopened.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-02-reopened.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-02.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-02.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-03-reopened.native.bin",
+      "sizeBytes": 231,
+      "sha256": "fccb7f8929d18bbb86067c7ad8c6b1ce4feb4c04b2153ffe5c43e3268adbe585"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-03-reopened.rgba",
+      "sizeBytes": 308,
+      "sha256": "e40aebc5f62ea94ec362090e320a0e552a0193302601620dbf1b85e696c86ef4"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-03.native.bin",
+      "sizeBytes": 231,
+      "sha256": "fccb7f8929d18bbb86067c7ad8c6b1ce4feb4c04b2153ffe5c43e3268adbe585"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-03.rgba",
+      "sizeBytes": 308,
+      "sha256": "e40aebc5f62ea94ec362090e320a0e552a0193302601620dbf1b85e696c86ef4"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-04-reopened.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-04-reopened.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-04.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-04.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-05-reopened.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-05-reopened.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-05.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-05.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-06-reopened.native.bin",
+      "sizeBytes": 231,
+      "sha256": "617b77e9fb29d9a0eb0b171e6d1c17ff2070729f66f79d4bcc0a2dbd07c030ab"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-06-reopened.rgba",
+      "sizeBytes": 308,
+      "sha256": "94926bb8b70bbf7d29024c488dc150cdf5bb97018511a48a28b4a7cc254d1f62"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-06.native.bin",
+      "sizeBytes": 231,
+      "sha256": "617b77e9fb29d9a0eb0b171e6d1c17ff2070729f66f79d4bcc0a2dbd07c030ab"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-06.rgba",
+      "sizeBytes": 308,
+      "sha256": "94926bb8b70bbf7d29024c488dc150cdf5bb97018511a48a28b4a7cc254d1f62"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-07-reopened.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-07-reopened.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-07.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-07.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-08-reopened.native.bin",
+      "sizeBytes": 231,
+      "sha256": "cf667c1a5fd63da56764c3b53964e86945c2527bd2d2e9f59bd7617d3a9fa663"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-08-reopened.rgba",
+      "sizeBytes": 308,
+      "sha256": "61b476eec08b50c58c01db1ceab17201d4be4d87f710d59d25dc76d140ca25bf"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-08.native.bin",
+      "sizeBytes": 231,
+      "sha256": "cf667c1a5fd63da56764c3b53964e86945c2527bd2d2e9f59bd7617d3a9fa663"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-08.rgba",
+      "sizeBytes": 308,
+      "sha256": "61b476eec08b50c58c01db1ceab17201d4be4d87f710d59d25dc76d140ca25bf"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-09-reopened.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-09-reopened.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-09.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-exif-orientation-09.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-rgb-11x7-reopened.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-rgb-11x7-reopened.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/jpeg-rgb-11x7.native.bin",
+      "sizeBytes": 231,
+      "sha256": "70bb386cc6883de11089d54f1297dbef7fc9531aaa8bc59295c59a4c7f49dc82"
+    },
+    {
+      "path": "pixels/jpeg-rgb-11x7.rgba",
+      "sizeBytes": 308,
+      "sha256": "d9b59e38b33988e4ce6699fcc38189a7d1486c435f2f278ed4fc1293499cdd15"
+    },
+    {
+      "path": "pixels/manual-Rotate0.native.bin",
+      "sizeBytes": 140,
+      "sha256": "a6fb912fc251f95129fbeb214f04a069fa71bec9463ef98d7511dc5776b17da3"
+    },
+    {
+      "path": "pixels/manual-Rotate0.rgba",
+      "sizeBytes": 140,
+      "sha256": "9a84e308ce741bf2ff2bf1e85d417fc9812fabddcd49d02e0001ffb9e912dd2d"
+    },
+    {
+      "path": "pixels/manual-Rotate180.native.bin",
+      "sizeBytes": 140,
+      "sha256": "58cf5b3c01168d7652c16c50081c0745fc8237b2408b30e31f923f0371037bf4"
+    },
+    {
+      "path": "pixels/manual-Rotate180.rgba",
+      "sizeBytes": 140,
+      "sha256": "d8bd0ccf11666b0d20dc54a876d8e1e50683970d4f4befa7683c85f78dd6cbb0"
+    },
+    {
+      "path": "pixels/manual-Rotate270.native.bin",
+      "sizeBytes": 140,
+      "sha256": "5e91b38fab4b4bcdd1070a2abe417c5e54101dc89948a8f463665694b4e775b6"
+    },
+    {
+      "path": "pixels/manual-Rotate270.rgba",
+      "sizeBytes": 140,
+      "sha256": "96d4b37c622984f8f7876bb04f9b69eecc866ba1c7889338750394e048640419"
+    },
+    {
+      "path": "pixels/manual-Rotate90.native.bin",
+      "sizeBytes": 140,
+      "sha256": "d3c5d6e9b6532edef4f68c6e479c7b10508f9394423794f2daced3beb927e4ce"
+    },
+    {
+      "path": "pixels/manual-Rotate90.rgba",
+      "sizeBytes": 140,
+      "sha256": "9c2403756b5a014814044a6afbc869e0c112d2f0df4e853eca94ed761530cc6c"
+    },
+    {
+      "path": "pixels/png-alpha-13x9-reopened.native.bin",
+      "sizeBytes": 468,
+      "sha256": "5491c9ae4b712bb046a9b7b47317f5b893bfff499094cd4882b52553c92b8221"
+    },
+    {
+      "path": "pixels/png-alpha-13x9-reopened.rgba",
+      "sizeBytes": 468,
+      "sha256": "3a4ceaa3b8027dbac77f815a02812145b57e41304d6a7efc962d2cbfd29cf9fe"
+    },
+    {
+      "path": "pixels/png-alpha-13x9.native.bin",
+      "sizeBytes": 468,
+      "sha256": "5491c9ae4b712bb046a9b7b47317f5b893bfff499094cd4882b52553c92b8221"
+    },
+    {
+      "path": "pixels/png-alpha-13x9.rgba",
+      "sizeBytes": 468,
+      "sha256": "3a4ceaa3b8027dbac77f815a02812145b57e41304d6a7efc962d2cbfd29cf9fe"
+    },
+    {
+      "path": "pixels/png-exif-orientation-06-reopened.native.bin",
+      "sizeBytes": 468,
+      "sha256": "5491c9ae4b712bb046a9b7b47317f5b893bfff499094cd4882b52553c92b8221"
+    },
+    {
+      "path": "pixels/png-exif-orientation-06-reopened.rgba",
+      "sizeBytes": 468,
+      "sha256": "3a4ceaa3b8027dbac77f815a02812145b57e41304d6a7efc962d2cbfd29cf9fe"
+    },
+    {
+      "path": "pixels/png-exif-orientation-06.native.bin",
+      "sizeBytes": 468,
+      "sha256": "5491c9ae4b712bb046a9b7b47317f5b893bfff499094cd4882b52553c92b8221"
+    },
+    {
+      "path": "pixels/png-exif-orientation-06.rgba",
+      "sizeBytes": 468,
+      "sha256": "3a4ceaa3b8027dbac77f815a02812145b57e41304d6a7efc962d2cbfd29cf9fe"
+    },
+    {
+      "path": "pixels/summary-thumbnail.native.bin",
+      "sizeBytes": 32,
+      "sha256": "e20239ba8dd384af4dc189f016074033ba5ae9ae460b8f5e06600aefb0e28c27"
+    },
+    {
+      "path": "pixels/summary-thumbnail.rgba",
+      "sizeBytes": 32,
+      "sha256": "be603ee73d318ceae69281ffb8427615ed016c0511b9a718b19deb78e7548da2"
+    },
+    {
+      "path": "production-cache-traces.v1.json",
+      "sizeBytes": 2050,
+      "sha256": "cf1f6a60eb6047e1da167aee30f619eceb0e3ae5436bec818cbbe45d15afe3ab"
+    },
+    {
+      "path": "reader-state-traces.v1.json",
+      "sizeBytes": 18002,
+      "sha256": "a7372df8e03e916b49a33c08fdbedb52a27ce37ccb3959f7fc9e7cc101259697"
+    },
+    {
+      "path": "runtime-metadata.json",
+      "sizeBytes": 973,
+      "sha256": "658b925f12a19e5ff407d5eea80d8ddaf73387c369ab040fdf521d64d9c5a6a2"
+    },
+    {
+      "path": "single-frame-cache-traces.v1.json",
+      "sizeBytes": 3986,
+      "sha256": "5efacd9bc0ce976d28bdaf2f3ac60e69704cadcdb908efa32b9a6fb1142751df"
+    },
+    {
+      "path": "source-hashes.json",
+      "sizeBytes": 9810,
+      "sha256": "a67ef8cfbfc02301df37f9496ee0367403857d1e6736047a1f9a90381885b6a9"
+    },
+    {
+      "path": "test-results.json",
+      "sizeBytes": 100617,
+      "sha256": "641b7a7e2466479ecc437e1cf1588be7c712d23c01bdbeadc9d3a73d04a85848"
+    },
+    {
+      "path": "test-results.txt",
+      "sizeBytes": 83,
+      "sha256": "15e523f27cf64f0ec9ebb6feeb0eb7d53e81c7dbc9419869a4345ad96fddc66f"
+    }
+  ]
+}

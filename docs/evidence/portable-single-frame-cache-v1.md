@@ -11,13 +11,13 @@ Status: implementation candidate. This does not integrate the cache with product
 - Windows trace schema: `single-frame-cache-traces.v1.json`, marked `CANDIDATE_NOT_APPROVED` and uploaded with the workflow artifacts. It records operation results, wrapper and Bitmap identities, timestamp fields, cache empty state and current/external pixel-access outcomes.
 - Local source under test: `PortableSingleFrameCache`, layered over the merged `PortableReaderShell` without a legacy reference or production call-site change.
 
-Repository-wide search at the base found no production `new SingleFrame(...)` construction; occurrences were the class declaration and the existing characterization harness. Therefore direct cache/generator pairing below is an isolated contract probe. It exposes a defect that would occur if this cache were given a generator-owned, reused Bitmap; it does not establish that current Kinovea playback uses `SingleFrame` that way. No claim is made about `Cache`, `PreBuffer2`, or every Kinovea cache.
+The original search recorded here covered C# construction sites and missed the production C++/CLI call in `Kinovea.Video.FFMpeg/PlayerServer/VideoReaderFFMpeg.cpp:45-49`, where all three cache types are constructed with the native `DisposeFrame` callback. `SingleFrame` is production-used by FFmpeg OnDemand. The `FrameGeneratorImageFile` plus `SingleFrame` pairing characterized below is still an isolated misuse probe: the production still-image reader uses no cache. PR #9's [production cache audit](production-video-cache-lifetimes-v1.md) expands the call-site search to C++/CLI and characterizes the actual C# Cache and PreBuffer2 implementations separately. No full FFmpeg playback claim is made.
 
 ## Legacy observations from source and characterization
 
 | Operation | Legacy source behavior | Executable Windows assertion/trace |
 |---|---|---|
-| Insert | `SingleFrame.Add` calls `Clear`, then stores the exact `VideoFrame` wrapper and returns `Added`. | Wrapper identity and `Added` result are recorded. Windows result pending CI at evidence preparation. |
+| Insert | `SingleFrame.Add` calls `Clear`, then stores the exact `VideoFrame` wrapper and returns `Added`. | Wrapper identity and `Added` result were recorded in Windows run `38247808240`. |
 | Read current repeatedly | Getter returns the same stored wrapper. | Identity relation is recorded and checked against the versioned trace. |
 | Replace with distinct image | Default `Clear` disposes the old frame's Bitmap, then `Add` stores the new wrapper. | Old external Bitmap becomes unusable; new Bitmap remains usable. |
 | Clear with external reference | Default path calls `current.Image.Dispose()` before setting `current = null`; external references are not protected. | The trace records a disposed-image pixel-access exception after Clear. |
@@ -116,5 +116,5 @@ The first PR run, `38247645398` at source `85beb08086b20cd3691cfbc390e64b91445f6
 
 ## Remaining evidence limits
 
-- Actual production construction/use of legacy `SingleFrame`: none found in this checkout; do not generalize the constructed generator/cache hazard to `Cache`, `PreBuffer2`, or current playback.
+- The PR #8 source search missed the production C++/CLI construction/use of legacy `SingleFrame`; it is used by FFmpeg OnDemand (`VideoReaderFFMpeg.cpp:45-49`). The generator/cache hazard above is still a constructed probe and does not characterize the FFmpeg call sequence. PR #9's [production cache audit](production-video-cache-lifetimes-v1.md) corrects the inventory and directly tests the C# `Cache` and `PreBuffer2` classes.
 - Approved-golden parity, Windows/Linux reader parity beyond existing scoped reader-shell evidence, cache retention across reader close, concurrent/asynchronous access, application playback and production integration: `NOT_ESTABLISHED`.
