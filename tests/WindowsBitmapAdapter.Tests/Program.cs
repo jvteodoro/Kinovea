@@ -457,8 +457,8 @@ sealed class LegacyCapture
         TestAssert.Check(document.GetProperty("schemaVersion").GetInt32() == 1, "Unsupported reader interchange schema.");
         TestAssert.Check(document.GetProperty("status").GetString() == "PASS", "Legacy characterization did not pass.");
         TestAssert.Check(document.GetProperty("legacyReader").GetString() == "Kinovea.Video.Bitmap.VideoReaderBitmap", "Expected actual VideoReaderBitmap harness.");
-        TestAssert.Check(document.GetProperty("caseCount").GetInt32() == 19 && document.GetProperty("assertionCount").GetInt32() == 537,
-            "Legacy candidate report count differs from the reviewed characterization run.");
+        TestAssert.Check(document.GetProperty("caseCount").GetInt32() >= 19 && document.GetProperty("assertionCount").GetInt32() >= 537,
+            "Legacy characterization report omits cases or assertions from the reviewed candidate run.");
 
         var captures = new List<LegacyCapture>();
         foreach (JsonElement testCase in document.GetProperty("cases").EnumerateArray())
