@@ -306,7 +306,7 @@ namespace Kinovea.Bitmap.Characterization
             test.Equal(true, IsDisposed(reusedImage), "default replacement disposes reused generator-owned bitmap");
             test.Equal(true, IsDisposed(reusedCache.CurrentFrame.Image), "replacement wrapper now points to disposed shared bitmap");
             RecordSingleFrameStep(steps, "replace-reused-generator-image", "same-image-disposed-by-eviction", reusedCache, frames, images);
-            reusedGenerator.Close();
+            reuseGenerator.Close();
             reusedCache.Dispose();
 
             var reopenGenerator = new FrameGeneratorImageFile();
