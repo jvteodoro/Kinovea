@@ -332,13 +332,28 @@ namespace Kinovea.Bitmap.Characterization
             reopenGenerator.Close();
             reopenCache.Dispose();
 
+            var disposeGenerator = new FrameGeneratorImageFile();
+            disposeGenerator.Open(fixture.Path);
+            SystemBitmap disposeImage = disposeGenerator.Generate(0);
+            var disposeCache = new SingleFrame();
+            VideoFrame disposedByCache = new VideoFrame(disposeImage, 0, -1);
+            disposeCache.Add(disposedByCache);
+            disposeCache.Dispose();
+            test.Equal(true, disposeCache.IsEmpty, "Dispose clears a populated SingleFrame");
+            test.Equal(true, IsDisposed(disposeImage), "Dispose releases the populated frame image by default");
+            RecordSingleFrameStep(steps, "dispose-populated-slot", "disposed", disposeCache, frames, images, disposedByCache);
+            disposeCache.Dispose();
+            test.Equal(true, disposeCache.IsEmpty, "repeated Dispose on an empty SingleFrame remains empty");
+            RecordSingleFrameStep(steps, "dispose-repeat", "completed", disposeCache, frames, images, disposedByCache);
+            disposeGenerator.Close();
+
             SingleFrameTraces.Add(new Dictionary<string, object>
             {
                 { "sequenceId", "single-frame-ownership" },
                 { "usageClassification", "isolated-contract-probe-no-production-construction-callsite-found" },
                 { "steps", steps }
             });
-            test.Equal(10, steps.Count, "SingleFrame trace step count");
+            test.Equal(12, steps.Count, "SingleFrame trace step count");
             test.Observation("singleFrameProductionCallSites", "none found outside characterization harness and type declaration");
             test.Observation("singleFrameTraceSchemaVersion", 1);
         }
