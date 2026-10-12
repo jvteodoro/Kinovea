@@ -1,6 +1,6 @@
 # .NET 10 still-image host v1
 
-Status: **Local Linux prototype verified; Windows CI and legacy reader comparison pending.**
+Status: **Portable host tested on Linux/Windows; scoped Windows legacy reader comparison passed.**
 
 ## Base and provenance
 
@@ -8,7 +8,7 @@ Status: **Local Linux prototype verified; Windows CI and legacy reader compariso
 - PR #9 merged to `port/net10-linux` at `8b73d5440908d5df954fda0e255fa3d79ed5694b` (merge parent includes audit commit `28ac15a32306637610aa899a725e89657731fd86`).
 - Proposed task branch: `design/net10-still-image-host`.
 - Existing Windows Bitmap outputs remain candidate evidence, not reviewer-approved golden data.
-- Architecture was proposed before implementation in commit `b11fc586a13a98238c63fd0540b9e559d0dd161c`. Runtime results and artifact hashes are recorded below and will be extended with the single PR-triggered workflow run.
+- Architecture was proposed before implementation in commit `b11fc586a13a98238c63fd0540b9e559d0dd161c`. Test implementation commit: `f55e7e3c`; focused PowerShell correction: `f4ce321a`. The passing CI head source SHA is `f4ce321accb78789f714d8f72d3a2ea75a6a5223`.
 
 ## Production-equivalent source path
 
@@ -48,8 +48,8 @@ Proposed: one isolated in-process net10 command-line test host in `tests/Portabl
 | Property | Status before implementation | Evidence required |
 |---|---|---|
 | Existing reader/shell builds and behaviors | Previously `PORTABLE_TESTED` on Linux/Windows in PR #5–#7 workflows | Re-run the host integration workflow on both OSes. |
-| New .NET 10 host | Local Linux `PASS`; Windows CI pending | Same assertion command and BMP/PNG CLI fixtures on Linux and Windows; capture PR source SHA, SDK/runtime, totals, logs and JSON hashes. |
-| Actual Windows reader selection/open/current | `NOT_RUN` locally; Windows CI pending | Windows net48 harness invokes actual manager and reader; compare status, timestamp, dimensions, authored pixel probes, repeat identity within each process and close. |
+| New .NET 10 host | `PASS` on Ubuntu 24.04 and Windows Server 2022 | Run `38254889523`; 43 assertions per OS plus successful BMP/PNG CLI flows. |
+| Actual Windows reader selection/open/current | `PASS` for scoped direct API path | Same run; actual `VideoTypeManager` -> `VideoReaderBitmap` harness passed 47 assertions. Its separate comparison passed six properties for BMP and PNG. |
 | FrameServerPlayer `CurrentImage` / WinForms drawing | `NOT_RUN` | Explicitly out of scope; do not infer from direct VideoReader tests. |
 | Cross-platform production application integration | `NOT_ESTABLISHED` | Requires application host/runtime/UI strategy and a later real-consumer integration stage. |
 
@@ -67,3 +67,17 @@ Proposed: one isolated in-process net10 command-line test host in `tests/Portabl
 ## Scope limits
 
 The net48 characterization executable calls actual `VideoTypeManager` and `VideoReaderBitmap` APIs and uses the actual legacy project references; it is not a proxy reader. The portable executable reuses `PortableReaderShell`. The CI comparison does not instantiate `FrameServerPlayer`, paint a WinForms surface, or open the full desktop application. It establishes only the listed BMP/PNG still-image properties. Candidate fixture observations remain unapproved, and this task does not establish full reader parity or Linux UI integration.
+
+## Windows/Linux CI evidence
+
+- Workflow: [run 38254889523](https://github.com/jvteodoro/Kinovea/actions/runs/38254889523), workflow `Portable frame generator integration boundary`, run number 21, attempt 1. All three jobs passed. Pull request source SHA: `f4ce321accb78789f714d8f72d3a2ea75a6a5223` (the legacy trace embeds this PR head SHA; it is distinct from the synthetic PR merge SHA).
+- Ubuntu runner: `ubuntu-24.04`, image `20261004.327.1`, runner `2.337.0`; .NET SDK `10.0.401`, runtime `10.0.12`, MSBuild `18.9.11`.
+- Windows portable runner: Windows Server 2022, OS build `10.0.20348`, image `20261004.326.1`, runner `2.337.0`; .NET SDK `10.0.401`, runtime `10.0.12`, MSBuild `18.9.11`.
+- Legacy runner: Windows Server 2022, OS build `10.0.20348`, image `20261004.326.1`; .NET Framework process CLR `4.0.30319.42000`, 64-bit. Runtime metadata reports GDI+ `C:\Windows\system32\gdiplus.dll`, version `10.0.20348.5622 (WinBuild.160101.0800)`; culture `en-US`.
+- The legacy trace's `Environment.OSVersion` field reports `Microsoft Windows NT 6.2.9200.0`; this is the value observed inside that process. The runner log and environment capture identify the actual hosted image as Windows Server 2022, build `10.0.20348`.
+- Suite results: portable host 43 assertions on each OS; portable frame generator 617 assertions on each OS; reader shell 65 and portable SingleFrame 73 on each OS; image reader 1,322 assertions on each OS; Pixel Core 10/10 tests on each OS. Windows legacy characterization passed 24 cases/739 assertions; new actual selection harness passed 47 assertions; legacy-to-generator pixel comparison passed 1,233 assertions; reader shell replay passed 411 assertions; SingleFrame trace comparison passed 14 assertions.
+- Direct host/legacy comparison: both `bmp-rgb-7x5` and `png-alpha-13x9` passed open status, dimensions, first timestamp pair, authored pixel probe, repeat identity within each process, and close invalidation. Legacy selected `Kinovea.Video.Bitmap.VideoReaderBitmap`; corrupt PNG returned `NotSupported` and `Loaded=false`. Legacy close made `Bitmap.GetPixel` throw `System.ArgumentException`; portable close rejected new pixel-memory access with `ObjectDisposedException` (safe boundary behavior, not identical exception type).
+- Input fixture SHA-256 values are in the Local verification section. Portable logical pixel SHA-256 values were identical in local Linux output and both CI OS logs: BMP `93d943244620afae6fb7dbe59b1f0eb2f1419d3361dd9bfdb70e5937311f5cc9`; PNG `3a4ceaa3b8027dbac77f815a02812145b57e41304d6a7efc962d2cbfd29cf9fe`.
+- GitHub-reported artifact archive digests: [Ubuntu portable artifact](https://github.com/jvteodoro/Kinovea/actions/runs/38254889523/artifacts/11750050759), SHA-256 `4613e75d7de562d47aab85f2efb5a6952955f7e0947ba1c38d26caaf8a19123a`; [Windows portable artifact](https://github.com/jvteodoro/Kinovea/actions/runs/38254889523/artifacts/11749508492), SHA-256 `5030786022786131703bfc84cdea18fe29fc1293a2c7c29290dd5be29da7dcaf`; [Windows legacy artifact](https://github.com/jvteodoro/Kinovea/actions/runs/38254889523/artifacts/11749831210), SHA-256 `edf53c7e1b8481aaaf04658c61b13df698fcc7b1d839ff34aa01cf4c31169e2b`. Recomputing the downloaded Windows legacy ZIP locally matched its reported digest.
+- Downloaded Windows legacy ZIP recomputation matched GitHub's SHA-256 digest. Its `legacy-selection/trace.v1.json` hash is `6c0c0ed6ce08b675522043235d09db07070d6bb2b4140eea6a696d4c7c50b2c8`; `still-image-host-comparison.v1.json` hash is `c50fc2f5692972499112ea608c98a4518692e50904b9fe5e73b1f80d09e70bde`; portable host BMP JSON hash is `d4177d7735410ff5c7ae00f51a41d13331e35814ae86b14743c9f2786d62a392`; PNG JSON hash is `f1b455a1789b4bf6d9c68a39df46f29e262610d31774aa9bb8aea424b5b8ade4`.
+- Run `38254608554` was the first PR run at source SHA `f48bca0ec943e36b02847ac7a3befddffb9fa56c`. Its two portable jobs and 47-assertion net48 characterization passed; the comparison failed before performing comparisons because `$Host` is a PowerShell read-only automatic variable. The source fix was committed as `f4ce321a`; the corrected run above passed. The initial attempt is retained here as evidence rather than hidden.
