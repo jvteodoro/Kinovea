@@ -25,6 +25,8 @@ public sealed class PortableImageFrameGenerator : IDisposable
     internal PortableImageFrameGenerator(ImageReader reader) => this.reader = reader;
 
     public bool IsOpen => pixels is not null;
+    public int Width => pixels?.Width ?? throw new InvalidOperationException("Open an image before reading its dimensions.");
+    public int Height => pixels?.Height ?? throw new InvalidOperationException("Open an image before reading its dimensions.");
 
     /// <summary>Decodes a BMP/PNG and takes ownership of its pixel buffer.</summary>
     public void Open(string path)
