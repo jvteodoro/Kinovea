@@ -12,9 +12,9 @@ PR #9 identified the actual still-image production route as `RootKernel` reader 
 
 ## Proposed decision
 
-Use a small, standalone, in-process **.NET 10 command-line host** as an experimental consumer of the existing `PortableReaderShell`. The host selects the portable reader for `.bmp` and `.png`, delegates opening/navigation/metadata to the existing shell, reads the selected frame through `PortableImageFrame`/`PixelBuffer`, and closes its owner. A test executable exercises the same host API with the committed deterministic fixtures on Linux and Windows.
+Use one small, standalone, in-process **.NET 10 command-line test host** in `tests/PortableStillImageHost.Tests`. Its default mode runs assertions against the existing `PortableReaderShell`; its `--host <path> [timestamp]` mode opens BMP/PNG files, reads the current frame through `PortableImageFrame`/`PixelBuffer`, reports a logical-pixel SHA-256, and closes the owner. Both modes use the same portable shell directly. The extension dispatch remains in `PortableImageReader`; this slice adds no second selector and no forwarding production API. Run the test mode and both CLI fixtures on Linux and Windows.
 
-This host is a new portable workflow, not the existing Kinovea desktop application and not a compatibility shim for `FrameServerPlayer`. It must not copy navigation logic or duplicate decoder logic. Keep `PortableReaderShell`, frame generation, image reader, pixel representation, and every legacy production component unchanged. The portable decoder remains the authority for content validation and BMP/PNG decode.
+This host is a test/diagnostic executable, not a new production library, the existing Kinovea desktop application, or a compatibility shim for `FrameServerPlayer`. It must not copy navigation logic or duplicate decoder logic. Keep `PortableReaderShell`, frame generation, image reader, pixel representation, and every legacy production component unchanged. The portable decoder remains the authority for content validation and BMP/PNG decode.
 
 On Windows, a separate .NET Framework 4.8 characterization executable will exercise `VideoTypeManager` selecting the actual `VideoReaderBitmap`, then call its actual `Open`, first-frame navigation, `Current` and `Close` APIs. It will compare the selected type, status, timestamps, dimensions and authored pixel probes with the portable host. It will not instantiate `FrameServerPlayer`, render through WinForms, or claim UI integration. Those dependencies are not included merely to make the isolated test look end-to-end.
 
@@ -33,7 +33,7 @@ On Windows, a separate .NET Framework 4.8 characterization executable will exerc
 
 | Option | Assessment |
 |---|---|
-| **A. Minimal in-process .NET 10 host over portable contracts — proposed** | Small isolated executable; reuses already tested reader and shell without decoder or navigation duplication. No IPC serialization copy. Runs on Linux and Windows. It is a proving host, not the legacy GUI. Straightforward rollback by removing the isolated host and tests. |
+| **A. Minimal in-process .NET 10 test host over portable contracts — proposed** | One isolated executable; reuses already tested reader and shell without decoder or navigation duplication. No IPC serialization copy or extra library surface. Runs on Linux and Windows. It is a proving host, not the legacy GUI. Straightforward rollback by removing the isolated test host. |
 | **B. Incrementally multi-target existing selector/reader components** | Not justified yet. `VideoTypeManager` returns the net48 `VideoReader` class family, and that family includes Bitmap and WinForms dependencies. Multi-targeting would need an API split before it could share code, expanding the change beyond the host question. Reconsider only when a consumer-neutral reader-selection contract is required by a real integration. |
 | **C. net48 app plus separate net10 process / IPC** | Rejected for this slice. It can bridge runtimes without retargeting, but requires a protocol, frame serialization/copies, process supervision, failure semantics and latency measurements. No requirement currently makes a separate process necessary. |
 | **D. Broader application-host migration** | Deferred. Migrating ScreenManager, metadata, renderer, plugin discovery and UI together would be much larger and would not isolate the still-image decoder result. A Linux UI framework remains an architectural decision. |
@@ -48,7 +48,7 @@ On Windows, a separate .NET Framework 4.8 characterization executable will exerc
 
 ## Acceptance criteria
 
-1. Host and tests target `net10.0` and introduce no GDI+, WinForms, legacy project, native decoder, cache, IPC, or UI dependency.
+1. The command-line test host targets `net10.0` and introduces no GDI+, WinForms, legacy project, new native decoder, cache, IPC, or UI dependency.
 2. The host runs on Linux and Windows, selects `.bmp`/`.png`, opens, obtains the first current frame, navigates via the shell, returns dimensions/timestamps/pixel digest, and closes the owned shell.
 3. Tests prove initial empty state, first frame at timestamp 0 with previous timestamp -1, repeat wrapper/storage identity, exact fixture pixels and metadata, corrupt/unsupported open status, and disposed pixel access after close.
 4. A separate Windows net48 trace executes the real `VideoTypeManager` -> `VideoReaderBitmap` selection/open/current path and records its outputs. The report explicitly marks `FrameServerPlayer.CurrentImage` and actual UI rendering `NOT_RUN`.
