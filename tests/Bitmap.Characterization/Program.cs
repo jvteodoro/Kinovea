@@ -16,6 +16,7 @@ namespace Kinovea.Bitmap.Characterization
         private static readonly List<Dictionary<string, object>> Cases = new List<Dictionary<string, object>>();
         private static readonly List<Dictionary<string, object>> Failures = new List<Dictionary<string, object>>();
         private static readonly List<Dictionary<string, object>> StateTraces = new List<Dictionary<string, object>>();
+        private static readonly List<Dictionary<string, object>> SingleFrameTraces = new List<Dictionary<string, object>>();
         private static int assertionCount;
         private static int passedAssertions;
 
@@ -54,6 +55,10 @@ namespace Kinovea.Bitmap.Characterization
                 RunCase("reader-frame-lifecycle", delegate(CaseRecorder test)
                 {
                     CharacterizeFrameLifecycle(fixtures.First(f => f.Id == "bmp-rgb-7x5"), test);
+                });
+                RunCase("legacy-single-frame-cache-ownership", delegate(CaseRecorder test)
+                {
+                    CharacterizeSingleFrameOwnership(fixtures.First(f => f.Id == "bmp-rgb-7x5"), test);
                 });
                 RunCase("reader-state-trace", delegate(CaseRecorder test)
                 {
@@ -107,6 +112,13 @@ namespace Kinovea.Bitmap.Characterization
                         { "fixtureGenerator", "FixtureFactory v1" },
                         { "approvalStatus", "CANDIDATE_NOT_APPROVED" },
                         { "sequences", StateTraces }
+                    });
+                    EvidenceWriter.WriteJson(Path.Combine(outputDirectory, "single-frame-cache-traces.v1.json"), new Dictionary<string, object>
+                    {
+                        { "schemaVersion", 1 },
+                        { "sourceType", "Kinovea.Video.SingleFrame" },
+                        { "approvalStatus", "CANDIDATE_NOT_APPROVED" },
+                        { "sequences", SingleFrameTraces }
                     });
                     File.WriteAllText(Path.Combine(outputDirectory, "test-results.txt"),
                         string.Format(CultureInfo.InvariantCulture,
@@ -213,6 +225,190 @@ namespace Kinovea.Bitmap.Characterization
             test.Observation("cacheEviction", "SingleFrame.Clear disposed the generator-owned bitmap; the generator still returned that same disposed instance.");
             cacheGenerator.Close();
             single.Dispose();
+        }
+
+        private static void CharacterizeSingleFrameOwnership(FixtureSpec fixture, CaseRecorder test)
+        {
+            // These are isolated contract probes: repository search found no production
+            // construction of SingleFrame outside this characterization harness.
+            var frames = new List<VideoFrame>();
+            var images = new List<SystemBitmap>();
+            var steps = new List<Dictionary<string, object>>();
+
+            var firstGenerator = new FrameGeneratorImageFile();
+            test.Equal(OpenVideoResult.Success.ToString(), firstGenerator.Open(fixture.Path).ToString(), "open first image generator");
+            SystemBitmap firstImage = firstGenerator.Generate(0);
+            var first = new VideoFrame(firstImage, 0, -1);
+            var cache = new SingleFrame();
+            CacheAddResult inserted = cache.Add(first);
+            test.Equal(CacheAddResult.Added.ToString(), inserted.ToString(), "first insertion result");
+            test.Equal(true, Object.ReferenceEquals(first, cache.CurrentFrame), "insertion preserves frame wrapper identity");
+            test.Equal(false, IsDisposed(firstImage), "first inserted image remains usable");
+            test.Equal(true, Object.ReferenceEquals(cache.CurrentFrame, cache.CurrentFrame), "repeated current access preserves identity");
+            RecordSingleFrameStep(steps, "add-first", inserted.ToString(), cache, frames, images);
+            RecordSingleFrameStep(steps, "read-current-repeated", "same-reference", cache, frames, images);
+
+            var secondGenerator = new FrameGeneratorImageFile();
+            test.Equal(OpenVideoResult.Success.ToString(), secondGenerator.Open(fixture.Path).ToString(), "open replacement image generator");
+            SystemBitmap secondImage = secondGenerator.Generate(0);
+            var second = new VideoFrame(secondImage, 1, 0);
+            CacheAddResult replaced = cache.Add(second);
+            test.Equal(CacheAddResult.Added.ToString(), replaced.ToString(), "replacement insertion result");
+            test.Equal(true, Object.ReferenceEquals(second, cache.CurrentFrame), "replacement publishes new wrapper");
+            test.Equal(true, IsDisposed(firstImage), "replacement Clear disposes old cached image");
+            test.Equal(false, IsDisposed(secondImage), "replacement image remains usable");
+            RecordSingleFrameStep(steps, "replace-with-distinct-image", replaced.ToString(), cache, frames, images);
+
+            VideoFrame externalReference = cache.CurrentFrame;
+            cache.Clear();
+            test.Equal(true, cache.IsEmpty, "Clear empties cache");
+            test.Equal(true, IsDisposed(externalReference.Image), "external image reference is unusable after default Clear");
+            RecordSingleFrameStep(steps, "clear-with-external-reference", "cleared", cache, frames, images, externalReference);
+            cache.Dispose();
+            cache.Dispose();
+            test.Equal(true, cache.IsEmpty, "repeated Dispose remains empty");
+            RecordSingleFrameStep(steps, "dispose-repeated", "completed", cache, frames, images);
+            firstGenerator.Close();
+            secondGenerator.Close();
+
+            var customGenerator = new FrameGeneratorImageFile();
+            customGenerator.Open(fixture.Path);
+            SystemBitmap customImage = customGenerator.Generate(0);
+            var customFrame = new VideoFrame(customImage, 0, -1);
+            int disposerCalls = 0;
+            VideoFrame disposedByCallback = null;
+            var customCache = new SingleFrame(delegate(VideoFrame frame)
+            {
+                disposerCalls++;
+                disposedByCallback = frame;
+            });
+            customCache.Add(customFrame);
+            RecordSingleFrameStep(steps, "custom-disposer-add", "Added", customCache, frames, images);
+            customCache.Clear();
+            test.Equal(1, disposerCalls, "custom disposer called once on Clear");
+            test.Equal(true, Object.ReferenceEquals(customFrame, disposedByCallback), "custom disposer receives exact cached wrapper");
+            test.Equal(false, IsDisposed(customImage), "custom no-op disposer leaves generator image usable");
+            RecordSingleFrameStep(steps, "custom-disposer-clear", "callback-called", customCache, frames, images, customFrame);
+            customCache.Dispose();
+            customGenerator.Close();
+
+            var reuseGenerator = new FrameGeneratorImageFile();
+            reuseGenerator.Open(fixture.Path);
+            SystemBitmap reusedImage = reuseGenerator.Generate(0);
+            var reusedCache = new SingleFrame();
+            var atZero = new VideoFrame(reusedImage, 0, -1);
+            reusedCache.Add(atZero);
+            SystemBitmap sameGeneratedImage = reuseGenerator.Generate(1);
+            test.Equal(true, Object.ReferenceEquals(reusedImage, sameGeneratedImage), "generator reuses one bitmap across timestamps");
+            var atOne = new VideoFrame(sameGeneratedImage, 1, 0);
+            reusedCache.Add(atOne);
+            test.Equal(true, Object.ReferenceEquals(atOne, reusedCache.CurrentFrame), "cache replacement stores second wrapper");
+            test.Equal(true, IsDisposed(reusedImage), "default replacement disposes reused generator-owned bitmap");
+            test.Equal(true, IsDisposed(reusedCache.CurrentFrame.Image), "replacement wrapper now points to disposed shared bitmap");
+            RecordSingleFrameStep(steps, "replace-reused-generator-image", "same-image-disposed-by-eviction", reusedCache, frames, images);
+            reusedGenerator.Close();
+            reusedCache.Dispose();
+
+            var reopenGenerator = new FrameGeneratorImageFile();
+            reopenGenerator.Open(fixture.Path);
+            SystemBitmap beforeClose = reopenGenerator.Generate(0);
+            var reopenFrame = new VideoFrame(beforeClose, 0, -1);
+            var reopenCache = new SingleFrame();
+            reopenCache.Add(reopenFrame);
+            reopenGenerator.Close();
+            test.Equal(true, Object.ReferenceEquals(reopenFrame, reopenCache.CurrentFrame), "generator close leaves cached wrapper installed");
+            test.Equal(true, IsDisposed(beforeClose), "generator close disposes cached image");
+            RecordSingleFrameStep(steps, "generator-close-with-cached-frame", "cached-wrapper-stale", reopenCache, frames, images);
+            reopenGenerator.Open(fixture.Path);
+            SystemBitmap afterReopen = reopenGenerator.Generate(0);
+            test.Equal(false, Object.ReferenceEquals(beforeClose, afterReopen), "generator reopen creates a different image");
+            test.Equal(true, Object.ReferenceEquals(reopenFrame, reopenCache.CurrentFrame), "reopen does not update cache wrapper");
+            var afterReopenFrame = new VideoFrame(afterReopen, 1, 0);
+            reopenCache.Add(afterReopenFrame);
+            test.Equal(true, Object.ReferenceEquals(afterReopenFrame, reopenCache.CurrentFrame), "replacement after reopen stores fresh wrapper");
+            test.Equal(false, IsDisposed(afterReopen), "fresh reopened image remains usable after stale eviction");
+            RecordSingleFrameStep(steps, "replace-stale-frame-after-reopen", "fresh-image-installed", reopenCache, frames, images);
+            reopenCache.Clear();
+            reopenGenerator.Close();
+            reopenCache.Dispose();
+
+            SingleFrameTraces.Add(new Dictionary<string, object>
+            {
+                { "sequenceId", "single-frame-ownership" },
+                { "usageClassification", "isolated-contract-probe-no-production-construction-callsite-found" },
+                { "steps", steps }
+            });
+            test.Equal(10, steps.Count, "SingleFrame trace step count");
+            test.Observation("singleFrameProductionCallSites", "none found outside characterization harness and type declaration");
+            test.Observation("singleFrameTraceSchemaVersion", 1);
+        }
+
+        private static void RecordSingleFrameStep(List<Dictionary<string, object>> steps, string operation, string result,
+            SingleFrame cache, List<VideoFrame> frames, List<SystemBitmap> images, VideoFrame observedExternalFrame = null)
+        {
+            VideoFrame current = cache.CurrentFrame;
+            int frameIdentity = IdentityId(frames, current);
+            int imageIdentity = current == null ? 0 : IdentityId(images, current.Image);
+            int externalFrameIdentity = IdentityId(frames, observedExternalFrame);
+            int externalImageIdentity = observedExternalFrame == null ? 0 : IdentityId(images, observedExternalFrame.Image);
+            string pixelAccess = "empty";
+            if (current != null && current.Image != null)
+            {
+                try
+                {
+                    Color pixel = current.Image.GetPixel(0, 0);
+                    pixelAccess = String.Format(CultureInfo.InvariantCulture, "usable:{0},{1},{2},{3}", pixel.R, pixel.G, pixel.B, pixel.A);
+                }
+                catch (Exception ex)
+                {
+                    pixelAccess = "error:" + ex.GetType().FullName;
+                }
+            }
+            string externalPixelAccess = "not-observed";
+            if (observedExternalFrame != null && observedExternalFrame.Image != null)
+            {
+                try
+                {
+                    Color pixel = observedExternalFrame.Image.GetPixel(0, 0);
+                    externalPixelAccess = String.Format(CultureInfo.InvariantCulture, "usable:{0},{1},{2},{3}", pixel.R, pixel.G, pixel.B, pixel.A);
+                }
+                catch (Exception ex)
+                {
+                    externalPixelAccess = "error:" + ex.GetType().FullName;
+                }
+            }
+
+            steps.Add(new Dictionary<string, object>
+            {
+                { "operation", operation },
+                { "result", result },
+                { "currentFrameIdentity", frameIdentity },
+                { "currentImageIdentity", imageIdentity },
+                { "observedExternalFrameIdentity", externalFrameIdentity },
+                { "observedExternalImageIdentity", externalImageIdentity },
+                { "timestamp", current == null ? (object)null : current.Timestamp },
+                { "previousTimestamp", current == null ? (object)null : current.PreviousTimestamp },
+                { "pixelAccess", pixelAccess },
+                { "externalPixelAccess", externalPixelAccess },
+                { "isEmpty", cache.IsEmpty }
+            });
+        }
+
+        private static int IdentityId<T>(List<T> identities, T value) where T : class
+        {
+            if (value == null)
+                return 0;
+            int index = identities.FindIndex(existing => Object.ReferenceEquals(existing, value));
+            if (index >= 0)
+                return index + 1;
+            identities.Add(value);
+            return identities.Count;
+        }
+
+        private static bool IsDisposed(SystemBitmap bitmap)
+        {
+            try { bitmap.GetPixel(0, 0); return false; }
+            catch (ArgumentException) { return true; }
         }
 
         private static void CharacterizeReaderStateTrace(List<FixtureSpec> fixtures, CaseRecorder test)
