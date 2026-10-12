@@ -1,0 +1,622 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wine-functional-oracle-v1",
+  "recordedUtc": "2026-10-12",
+  "sourceBaseCommit": "8b73d5440908d5df954fda0e255fa3d79ed5694b",
+  "harnessCommit": "214137a96d5c14703ecc3d2fb26b1c66e1aa640f",
+  "application": {
+    "product": "Kinovea",
+    "version": "2025.2.0.0",
+    "executableSha256": "22d95a127257e59bd435eaa2689dd7fda2cae802829e801aa5cd367ee7a12534",
+    "sizeBytes": 459776,
+    "installationPath": "REDACTED_USER_LOCAL_PATH",
+    "sourceCorrespondence": "NOT_ESTABLISHED: installed version 2025.2.0.0; checked-out source reports 2026.1.0.0."
+  },
+  "host": {
+    "os": "Gentoo Linux",
+    "kernel": "6.18.50",
+    "architecture": "x86_64",
+    "python": "3.14.7",
+    "dotnetSdk": "10.0.111",
+    "wine": "Wine Staging 11.19",
+    "prefixArchitecture": "win64",
+    "prefixPath": "REDACTED_USER_LOCAL_PATH",
+    "windowsCompatibility": "Application log reports Microsoft Windows NT 6.1.7601 Service Pack 1 (Windows 7 SP1 compatibility).",
+    "dotNetFrameworkRelease": 528049,
+    "dotNetFrameworkVersion": "4.8",
+    "clrRuntime": "4.0.30319.42000",
+    "desktop": "Wayland / KWin 6.7.5 with Xwayland DISPLAY=:1",
+    "xwaylandResolution": "1920x1080",
+    "applicationWindowCapture": "1920x969",
+    "scaling": "NOT_DETECTED",
+    "windowTools": "qdbus6 KWin scripting, xprop, Xlib/XTest; xdotool, wmctrl, wtype and ydotool absent.",
+    "captureTool": "FFmpeg 8.1.2 x11grab -window_id; target Kinovea X11 window only."
+  },
+  "prefixSafety": {
+    "method": "Existing prefix mounted as read-only OverlayFS lower layer; all Wine writes confined to a disposable per-run upper layer.",
+    "savedSession": "Continue-mode screen descriptors are cleared only in the disposable overlay.",
+    "originalPrefixModified": false,
+    "cleanup": "Harness closes its exact Kinovea window and removes the task-created overlay; it does not call wineserver -k."
+  },
+  "inputs": [
+    {
+      "id": "bitmap-candidate-bmp-rgb-7x5",
+      "format": "BMP",
+      "dimensions": "7x5",
+      "sizeBytes": 194,
+      "sha256": "85e0feff83d9920703cbf8be2e6ccc76741da22b4ffe791d5d4c415724de1244",
+      "provenance": "Tracked synthetic Windows .NET Framework 4.8 candidate fixture; candidate baseline is not approved."
+    },
+    {
+      "id": "bitmap-candidate-png-alpha-13x9",
+      "format": "PNG RGBA",
+      "dimensions": "13x9",
+      "sha256": "e0759d696bfef305e0a2c1c8fc7b7673e9e46390ef15beb541679c6766041dcd",
+      "provenance": "Tracked synthetic Windows .NET Framework 4.8 candidate fixture; candidate baseline is not approved."
+    },
+    {
+      "id": "local-h264-1280x720-30fps-10s",
+      "format": "MP4/H.264",
+      "dimensions": "1280x720",
+      "frameRate": "30/1",
+      "durationSeconds": 10,
+      "sizeBytes": 3901460,
+      "sha256": "04761f49477fe2662f93666f67b728c0434cc067cca7ba02cc4df6568298431d",
+      "provenance": "Pre-existing local file, not committed; ffprobe verified codec, dimensions, rate and duration."
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "still-image-bmp-open",
+      "version": 1,
+      "executionStatus": "COMPLETED",
+      "resultStatus": "NOT_ESTABLISHED",
+      "reviewedStatus": "NOT_ESTABLISHED",
+      "sourceCommit": "214137a96d5c14703ecc3d2fb26b1c66e1aa640f",
+      "startedUtc": "2026-10-12T15:35:28.107496+00:00",
+      "finishedUtc": "2026-10-12T15:35:44.832804+00:00",
+      "outputLocation": "/tmp/kinovea-wine-results/bmp-commit-final",
+      "inputId": "bitmap-candidate-bmp-rgb-7x5",
+      "inputSha256": "85e0feff83d9920703cbf8be2e6ccc76741da22b4ffe791d5d4c415724de1244",
+      "launchExitCode": 0,
+      "cleanedUpByHarness": true,
+      "expectedOutcomes": [
+        {
+          "observation": "Confirm the app displays the opened BMP as a still-image frame.",
+          "verification": "Review the application window and visible reader controls after the dialog closes."
+        },
+        {
+          "observation": "Confirm the asymmetric 7x5 test pattern is visible.",
+          "verification": "Manually inspect the captured application window; visual review does not prove pixel equality."
+        },
+        {
+          "observation": "Confirm Ctrl+F4 closes the opened image screen while leaving Kinovea open.",
+          "verification": "Compare the application window before and after close."
+        }
+      ],
+      "reviewedObservations": [
+        {
+          "observation": "A Kinovea window opens with the BMP selected through the application reader path.",
+          "status": "NOT_ESTABLISHED",
+          "review": "The file dialog accepted the path, but the resulting app canvas remained blank."
+        },
+        {
+          "observation": "The displayed picture visually reflects the 7x5 asymmetric test pattern.",
+          "status": "NOT_ESTABLISHED",
+          "review": "The pattern was not visible in the captured app window."
+        },
+        {
+          "observation": "Ctrl+F4 closes the player screen while the application remains open.",
+          "status": "NOT_ESTABLISHED",
+          "review": "The screen was blank before and after Ctrl+F4, so player-screen close behavior was not established."
+        }
+      ],
+      "screenshots": [
+        {
+          "checkpoint": "open-dialog",
+          "sha256": "2fdd5fdd998ddecda26e19bb72bdbba75b8336a220518894aa17f5ba2b552d50",
+          "imageSize": "660x488",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "open-dialog-path-entered",
+          "sha256": "98ff892940f278dafc61e1733ec5cd9ede290dec182feb55af48f5661cf88cff",
+          "imageSize": "660x488",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "bmp-open",
+          "sha256": "8e3b180f7e0dcf29a07630e72b053d6d3f71eaf37c6ab29c99a57c1c68b1ef91",
+          "imageSize": "1920x969",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "bmp-screen-closed",
+          "sha256": "8e3b180f7e0dcf29a07630e72b053d6d3f71eaf37c6ab29c99a57c1c68b1ef91",
+          "imageSize": "1920x969",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        }
+      ],
+      "artifacts": [
+        {
+          "path": "app-logs/log.0871f3df.txt",
+          "sha256": "3d89d64e3de7b672c40e981c7f60b1239fb99821b669b8e6d225587bee9c99d0",
+          "kind": "application_log"
+        },
+        {
+          "path": "app-logs/log.txt",
+          "sha256": "1ac7eba6f52074d2bfb1683fb651878b7d2c5a3185ef6c987fe1c56e3de56d5c",
+          "kind": "application_log"
+        },
+        {
+          "path": "bmp-open.png",
+          "sha256": "8e3b180f7e0dcf29a07630e72b053d6d3f71eaf37c6ab29c99a57c1c68b1ef91",
+          "kind": "screenshot"
+        },
+        {
+          "path": "bmp-screen-closed.png",
+          "sha256": "8e3b180f7e0dcf29a07630e72b053d6d3f71eaf37c6ab29c99a57c1c68b1ef91",
+          "kind": "screenshot"
+        },
+        {
+          "path": "open-dialog-path-entered.png",
+          "sha256": "98ff892940f278dafc61e1733ec5cd9ede290dec182feb55af48f5661cf88cff",
+          "kind": "screenshot"
+        },
+        {
+          "path": "open-dialog.png",
+          "sha256": "2fdd5fdd998ddecda26e19bb72bdbba75b8336a220518894aa17f5ba2b552d50",
+          "kind": "screenshot"
+        },
+        {
+          "path": "result.json",
+          "sha256": "87297d26d5b11b847d0ad35b6df836dd9be1946e034e2f86cdca504c4caff12f",
+          "kind": "machine_result"
+        },
+        {
+          "path": "scenario.json",
+          "sha256": "807fb4cf0c63b693faf6ce71f94310d873f34e965fc81c474a3946e5bf300537",
+          "kind": "scenario_definition"
+        },
+        {
+          "path": "wine.stderr.log",
+          "sha256": "4320041063909371fb1ead1d27c09180db3071d06219514eb016bd855aa8c055",
+          "kind": "log"
+        },
+        {
+          "path": "wine.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kind": "log"
+        }
+      ],
+      "limitations": [
+        "Screenshot appearance is not a pixel-level or numerical equivalence check.",
+        "Candidate Windows fixture is pending human approval.",
+        "Application window dimension does not expose decoded image dimensions."
+      ]
+    },
+    {
+      "id": "still-image-png-alpha-open",
+      "version": 1,
+      "executionStatus": "COMPLETED",
+      "resultStatus": "NOT_ESTABLISHED",
+      "reviewedStatus": "NOT_ESTABLISHED",
+      "sourceCommit": "214137a96d5c14703ecc3d2fb26b1c66e1aa640f",
+      "startedUtc": "2026-10-12T15:35:54.591957+00:00",
+      "finishedUtc": "2026-10-12T15:36:11.218747+00:00",
+      "outputLocation": "/tmp/kinovea-wine-results/png-commit-final",
+      "inputId": "bitmap-candidate-png-alpha-13x9",
+      "inputSha256": "e0759d696bfef305e0a2c1c8fc7b7673e9e46390ef15beb541679c6766041dcd",
+      "launchExitCode": 0,
+      "cleanedUpByHarness": true,
+      "expectedOutcomes": [
+        {
+          "observation": "Confirm the app displays the opened PNG as a still-image frame.",
+          "verification": "Review the application window and visible reader controls after the dialog closes."
+        },
+        {
+          "observation": "Confirm the image presentation follows the 13x9 source aspect ratio.",
+          "verification": "Review the image bounds in the captured application window."
+        },
+        {
+          "observation": "Confirm transparent and partially transparent regions have a visible presentation.",
+          "verification": "Review the screenshot against the application background; this is not an alpha-byte measurement."
+        },
+        {
+          "observation": "Confirm Ctrl+F4 closes the opened image screen while leaving Kinovea open.",
+          "verification": "Compare the application window before and after close."
+        }
+      ],
+      "reviewedObservations": [
+        {
+          "observation": "A Kinovea window opens with the PNG selected through the application reader path.",
+          "status": "NOT_ESTABLISHED",
+          "review": "The file dialog accepted the path, but the resulting app canvas remained blank."
+        },
+        {
+          "observation": "The displayed aspect ratio follows the 13x9 source image.",
+          "status": "NOT_ESTABLISHED",
+          "review": "No image bounds were visible for measurement."
+        },
+        {
+          "observation": "Transparent and partially transparent regions have a visible presentation.",
+          "status": "NOT_ESTABLISHED",
+          "review": "No image presentation was visible; alpha behavior cannot be inferred."
+        },
+        {
+          "observation": "Ctrl+F4 closes the player screen while the application remains open.",
+          "status": "NOT_ESTABLISHED",
+          "review": "The screen was blank before and after Ctrl+F4, so player-screen close behavior was not established."
+        }
+      ],
+      "screenshots": [
+        {
+          "checkpoint": "open-dialog",
+          "sha256": "2fdd5fdd998ddecda26e19bb72bdbba75b8336a220518894aa17f5ba2b552d50",
+          "imageSize": "660x488",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "open-dialog-path-entered",
+          "sha256": "a8d5515e1cc3498e3809e95e490d1ee9d7ae44d905a99d9d061211c2434385cb",
+          "imageSize": "660x488",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "png-alpha-open",
+          "sha256": "9d1f58abddadc511f487e51875808f8052075af870efea27f7f8037efc88aa7e",
+          "imageSize": "1920x969",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "png-screen-closed",
+          "sha256": "9d1f58abddadc511f487e51875808f8052075af870efea27f7f8037efc88aa7e",
+          "imageSize": "1920x969",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        }
+      ],
+      "artifacts": [
+        {
+          "path": "app-logs/log.0871f3df.txt",
+          "sha256": "3d89d64e3de7b672c40e981c7f60b1239fb99821b669b8e6d225587bee9c99d0",
+          "kind": "application_log"
+        },
+        {
+          "path": "app-logs/log.txt",
+          "sha256": "1813d52e722f559449602de51373fc00c1dd43f9f0b787cac72d2335a93895d3",
+          "kind": "application_log"
+        },
+        {
+          "path": "open-dialog-path-entered.png",
+          "sha256": "a8d5515e1cc3498e3809e95e490d1ee9d7ae44d905a99d9d061211c2434385cb",
+          "kind": "screenshot"
+        },
+        {
+          "path": "open-dialog.png",
+          "sha256": "2fdd5fdd998ddecda26e19bb72bdbba75b8336a220518894aa17f5ba2b552d50",
+          "kind": "screenshot"
+        },
+        {
+          "path": "png-alpha-open.png",
+          "sha256": "9d1f58abddadc511f487e51875808f8052075af870efea27f7f8037efc88aa7e",
+          "kind": "screenshot"
+        },
+        {
+          "path": "png-screen-closed.png",
+          "sha256": "9d1f58abddadc511f487e51875808f8052075af870efea27f7f8037efc88aa7e",
+          "kind": "screenshot"
+        },
+        {
+          "path": "result.json",
+          "sha256": "226538489d051d5b861c5b9b8fb54ed87f2e5b59d5e91bef8afcfb9b60168f13",
+          "kind": "machine_result"
+        },
+        {
+          "path": "scenario.json",
+          "sha256": "27feba73afc5235c6add4667760ffc7ed284c2518aedf760de7fae519fa132e5",
+          "kind": "scenario_definition"
+        },
+        {
+          "path": "wine.stderr.log",
+          "sha256": "65367bc3152fc659e51d0b8e92bfaa64070a82cc5d29acca4132c25b8fd2aa72",
+          "kind": "log"
+        },
+        {
+          "path": "wine.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kind": "log"
+        }
+      ],
+      "limitations": [
+        "Screenshot cannot establish alpha byte values, premultiplication, or exact aspect ratio.",
+        "Candidate Windows fixture is pending human approval."
+      ]
+    },
+    {
+      "id": "mp4-play-pause",
+      "version": 1,
+      "executionStatus": "COMPLETED",
+      "resultStatus": "NOT_ESTABLISHED",
+      "reviewedStatus": "WINE_OBSERVED",
+      "sourceCommit": "214137a96d5c14703ecc3d2fb26b1c66e1aa640f",
+      "startedUtc": "2026-10-12T15:36:21.032507+00:00",
+      "finishedUtc": "2026-10-12T15:36:39.291061+00:00",
+      "outputLocation": "/tmp/kinovea-wine-results/mp4-commit-final",
+      "inputId": "local-h264-1280x720-30fps-10s",
+      "inputSha256": "04761f49477fe2662f93666f67b728c0434cc067cca7ba02cc4df6568298431d",
+      "launchExitCode": 0,
+      "cleanedUpByHarness": true,
+      "expectedOutcomes": [
+        {
+          "observation": "Open the specified H.264 reference clip and show its visible metadata.",
+          "verification": "Review title/dimensions/frame-rate in the app window and compare fixture provenance."
+        },
+        {
+          "observation": "Space starts and pauses playback with visible transport-state changes.",
+          "verification": "Review screenshots before, during and after playback; do not infer exact timing."
+        }
+      ],
+      "reviewedObservations": [
+        {
+          "observation": "The actual UI open path loads the specified 1280x720, 30 fps H.264 reference clip.",
+          "status": "WINE_OBSERVED",
+          "review": "Manually reviewed app capture shows reference, 1280x720 px, and 30.00 fps; fixture hash and ffprobe metadata are recorded."
+        },
+        {
+          "observation": "Space starts and pauses playback, with the visible transport control changing state.",
+          "status": "WINE_OBSERVED",
+          "review": "Manually reviewed captures show the transport changing between play and pause states and visible video content advancing."
+        }
+      ],
+      "screenshots": [
+        {
+          "checkpoint": "open-dialog",
+          "sha256": "2fdd5fdd998ddecda26e19bb72bdbba75b8336a220518894aa17f5ba2b552d50",
+          "imageSize": "660x488",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "open-dialog-path-entered",
+          "sha256": "73f9ee7026c0ce6dbc8b318069a2900a1ffc7b58e599be07bcecf4de9b53d9dd",
+          "imageSize": "660x488",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "mp4-open-paused",
+          "sha256": "8122363d733350a236b9bb6040018d4d5e361f2e312ff0f0a636e360f3e1c43c",
+          "imageSize": "1920x969",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "mp4-playing",
+          "sha256": "bc6f026664f8e3ea78505e979d627a51e501f23ad29bfb75d65690a7980f9b06",
+          "imageSize": "1920x969",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "mp4-paused",
+          "sha256": "f606487b4b9eac03eb2c7f80d56be9bb1c21b116479011b7eff98547362c3dc8",
+          "imageSize": "1920x969",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        }
+      ],
+      "artifacts": [
+        {
+          "path": "app-logs/log.0871f3df.txt",
+          "sha256": "3d89d64e3de7b672c40e981c7f60b1239fb99821b669b8e6d225587bee9c99d0",
+          "kind": "application_log"
+        },
+        {
+          "path": "app-logs/log.txt",
+          "sha256": "b466938e869faad5ac9ff7d5b4ac7b1498848b05cf06099c780c832eacfcebe7",
+          "kind": "application_log"
+        },
+        {
+          "path": "mp4-open-paused.png",
+          "sha256": "8122363d733350a236b9bb6040018d4d5e361f2e312ff0f0a636e360f3e1c43c",
+          "kind": "screenshot"
+        },
+        {
+          "path": "mp4-paused.png",
+          "sha256": "f606487b4b9eac03eb2c7f80d56be9bb1c21b116479011b7eff98547362c3dc8",
+          "kind": "screenshot"
+        },
+        {
+          "path": "mp4-playing.png",
+          "sha256": "bc6f026664f8e3ea78505e979d627a51e501f23ad29bfb75d65690a7980f9b06",
+          "kind": "screenshot"
+        },
+        {
+          "path": "open-dialog-path-entered.png",
+          "sha256": "73f9ee7026c0ce6dbc8b318069a2900a1ffc7b58e599be07bcecf4de9b53d9dd",
+          "kind": "screenshot"
+        },
+        {
+          "path": "open-dialog.png",
+          "sha256": "2fdd5fdd998ddecda26e19bb72bdbba75b8336a220518894aa17f5ba2b552d50",
+          "kind": "screenshot"
+        },
+        {
+          "path": "result.json",
+          "sha256": "138a9087de9c3ae1fd99d70b83c6e886aaca1c9be23e9ee53fbc6ecfb296d33f",
+          "kind": "machine_result"
+        },
+        {
+          "path": "scenario.json",
+          "sha256": "ea4ff4b9a9a4c6fe4ee223a6a2e5c58c6f833fa16960d3f9f7c342b4dd07ebdb",
+          "kind": "scenario_definition"
+        },
+        {
+          "path": "wine.stderr.log",
+          "sha256": "825a2dd9349b62340e6b3a3cc57127c05dad3893bd9cb10fe431493ca38f5aaf",
+          "kind": "log"
+        },
+        {
+          "path": "wine.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kind": "log"
+        }
+      ],
+      "limitations": [
+        "The local video is not committed; reproduce only with the matching SHA-256.",
+        "The video is an environmental fixture, not a licensed project fixture.",
+        "Playback/frame rate claims are not inferred from screenshots.",
+        "Screenshots are insufficient for timing or pixel equivalence."
+      ]
+    },
+    {
+      "id": "frame-navigation",
+      "version": 1,
+      "executionStatus": "COMPLETED",
+      "resultStatus": "NOT_ESTABLISHED",
+      "reviewedStatus": "WINE_OBSERVED",
+      "sourceCommit": "214137a96d5c14703ecc3d2fb26b1c66e1aa640f",
+      "startedUtc": "2026-10-12T15:36:48.674692+00:00",
+      "finishedUtc": "2026-10-12T15:37:05.651814+00:00",
+      "outputLocation": "/tmp/kinovea-wine-results/navigation-commit-final",
+      "inputId": "local-h264-1280x720-30fps-10s",
+      "inputSha256": "04761f49477fe2662f93666f67b728c0434cc067cca7ba02cc4df6568298431d",
+      "launchExitCode": 0,
+      "cleanedUpByHarness": true,
+      "expectedOutcomes": [
+        {
+          "observation": "Open the specified H.264 reference clip and show its visible metadata.",
+          "verification": "Review title/dimensions/frame-rate in the app window and compare fixture provenance."
+        },
+        {
+          "observation": "Two Right requests change displayed content and one Left returns the capture to the first forward-step image.",
+          "verification": "Review each screenshot; exact frame indices and timestamps are outside this visual assertion."
+        }
+      ],
+      "reviewedObservations": [
+        {
+          "observation": "The actual UI open path loads the specified 1280x720, 30 fps H.264 reference clip.",
+          "status": "WINE_OBSERVED",
+          "review": "Manually reviewed title and metadata show the reference clip at 1280x720 px and 30.00 fps."
+        },
+        {
+          "observation": "Right requests change displayed frame content, and Left after two Right requests returns the capture to the prior forward-step image.",
+          "status": "WINE_OBSERVED",
+          "review": "Forward-one and back-one full-window screenshot SHA-256 values match; forward-two differs. Exact frame indices and timestamps are not established."
+        }
+      ],
+      "screenshots": [
+        {
+          "checkpoint": "open-dialog",
+          "sha256": "2fdd5fdd998ddecda26e19bb72bdbba75b8336a220518894aa17f5ba2b552d50",
+          "imageSize": "660x488",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "open-dialog-path-entered",
+          "sha256": "73f9ee7026c0ce6dbc8b318069a2900a1ffc7b58e599be07bcecf4de9b53d9dd",
+          "imageSize": "660x488",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "navigation-paused-start",
+          "sha256": "d1c67aabd8b5ee901601a1de14839aa2b6d4c3c95296370767760845fe1d6faa",
+          "imageSize": "1920x969",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "navigation-forward-one",
+          "sha256": "d066f53095a23ee0dc64270713066e997a1a5cf1fe4510e7c28d41ae83ec52fe",
+          "imageSize": "1920x969",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "navigation-forward-two",
+          "sha256": "1a7912a20d4dd706855675c917e038c983dd918f9290b0e13be5eaca392ad1a7",
+          "imageSize": "1920x969",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        },
+        {
+          "checkpoint": "navigation-back-one",
+          "sha256": "d066f53095a23ee0dc64270713066e997a1a5cf1fe4510e7c28d41ae83ec52fe",
+          "imageSize": "1920x969",
+          "captureMethod": "ffmpeg x11grab -window_id (target Kinovea window only)"
+        }
+      ],
+      "artifacts": [
+        {
+          "path": "app-logs/log.0871f3df.txt",
+          "sha256": "fcc3204a6ccd7fd1b275c5476991c9c0f101d144c66e63163c6a7c7cceeeb07c",
+          "kind": "application_log"
+        },
+        {
+          "path": "app-logs/log.txt",
+          "sha256": "0d69a796b70d3679b4cad177dc8d08e1c8d22d85c46b5b972dafe109c9ddf263",
+          "kind": "application_log"
+        },
+        {
+          "path": "navigation-back-one.png",
+          "sha256": "d066f53095a23ee0dc64270713066e997a1a5cf1fe4510e7c28d41ae83ec52fe",
+          "kind": "screenshot"
+        },
+        {
+          "path": "navigation-forward-one.png",
+          "sha256": "d066f53095a23ee0dc64270713066e997a1a5cf1fe4510e7c28d41ae83ec52fe",
+          "kind": "screenshot"
+        },
+        {
+          "path": "navigation-forward-two.png",
+          "sha256": "1a7912a20d4dd706855675c917e038c983dd918f9290b0e13be5eaca392ad1a7",
+          "kind": "screenshot"
+        },
+        {
+          "path": "navigation-paused-start.png",
+          "sha256": "d1c67aabd8b5ee901601a1de14839aa2b6d4c3c95296370767760845fe1d6faa",
+          "kind": "screenshot"
+        },
+        {
+          "path": "open-dialog-path-entered.png",
+          "sha256": "73f9ee7026c0ce6dbc8b318069a2900a1ffc7b58e599be07bcecf4de9b53d9dd",
+          "kind": "screenshot"
+        },
+        {
+          "path": "open-dialog.png",
+          "sha256": "2fdd5fdd998ddecda26e19bb72bdbba75b8336a220518894aa17f5ba2b552d50",
+          "kind": "screenshot"
+        },
+        {
+          "path": "result.json",
+          "sha256": "9a08b07da67956d718a4ed78bbd9fec878f3f07571340bed63cb32e0461de0c0",
+          "kind": "machine_result"
+        },
+        {
+          "path": "scenario.json",
+          "sha256": "6ad3ed4db861c2149fd9c34c921397717128c7febd462be24e1b00ef2ab80a26",
+          "kind": "scenario_definition"
+        },
+        {
+          "path": "wine.stderr.log",
+          "sha256": "d80b38a2cbf3af1f8f8f0d9a89f62c996a12c350ace92f5aadead61e16840b8d",
+          "kind": "log"
+        },
+        {
+          "path": "wine.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kind": "log"
+        }
+      ],
+      "limitations": [
+        "Default shortcut mappings were verified in source, but actual step outcome must be visually checked on this executable.",
+        "Screenshots do not prove exact timestamps or frame-selection semantics.",
+        "This visual trace does not establish exact timestamps or decoder frame indices."
+      ]
+    }
+  ],
+  "crossEnvironment": {
+    "windowsVerified": "NOT_RUN",
+    "crossEnvironmentMatch": "NOT_ESTABLISHED",
+    "nativeNet10Comparison": "NOT_RUN"
+  },
+  "limitations": [
+    "Wine observation is specific to this machine, prefix and installed executable.",
+    "Screenshot review does not establish decoded pixel equality, alpha channel values, exact playback timing or frame indices.",
+    "Installed binary source revision is unknown.",
+    "BMP/PNG path acceptance did not result in visible image content; reader/open/display behavior is NOT_ESTABLISHED.",
+    "No GitHub Actions workflow was added or run."
+  ]
+}
