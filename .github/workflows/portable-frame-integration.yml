@@ -8,8 +8,10 @@ on:
       - "src/Kinovea.PortableImageReader/**"
       - "src/Kinovea.PortableFrameGenerator/**"
       - "src/Kinovea.PortableReaderShell/**"
+      - "src/Kinovea.PortableSingleFrame/**"
       - "tests/PortableFrameGenerator.Tests/**"
       - "tests/PortableReaderShell.Tests/**"
+      - "tests/PortableSingleFrame.Tests/**"
       - "tests/Bitmap.Characterization/**"
       - "scripts/bitmap-characterization/**"
       - ".github/workflows/portable-frame-integration.yml"
@@ -20,8 +22,10 @@ on:
       - "src/Kinovea.PortableImageReader/**"
       - "src/Kinovea.PortableFrameGenerator/**"
       - "src/Kinovea.PortableReaderShell/**"
+      - "src/Kinovea.PortableSingleFrame/**"
       - "tests/PortableFrameGenerator.Tests/**"
       - "tests/PortableReaderShell.Tests/**"
+      - "tests/PortableSingleFrame.Tests/**"
       - "tests/Bitmap.Characterization/**"
       - "scripts/bitmap-characterization/**"
       - ".github/workflows/portable-frame-integration.yml"
@@ -52,6 +56,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Portable frame tests failed: $LASTEXITCODE" }
           dotnet run --project tests/PortableReaderShell.Tests/PortableReaderShell.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
           if ($LASTEXITCODE -ne 0) { throw "Portable reader shell tests failed: $LASTEXITCODE" }
+          dotnet run --project tests/PortableSingleFrame.Tests/Kinovea.PortableSingleFrame.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
+          if ($LASTEXITCODE -ne 0) { throw "Portable SingleFrame cache tests failed: $LASTEXITCODE" }
           dotnet run --project tests/PortableImageReader.Tests/PortableImageReader.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
           if ($LASTEXITCODE -ne 0) { throw "Portable image reader tests failed: $LASTEXITCODE" }
           dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
@@ -100,6 +106,11 @@ jobs:
         run: |
           dotnet run --project tests/PortableReaderShell.Tests/PortableReaderShell.Tests.csproj -c Release -- --legacy-trace artifacts/portable-frame/legacy-capture/reader-state-traces.v1.json *>&1 | Tee-Object artifacts/portable-frame/reader-shell-comparison.log
           if ($LASTEXITCODE -ne 0) { throw "Portable reader shell/legacy state trace comparison failed: $LASTEXITCODE" }
+      - name: Compare cache ownership expectations to actual SingleFrame trace
+        shell: pwsh
+        run: |
+          dotnet run --project tests/PortableSingleFrame.Tests/Kinovea.PortableSingleFrame.Tests.csproj -c Release -- --legacy-cache-trace artifacts/portable-frame/legacy-capture/single-frame-cache-traces.v1.json *>&1 | Tee-Object artifacts/portable-frame/single-frame-cache-comparison.log
+          if ($LASTEXITCODE -ne 0) { throw "Portable/legacy SingleFrame trace comparison failed: $LASTEXITCODE" }
       - name: Upload legacy and comparison evidence
         if: always()
         uses: actions/upload-artifact@v6
