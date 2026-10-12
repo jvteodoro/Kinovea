@@ -131,3 +131,18 @@ The minimal parallel migration proposal is in [ADR 0003](adr/0003-portable-frame
 - **Portable contract conformance:** exercise only the new contract on Linux and Windows with deterministic synthetic buffers. Check exact channel bytes, declared alpha modes, positive/negative stride plus row-zero offset, padding, bounds/overflow, and disposal lifetime. Passing this suite does not establish legacy parity.
 
 No test from this design task ran. Linux reader parity remains `NOT_RUN`; do not conflate portable buffer tests with legacy compatibility.
+
+### Portable image frame generator
+
+`tests/PortableFrameGenerator.Tests` checks the standalone `net10.0` generator on Linux and Windows. It verifies open/generate/close/reopen/dispose states, `long` timestamp and previous timestamp values, shared decoded storage across frame wrappers, BMP/PNG dimensions, format/alpha labels, and deterministic logical pixels. Windows CI separately executes the real net48 `VideoReaderBitmap` characterization and compares both BMP/PNG outputs with the new generator. Those actual-reader results remain candidate comparisons and must be reported separately from portable contract tests.
+
+The legacy characterization also verifies request boundaries, repeat-frame identity, close/reopen behavior, `DisposePrevious`, and the default `SingleFrame` eviction hazard. This is not cache integration approval: the portable generator is synchronous and standalone. It does not implement legacy `IFrameGenerator`, the reader shell's `[0,249]` range, or any cache ownership callback. Concurrent access, asynchronous frame retention and consumer/cache integration are unsupported.
+
+Local Linux commands (SDK 10.0.111):
+
+```sh
+dotnet build tests/PortableFrameGenerator.Tests/PortableFrameGenerator.Tests.csproj -c Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false -m:1
+dotnet tests/PortableFrameGenerator.Tests/bin/Release/net10.0/PortableFrameGenerator.Tests.dll
+```
+
+Windows CI requires the actual .NET Framework 4.8 characterization job plus the Windows .NET 10 suite. Until its final commit run completes, Windows results and dynamic comparisons are `NOT_RUN`. See [frame generator evidence](evidence/portable-frame-generator-v1.md).

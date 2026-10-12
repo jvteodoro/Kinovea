@@ -58,3 +58,9 @@ These are present in the checkout but are not entries in the original solution a
 | 4 | `Kinovea.Video.Bitmap` after a portable frame contract | It has only Services + Video project references and a bounded file format responsibility. | Current `System.Drawing` dependency and shared Video contract may carry nonportable types. | Synthetic image fixtures: dimensions, orientation, color/channel conversion, transparency and malformed input. |
 
 These priorities are feasibility hypotheses based on source/project inspection, not proof that the components work as portable products. The timecode characterization suite is source-executed on Linux; this verifies its recorded assertions against the linked source, not parity with a Windows legacy runtime. See `docs/evidence/2026-10-11-timecode-characterization.md`.
+
+## Opt-in portable frame boundary (2026-10-12)
+
+| Component | Target and dependencies | Status | Scope and limits |
+|---|---|---|---|
+| `Kinovea.PortableFrameGenerator` — [project](../src/Kinovea.PortableFrameGenerator/Kinovea.PortableFrameGenerator.csproj) | `net10.0`; `Kinovea.PortableImageReader` and `Kinovea.PortablePixels` | `PORTABLE_TESTED` on Linux locally; Windows CI pending for this change. | Standalone synchronous BMP/PNG generator. Returns timestamped non-owning views over one generator-owned `PixelBuffer`, using `Timestamp=t`, `PreviousTimestamp=t-1`. It is not the legacy `IFrameGenerator`, has no `[0,249]` reader-shell window, and is not connected to playback, caches, thumbnails, UI, or export. Default legacy cache disposal is incompatible with shared frame storage; integration is blocked pending a separately reviewed ownership boundary. See [frame generator evidence](evidence/portable-frame-generator-v1.md). |
