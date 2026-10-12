@@ -145,4 +145,4 @@ dotnet build tests/PortableFrameGenerator.Tests/PortableFrameGenerator.Tests.csp
 dotnet tests/PortableFrameGenerator.Tests/bin/Release/net10.0/PortableFrameGenerator.Tests.dll
 ```
 
-Windows CI requires the actual .NET Framework 4.8 characterization job plus the Windows .NET 10 suite. Until its final commit run completes, Windows results and dynamic comparisons are `NOT_RUN`. See [frame generator evidence](evidence/portable-frame-generator-v1.md).
+Windows workflow [38238423701](https://github.com/jvteodoro/Kinovea/actions/runs/38238423701), source SHA `3a40ecb06a56d565381efea8ad9567de82fb6031`, passed the portable generator (617 assertions), portable reader (1,322 assertions), and Pixel Core (10/10) on Ubuntu 24.04 and Windows Server 2022. On Windows, the actual net48 reader lifecycle suite passed 21 cases/621 assertions, and generator comparison against fresh actual-reader BMP/PNG captures passed 1,233 assertions. This comparison is limited to those two fixtures and the candidate evidence; no approved baseline, full playback parity, or cache integration is established. See [frame generator evidence](evidence/portable-frame-generator-v1.md).

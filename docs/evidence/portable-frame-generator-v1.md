@@ -51,7 +51,7 @@ dotnet tests/PortableImageReader.Tests/bin/Release/net10.0/PortableImageReader.T
 dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj -c Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false
 ```
 
-Results: generator build passed with zero warnings/errors and 617 assertions passed after the initial implementation (the final count is recorded by CI); reader passed 1,322 assertions; pixel core passed 10/10. Actual Windows reader execution and dynamic comparison are `NOT_RUN` locally and are required from the Windows CI job.
+Results: generator build passed with zero warnings/errors and 617 assertions; reader passed 1,322 assertions; pixel core passed 10/10. Actual Windows reader execution and dynamic comparison were `NOT_RUN` locally and were completed by the Windows CI job below.
 
 The first normal restore attempt failed with NU1900 because NuGet vulnerability metadata was unreachable. An initial build also exposed a C# namespace/type collision (`PortableImageReader`); it was corrected by an explicit type alias and the subsequent build passed. A generic `dotnet test --no-build` without a project was not applicable and failed in MSBuild worker-pipe startup under the restricted environment; it is not counted as test execution.
 
@@ -70,6 +70,28 @@ The first normal restore attempt failed with NU1900 because NuGet vulnerability 
 
 This task introduces no new full-frame copy: it retains the `PixelBuffer` returned by the image reader and creates frame wrappers over it. The reader's decode copy/allocation behavior remains as recorded in [portable image reader v1](portable-image-reader-v1.md). No frame-generator performance claim is made.
 
-## Windows CI evidence
+## Windows and cross-platform CI evidence
 
-To be completed from the final commit's workflow run: source SHA, Windows Server 2022 image, SDK/runtime, legacy case/assertion count, portable test counts, comparison result and uploaded artifact hashes. Until that run passes, Windows characterization and cross-process pixel comparisons remain `NOT_RUN`.
+Workflow [38238423701](https://github.com/jvteodoro/Kinovea/actions/runs/38238423701) completed successfully on source SHA `3a40ecb06a56d565381efea8ad9567de82fb6031` (the implementation/test SHA; later documentation commits do not change executable sources). The PR-triggered duplicate run [38238449458](https://github.com/jvteodoro/Kinovea/actions/runs/38238449458) also passed on the same SHA.
+
+| Execution | Environment | Result |
+|---|---|---|
+| Portable frame generator | Ubuntu 24.04, x64, .NET SDK 10.0.401 / host 10.0.12 | `PASS`, 617 assertions |
+| Portable image reader | Ubuntu 24.04, x64, .NET SDK 10.0.401 / host 10.0.12 | `PASS`, 1,322 assertions |
+| Portable Pixel Core | Ubuntu 24.04, x64, .NET SDK 10.0.401 / host 10.0.12 | `PASS`, 10/10 tests |
+| Portable frame generator | Windows Server 2022 image `20261004.326.1`, x64, .NET SDK 10.0.401 / host 10.0.12 | `PASS`, 617 assertions |
+| Portable image reader | Windows Server 2022, x64, .NET SDK 10.0.401 / host 10.0.12 | `PASS`, 1,322 assertions |
+| Portable Pixel Core | Windows Server 2022, x64, .NET SDK 10.0.401 / host 10.0.12 | `PASS`, 10/10 tests |
+| Actual legacy characterization | Windows Server 2022; .NET Framework 4.8 targeting pack present; Visual Studio MSBuild 17.14.60.43110; GDI+ `10.0.20348.5622` | `PASS`, 21 cases / 621 assertions. New lifecycle case passed 43 assertions. |
+| Portable generator against actual legacy BMP/PNG captures | Windows Server 2022 / .NET 10 | `PASS`, 1,233 assertions; BMP 7x5 and PNG 13x9 only |
+
+The actual reader's two compared RGBA outputs from that run have SHA-256:
+
+| Captured output | SHA-256 | Bytes |
+|---|---|---:|
+| `bmp-rgb-7x5.rgba` | `9a84e308ce741bf2ff2bf1e85d417fc9812fabddcd49d02e0001ffb9e912dd2d` | 140 |
+| `png-alpha-13x9.rgba` | `3a4ceaa3b8027dbac77f815a02812145b57e41304d6a7efc962d2cbfd29cf9fe` | 468 |
+
+These hashes identify outputs uploaded with run 38238423701; they do not approve or replace the separate candidate baseline. The comparison proves only dimensions and logical RGBA values for those two fixture captures. The portable generator's metadata, lifecycle, and backing-storage behavior are tested independently; full VideoReaderBitmap playback parity, cache safety, asynchronous use, and user-facing integration remain unestablished.
+
+The uploaded `source-hashes.json` contains 44 configured source entries and no missing files. It includes the reader, frame generator, cache contracts, new portable implementation/tests, characterization harness, preparation script, and workflow. The lifecycle capture recorded `System.ArgumentException` when accessing the image after close and on same-timestamp reopen; `SingleFrame.Clear` then produced the independently asserted disposed-bitmap reuse hazard described above.
