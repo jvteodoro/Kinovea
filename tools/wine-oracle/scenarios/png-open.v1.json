@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "still-image-png-alpha-open",
+  "version": 1,
+  "title": "Open candidate alpha PNG in installed Kinovea",
+  "application": {
+    "expectedVersion": "2025.2.0.0",
+    "executableSha256": "22d95a127257e59bd435eaa2689dd7fda2cae802829e801aa5cd367ee7a12534"
+  },
+  "launchArguments": [],
+  "input": {
+    "id": "bitmap-candidate-png-alpha-13x9",
+    "path": "tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures/png-alpha-13x9.png",
+    "sha256": "e0759d696bfef305e0a2c1c8fc7b7673e9e46390ef15beb541679c6766041dcd",
+    "provenance": "Synthetic transparent fixture from the Windows .NET Framework 4.8 Bitmap characterization candidate. Candidate is not an approved golden baseline."
+  },
+  "preconditions": [
+    "Use the verified existing win64 Wine prefix and matching Kinovea executable.",
+    "No Kinovea window may already be open.",
+    "Xwayland display must be reachable from the harness."
+  ],
+  "startupTimeoutSeconds": 45,
+  "actions": [
+    {
+      "type": "open_fixture",
+      "waitSeconds": 2,
+      "description": "Use Kinovea's Ctrl+O dialog to open the specified fixture from a blank disposable workspace."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "png-alpha-open",
+      "waitSeconds": 1,
+      "description": "Capture after opening the PNG through the actual file-picker workflow."
+    },
+    {
+      "type": "close_screen",
+      "waitSeconds": 1,
+      "description": "Close the current player screen using the production Ctrl+F4 shortcut."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "png-screen-closed",
+      "description": "Capture the remaining application window after closing the screen."
+    }
+  ],
+  "expectedOutcomes": [
+    {
+      "observation": "A Kinovea window opens with the PNG selected through the application reader path.",
+      "status": "NOT_ESTABLISHED",
+      "verification": "Dialog interaction was executed, but the captured main window remained blank; this outcome is not established."
+    },
+    {
+      "observation": "The displayed aspect ratio follows the 13x9 source image.",
+      "status": "NOT_ESTABLISHED",
+      "verification": "Dialog interaction was executed, but the captured main window remained blank; this outcome is not established."
+    },
+    {
+      "observation": "Transparent and partially transparent regions have a visible presentation.",
+      "status": "NOT_ESTABLISHED",
+      "verification": "Dialog interaction was executed, but the captured main window remained blank; this outcome is not established."
+    },
+    {
+      "observation": "Ctrl+F4 closes the player screen while the application remains open.",
+      "status": "NOT_ESTABLISHED",
+      "verification": "Dialog interaction was executed, but the captured main window remained blank; this outcome is not established."
+    }
+  ],
+  "screenshots": [
+    "png-alpha-open.png",
+    "png-screen-closed.png"
+  ],
+  "outputs": [
+    "result.json",
+    "wine.stdout.log",
+    "wine.stderr.log"
+  ],
+  "cleanup": [
+    "Harness sends Alt+F4 to the Kinovea window it launched; it never calls wineserver -k."
+  ],
+  "evidenceConfidence": "WINE_OBSERVED for launch/dialog interaction only; image-reader behavior NOT_ESTABLISHED.",
+  "limitations": [
+    "Screenshot cannot establish alpha byte values, premultiplication, or exact aspect ratio.",
+    "Candidate Windows fixture is pending human approval."
+  ],
+  "prepare": {
+    "clearSavedScreens": true
+  }
+}

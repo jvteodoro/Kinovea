@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "mp4-play-pause",
+  "version": 1,
+  "title": "Play and pause the local H.264 reference video",
+  "application": {
+    "expectedVersion": "2025.2.0.0",
+    "executableSha256": "22d95a127257e59bd435eaa2689dd7fda2cae802829e801aa5cd367ee7a12534"
+  },
+  "launchArguments": [],
+  "input": {
+    "id": "local-h264-1280x720-30fps-10s",
+    "environmentVariable": "KINOVEA_ORACLE_MP4",
+    "sha256": "04761f49477fe2662f93666f67b728c0434cc067cca7ba02cc4df6568298431d",
+    "provenance": "Pre-existing local reference fixture; not copied into the repository. SHA-256 and ffprobe codec/dimensions/frame-rate/duration verified locally."
+  },
+  "preconditions": [
+    "Set KINOVEA_ORACLE_MP4 to the verified local video file.",
+    "Use the verified existing win64 Wine prefix and matching Kinovea executable.",
+    "No Kinovea window may already be open."
+  ],
+  "startupTimeoutSeconds": 45,
+  "actions": [
+    {
+      "type": "open_fixture",
+      "waitSeconds": 2,
+      "description": "Use Kinovea's Ctrl+O dialog to open the specified fixture from a blank disposable workspace."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "mp4-open-paused",
+      "waitSeconds": 1,
+      "description": "Capture the opened clip and visible metadata before playback control."
+    },
+    {
+      "type": "key",
+      "keys": [
+        "space"
+      ],
+      "description": "Start playback with the default Space shortcut."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "mp4-playing",
+      "waitSeconds": 1,
+      "description": "Capture the visible playing control state."
+    },
+    {
+      "type": "key",
+      "keys": [
+        "space"
+      ],
+      "description": "Pause playback with the default Space shortcut."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "mp4-paused",
+      "waitSeconds": 1,
+      "description": "Capture the visible paused control state."
+    }
+  ],
+  "expectedOutcomes": [
+    {
+      "observation": "The actual UI open path loads the specified 1280x720, 30 fps, 10 second H.264 reference clip.",
+      "status": "WINE_OBSERVED",
+      "verification": "Manual review of the Kinovea window title and visible dimensions/frame rate; input SHA-256 and ffprobe metadata are recorded."
+    },
+    {
+      "observation": "Space starts and pauses playback, with the visible transport control changing state.",
+      "status": "WINE_OBSERVED",
+      "verification": "Manual review of screenshots captured before, during and after playback; no exact frame timing claim."
+    },
+    {
+      "observation": "Exact playback timing or decoder parity with Windows is established.",
+      "status": "NOT_ESTABLISHED",
+      "verification": "Screenshots are insufficient for timing or pixel equivalence."
+    }
+  ],
+  "screenshots": [
+    "mp4-open-paused.png",
+    "mp4-playing.png",
+    "mp4-paused.png"
+  ],
+  "outputs": [
+    "result.json",
+    "wine.stdout.log",
+    "wine.stderr.log"
+  ],
+  "cleanup": [
+    "Harness sends Alt+F4 to the Kinovea window it launched; it never calls wineserver -k."
+  ],
+  "evidenceConfidence": "WINE_OBSERVED for clip selection and visible play/pause controls after manual screenshot review; no timing/pixel equivalence.",
+  "limitations": [
+    "The local video is not committed; reproduce only with the matching SHA-256.",
+    "The video is an environmental fixture, not a licensed project fixture.",
+    "Playback/frame rate claims are not inferred from screenshots."
+  ],
+  "prepare": {
+    "clearSavedScreens": true
+  }
+}
