@@ -159,7 +159,7 @@ The Windows job first runs the actual .NET Framework 4.8 characterization harnes
 
 Supported synchronous lifetime: open through the adapter, navigate/read while the shell stays open, call cache `Clear` before dropping a cached reference, and use adapter `Close` to clear before releasing reader storage. Do not retain frames or borrowed `ReadOnlyMemory<byte>` beyond reader close. Calling the supplied shell's `Close` directly with a populated cache slot is unsupported; the wrapper remains cached but new pixel access throws `ObjectDisposedException`. Async consumers, `Cache`, `PreBuffer2`, and production playback are not integrated.
 
-Local command and results, plus the ownership-option comparison, are in [Portable SingleFrame cache evidence](evidence/portable-single-frame-cache-v1.md). Final Linux/Windows CI run IDs, test counts and trace/artifact hashes must be recorded there before this component is marked `PORTABLE_TESTED`.
+Local commands and results, ownership-option comparison, trace provenance and hashes are in [Portable SingleFrame cache evidence](evidence/portable-single-frame-cache-v1.md). GitHub Actions run [38247808240](https://github.com/jvteodoro/Kinovea/actions/runs/38247808240), source SHA `1762851bbeffd556452a46aa0c29b8fcf4184700`, passed the portable pixel/image/frame/shell/cache suites on Ubuntu 24.04 and Windows Server 2022. The actual net48 characterization passed 23 cases/674 assertions; the SingleFrame trace comparison passed 14 assertions. This remains candidate evidence and does not establish production cache integration.
 
 Local Linux commands (SDK 10.0.111):
 
