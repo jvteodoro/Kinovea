@@ -112,6 +112,19 @@ For the additive PNG eXIf characterization, Windows Bitmap adapter workflow [381
 
 `tests/PortableImageReader.Tests` runs a .NET 10 console assertion suite against the separate `Kinovea.PortableImageReader` library. Linux and Windows jobs verify immutable candidate BMP/PNG binary inputs and outputs plus independently authored expected pixel formulas. Tests cover transparent and partial-alpha pixels, a generated 24-bit BMP with row padding, errors, and output/file lifetime. A generated PNG eXIf orientation-6 case is compared with a fresh actual .NET Framework 4.8 reader capture. That Windows run observed that GDI+ does not expose the PNG orientation property and retains 13x9 dimensions and original raster order. This establishes the one fixture's result only; other PNG eXIf variants remain unverified. The old candidate directory remains unchanged and `CANDIDATE_NOT_APPROVED`.
 
+### Portable reader shell navigation
+
+`tests/PortableReaderShell.Tests` executes the same synchronous BMP/PNG navigation scenarios on Linux and Windows .NET 10. It covers initial empty frame, open metadata, first/sequential selection, repeated-current wrapper identity, forward/backward navigation, working-zone limits, PlayerRequest steps, close/reopen, corrupt-image recovery and repeated disposal. Windows CI first runs the actual net48 `VideoReaderBitmap` harness to produce `reader-state-traces.v1.json`, then supplies that trace to the shell test with `--legacy-trace`. The trace remains candidate evidence, not an approved golden. The test suite checks schema and selected actual behavior; explicitly documented safe differences are tested separately: idempotent close-before-open, no synthetic 4x4 corrupt-image frame, and fresh frame data after reopen at a stale timestamp. This shell remains detached from caches and does not establish cache ownership safety.
+
+Local offline commands (Gentoo, SDK 10.0.111):
+
+```sh
+dotnet build tests/PortableReaderShell.Tests/PortableReaderShell.Tests.csproj -c Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false -m:1
+dotnet tests/PortableReaderShell.Tests/bin/Release/net10.0/PortableReaderShell.Tests.dll
+```
+
+Windows/Linux execution is recorded in [PortableReaderShell v1 evidence](evidence/portable-reader-shell-v1.md): final workflow `38243254812`, source SHA `fc007d36afe27a579666e5783b5a70d8b291aa0c`. The actual Windows reader passed 22 cases/644 assertions; the shell trace replay passed 411 assertions across navigation, failed-open recovery from both unopened and already-open states, and close-before-open observations. Its JSON trace SHA-256 is `a7372df8e03e916b49a33c08fdbedb52a27ce37ccb3959f7fc9e7cc101259697`. A warmed single-operation allocation sample measured 0 bytes for repeated-current and 80 bytes for changed-timestamp on both OSes. These are candidate results, not golden approval.
+
 Run locally with:
 
 ```sh
