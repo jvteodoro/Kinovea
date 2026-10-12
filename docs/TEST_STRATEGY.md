@@ -106,6 +106,22 @@ The adapter currently supports only `Format24bppRgb`, `Format32bppRgb`, `Format3
 
 Latest full workflow run [38189832385](https://github.com/jvteodoro/Kinovea/actions/runs/38189832385), source SHA `e02fc457bbf371a456313e6ad59eb89135f6cfc8`, passed the net48 reader (19 cases/537 assertions), Windows adapter (38 checks/29 reader captures plus fixture hash validation), and the portable core (10 checks on Ubuntu and 10 on Windows). The run's source hash manifest includes all 29 configured code/workflow inputs with no missing paths. Intermediate target-framework and fixture-count/path corrections and failed runs are described in the evidence record.
 
+For the additive PNG eXIf characterization, Windows Bitmap adapter workflow [38192763320](https://github.com/jvteodoro/Kinovea/actions/runs/38192763320) passed 40 adapter checks including 31 actual-reader captures; Portable Pixel Core passed 10/10 on Linux and Windows. Reader workflow [38192763379](https://github.com/jvteodoro/Kinovea/actions/runs/38192763379) passed 1,322 reader assertions on each OS, actual .NET Framework 4.8 reader characterization (20 cases/578 assertions), and 2,419 fresh-capture comparison assertions. Both workflows tested source SHA `8b75d148725762942f24ffe2c7c4624d4ad88294`. Per-fixture results and limits are in [reader evidence](evidence/portable-image-reader-v1.md).
+
+## Portable BMP/PNG reader
+
+`tests/PortableImageReader.Tests` runs a .NET 10 console assertion suite against the separate `Kinovea.PortableImageReader` library. Linux and Windows jobs verify immutable candidate BMP/PNG binary inputs and outputs plus independently authored expected pixel formulas. Tests cover transparent and partial-alpha pixels, a generated 24-bit BMP with row padding, errors, and output/file lifetime. A generated PNG eXIf orientation-6 case is compared with a fresh actual .NET Framework 4.8 reader capture. That Windows run observed that GDI+ does not expose the PNG orientation property and retains 13x9 dimensions and original raster order. This establishes the one fixture's result only; other PNG eXIf variants remain unverified. The old candidate directory remains unchanged and `CANDIDATE_NOT_APPROVED`.
+
+Run locally with:
+
+```sh
+dotnet build tests/PortableImageReader.Tests/PortableImageReader.Tests.csproj --configuration Release -m:1
+dotnet tests/PortableImageReader.Tests/bin/Release/net10.0/PortableImageReader.Tests.dll --measure
+dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj --configuration Release
+```
+
+The reader suite reports fixture/pixel comparisons individually and must not be summarized as overall Bitmap reader parity. Reader timing and managed allocation numbers are descriptive samples only. See [decoder decision](adr/0004-portable-bmp-png-decoder.md) and [versioned evidence](evidence/portable-image-reader-v1.md).
+
 
 ### Portable frame contract design
 
