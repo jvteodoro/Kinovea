@@ -1,0 +1,115 @@
+name: Portable BMP and PNG reader
+
+on:
+  push:
+    branches: ["port/portable-image-reader"]
+    paths:
+      - "src/Kinovea.PortablePixels/**"
+      - "src/Kinovea.PortableImageReader/**"
+      - "tests/PortableImageReader.Tests/**"
+      - "tests/Bitmap.Characterization/**"
+      - "scripts/bitmap-characterization/**"
+      - ".github/workflows/portable-image-reader.yml"
+  pull_request:
+    branches: ["port/net10-linux"]
+    paths:
+      - "src/Kinovea.PortablePixels/**"
+      - "src/Kinovea.PortableImageReader/**"
+      - "tests/PortableImageReader.Tests/**"
+      - "tests/PortablePixels.Tests/**"
+      - "tests/Bitmap.Characterization/**"
+      - "scripts/bitmap-characterization/**"
+      - ".github/workflows/portable-image-reader.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-tests:
+    name: .NET 10 reader and pixel tests / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Build and test portable image reader
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          $report = "artifacts/portable-image-reader-$env:RUNNER_OS.txt"
+          "Runner OS: $env:RUNNER_OS" | Tee-Object -FilePath $report
+          dotnet --info *>&1 | Tee-Object -FilePath $report -Append
+          dotnet build tests/PortableImageReader.Tests/PortableImageReader.Tests.csproj --configuration Release -m:1 *>&1 | Tee-Object -FilePath $report -Append
+          if ($LASTEXITCODE -ne 0) { throw "Portable image reader build failed with exit code $LASTEXITCODE" }
+          dotnet tests/PortableImageReader.Tests/bin/Release/net10.0/PortableImageReader.Tests.dll --measure *>&1 | Tee-Object -FilePath $report -Append
+          if ($LASTEXITCODE -ne 0) { throw "Portable image reader tests failed with exit code $LASTEXITCODE" }
+          dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj --configuration Release *>&1 | Tee-Object -FilePath $report -Append
+          if ($LASTEXITCODE -ne 0) { throw "Portable pixel tests failed with exit code $LASTEXITCODE" }
+      - name: Upload portable test evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: portable-image-reader-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/portable-image-reader-${{ runner.os }}.txt
+          if-no-files-found: warn
+          retention-days: 90
+
+  windows-legacy-oracle:
+    name: Actual .NET Framework 4.8 reader comparison
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: microsoft/setup-msbuild@v2
+      - uses: NuGet/setup-nuget@v2
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Capture environment and verify .NET Framework targeting pack
+        shell: pwsh
+        run: ./scripts/bitmap-characterization/prepare-artifacts.ps1 -ArtifactsPath artifacts/portable-image-reader
+      - name: Restore legacy dependencies
+        shell: pwsh
+        run: |
+          nuget restore Kinovea.Services/packages.config -PackagesDirectory packages -NonInteractive -Verbosity normal *>&1 |
+            Tee-Object -FilePath artifacts/portable-image-reader/nuget-restore.log
+          if ($LASTEXITCODE -ne 0) { throw "NuGet restore failed with exit code $LASTEXITCODE" }
+      - name: Build and run actual legacy Bitmap reader
+        shell: pwsh
+        run: |
+          msbuild tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj `
+            /t:Rebuild /m /nologo /verbosity:minimal `
+            /p:Configuration=Release /p:Platform=x64 `
+            "/flp:logfile=artifacts/portable-image-reader/legacy-msbuild.log;verbosity=normal" `
+            /bl:artifacts/portable-image-reader/legacy-msbuild.binlog
+          if ($LASTEXITCODE -ne 0) { throw "Legacy characterization build failed with exit code $LASTEXITCODE" }
+          $exe = "tests/Bitmap.Characterization/bin/x64/Release/Kinovea.Bitmap.Characterization.exe"
+          & $exe --output artifacts/portable-image-reader/legacy-capture
+          if ($LASTEXITCODE -ne 0) { throw "Legacy reader characterization failed with exit code $LASTEXITCODE" }
+      - name: Compare portable reader to actual legacy BMP and PNG outputs
+        shell: pwsh
+        run: |
+          dotnet --info *>&1 | Tee-Object -FilePath artifacts/portable-image-reader/dotnet-info.txt
+          dotnet build tests/PortableImageReader.Tests/PortableImageReader.Tests.csproj --configuration Release -m:1 *>&1 |
+            Tee-Object -FilePath artifacts/portable-image-reader/reader-build.log
+          if ($LASTEXITCODE -ne 0) { throw "Portable image reader build failed with exit code $LASTEXITCODE" }
+          dotnet tests/PortableImageReader.Tests/bin/Release/net10.0/PortableImageReader.Tests.dll `
+            --legacy-capture artifacts/portable-image-reader/legacy-capture --measure *>&1 |
+            Tee-Object -FilePath artifacts/portable-image-reader/reader-tests.log
+          if ($LASTEXITCODE -ne 0) { throw "Portable reader/legacy comparison failed with exit code $LASTEXITCODE" }
+      - name: Upload Windows reader evidence even after failure
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: portable-image-reader-windows-legacy-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/portable-image-reader/
+          if-no-files-found: warn
+          retention-days: 90

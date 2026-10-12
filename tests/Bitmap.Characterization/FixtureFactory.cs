@@ -33,6 +33,14 @@ namespace Kinovea.Bitmap.Characterization
 
             AddBitmapFixture(fixtures, directory, "bmp-rgb-7x5", "bmp-rgb-7x5.bmp", "BMP", 7, 5, false, null);
             AddBitmapFixture(fixtures, directory, "png-alpha-13x9", "png-alpha-13x9.png", "PNG", 13, 9, true, null);
+
+            string exifPngPath = System.IO.Path.Combine(directory, "png-exif-orientation-06.png");
+            byte[] alphaPng = File.ReadAllBytes(System.IO.Path.Combine(directory, "png-alpha-13x9.png"));
+            File.WriteAllBytes(exifPngPath, InsertPngExifOrientation(alphaPng, 6));
+            // This generated PNG carries eXIf orientation 6, but the actual
+            // .NET Framework GDI+ reader does not expose it as PropertyItem.
+            fixtures.Add(CreateSpec("png-exif-orientation-06", "png-exif-orientation-06.png", "PNG", 13, 9, 6, 0, true, exifPngPath));
+
             AddJpegFixture(fixtures, directory, "jpeg-rgb-11x7", "jpeg-rgb-11x7.jpg", null);
 
             byte[] jpeg = EncodeJpeg(11, 7);
@@ -207,6 +215,82 @@ namespace Kinovea.Bitmap.Characterization
                 output.Write(jpeg, 2, jpeg.Length - 2);
                 return output.ToArray();
             }
+        }
+
+        private static byte[] InsertPngExifOrientation(byte[] png, ushort orientation)
+        {
+            byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+            if (png.Length < signature.Length)
+                throw new InvalidDataException("The GDI+ PNG encoder returned a truncated file.");
+            for (int i = 0; i < signature.Length; i++)
+                if (png[i] != signature[i]) throw new InvalidDataException("The GDI+ encoder did not produce PNG data.");
+
+            byte[] payload = new byte[]
+            {
+                0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00,
+                0x01, 0x00,
+                0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+                (byte)(orientation & 0xff), (byte)(orientation >> 8), 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00
+            };
+            byte[] exifChunk = MakePngChunk("eXIf", payload);
+
+            int position = signature.Length;
+            while (position <= png.Length - 12)
+            {
+                uint length = ReadUInt32BigEndian(png, position);
+                if (length > int.MaxValue || position + 12L + length > png.Length)
+                    throw new InvalidDataException("The GDI+ PNG encoder returned a malformed chunk.");
+
+                bool isIdat = png[position + 4] == (byte)'I' && png[position + 5] == (byte)'D' &&
+                              png[position + 6] == (byte)'A' && png[position + 7] == (byte)'T';
+                if (isIdat)
+                {
+                    using (var output = new MemoryStream(png.Length + exifChunk.Length))
+                    {
+                        output.Write(png, 0, position);
+                        output.Write(exifChunk, 0, exifChunk.Length);
+                        output.Write(png, position, png.Length - position);
+                        return output.ToArray();
+                    }
+                }
+                position = checked(position + 12 + (int)length);
+            }
+
+            throw new InvalidDataException("The GDI+ PNG encoder did not produce an IDAT chunk.");
+        }
+
+        private static byte[] MakePngChunk(string type, byte[] payload)
+        {
+            byte[] chunk = new byte[checked(payload.Length + 12)];
+            WriteUInt32BigEndian(chunk, 0, (uint)payload.Length);
+            byte[] typeBytes = System.Text.Encoding.ASCII.GetBytes(type);
+            Buffer.BlockCopy(typeBytes, 0, chunk, 4, 4);
+            Buffer.BlockCopy(payload, 0, chunk, 8, payload.Length);
+
+            uint crc = 0xffffffff;
+            for (int i = 4; i < 8 + payload.Length; i++)
+            {
+                crc ^= chunk[i];
+                for (int bit = 0; bit < 8; bit++)
+                    crc = (crc & 1) != 0 ? 0xedb88320 ^ (crc >> 1) : crc >> 1;
+            }
+            WriteUInt32BigEndian(chunk, chunk.Length - 4, ~crc);
+            return chunk;
+        }
+
+        private static uint ReadUInt32BigEndian(byte[] bytes, int offset)
+        {
+            return ((uint)bytes[offset] << 24) | ((uint)bytes[offset + 1] << 16) |
+                   ((uint)bytes[offset + 2] << 8) | bytes[offset + 3];
+        }
+
+        private static void WriteUInt32BigEndian(byte[] bytes, int offset, uint value)
+        {
+            bytes[offset] = (byte)(value >> 24);
+            bytes[offset + 1] = (byte)(value >> 16);
+            bytes[offset + 2] = (byte)(value >> 8);
+            bytes[offset + 3] = (byte)value;
         }
     }
 }

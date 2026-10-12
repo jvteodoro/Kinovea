@@ -67,9 +67,14 @@ $sourcePaths = @(
     "src/Kinovea.PortablePixels.GdiPlus/Kinovea.PortablePixels.GdiPlus.csproj",
     "tests/WindowsBitmapAdapter.Tests/Program.cs",
     "tests/WindowsBitmapAdapter.Tests/WindowsBitmapAdapter.Tests.csproj",
+    "src/Kinovea.PortableImageReader/PortableImageReader.cs",
+    "src/Kinovea.PortableImageReader/Kinovea.PortableImageReader.csproj",
+    "tests/PortableImageReader.Tests/Program.cs",
+    "tests/PortableImageReader.Tests/PortableImageReader.Tests.csproj",
     "scripts/bitmap-characterization/prepare-artifacts.ps1",
     ".github/workflows/bitmap-characterization.yml",
-    ".github/workflows/windows-bitmap-adapter.yml"
+    ".github/workflows/windows-bitmap-adapter.yml",
+    ".github/workflows/portable-image-reader.yml"
 )
 $sourceHashes = foreach ($relativePath in $sourcePaths) {
     $fullPath = Join-Path (Get-Location) $relativePath
