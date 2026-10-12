@@ -1,0 +1,99 @@
+name: Portable frame generator integration boundary
+
+on:
+  push:
+    branches: ["port/portable-frame-integration"]
+    paths:
+      - "src/Kinovea.PortablePixels/**"
+      - "src/Kinovea.PortableImageReader/**"
+      - "src/Kinovea.PortableFrameGenerator/**"
+      - "tests/PortableFrameGenerator.Tests/**"
+      - "tests/Bitmap.Characterization/**"
+      - "scripts/bitmap-characterization/**"
+      - ".github/workflows/portable-frame-integration.yml"
+  pull_request:
+    branches: ["port/net10-linux"]
+    paths:
+      - "src/Kinovea.PortablePixels/**"
+      - "src/Kinovea.PortableImageReader/**"
+      - "src/Kinovea.PortableFrameGenerator/**"
+      - "tests/PortableFrameGenerator.Tests/**"
+      - "tests/Bitmap.Characterization/**"
+      - "scripts/bitmap-characterization/**"
+      - ".github/workflows/portable-frame-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-tests:
+    name: Portable pixel, reader and frame tests / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Run portable frame tests
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          dotnet --info *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt
+          dotnet run --project tests/PortableFrameGenerator.Tests/PortableFrameGenerator.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
+          if ($LASTEXITCODE -ne 0) { throw "Portable frame tests failed: $LASTEXITCODE" }
+          dotnet run --project tests/PortableImageReader.Tests/PortableImageReader.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
+          if ($LASTEXITCODE -ne 0) { throw "Portable image reader tests failed: $LASTEXITCODE" }
+          dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
+          if ($LASTEXITCODE -ne 0) { throw "Portable pixel tests failed: $LASTEXITCODE" }
+      - name: Upload portable test evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: portable-frame-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/portable-frame-${{ runner.os }}.txt
+          if-no-files-found: warn
+          retention-days: 90
+
+  legacy-reader-oracle:
+    name: Actual .NET Framework 4.8 reader and lifecycle oracle
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: microsoft/setup-msbuild@v2
+      - uses: NuGet/setup-nuget@v2
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Capture environment and verify .NET Framework targeting pack
+        shell: pwsh
+        run: ./scripts/bitmap-characterization/prepare-artifacts.ps1 -ArtifactsPath artifacts/portable-frame/legacy-capture
+      - name: Restore and run actual legacy reader characterization
+        shell: pwsh
+        run: |
+          nuget restore Kinovea.Services/packages.config -PackagesDirectory packages -NonInteractive -Verbosity normal *>&1 | Tee-Object artifacts/portable-frame/nuget-restore.log
+          if ($LASTEXITCODE -ne 0) { throw "NuGet restore failed: $LASTEXITCODE" }
+          msbuild tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj /t:Rebuild /m /nologo /verbosity:minimal /p:Configuration=Release /p:Platform=x64 "/flp:logfile=artifacts/portable-frame/legacy-msbuild.log;verbosity=normal" /bl:artifacts/portable-frame/legacy-msbuild.binlog
+          if ($LASTEXITCODE -ne 0) { throw "Legacy characterization build failed: $LASTEXITCODE" }
+          & tests/Bitmap.Characterization/bin/x64/Release/Kinovea.Bitmap.Characterization.exe --output artifacts/portable-frame/legacy-capture
+          if ($LASTEXITCODE -ne 0) { throw "Legacy reader characterization failed: $LASTEXITCODE" }
+      - name: Compare portable generator to actual reader pixels
+        shell: pwsh
+        run: |
+          dotnet run --project tests/PortableFrameGenerator.Tests/PortableFrameGenerator.Tests.csproj -c Release -- --legacy-capture artifacts/portable-frame/legacy-capture *>&1 | Tee-Object artifacts/portable-frame/generator-comparison.log
+          if ($LASTEXITCODE -ne 0) { throw "Portable/legacy frame comparison failed: $LASTEXITCODE" }
+      - name: Upload legacy and comparison evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: portable-frame-windows-legacy-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/portable-frame/
+          if-no-files-found: warn
+          retention-days: 90

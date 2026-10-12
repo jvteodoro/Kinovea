@@ -50,6 +50,11 @@ namespace Kinovea.Bitmap.Characterization
                         RunCase("reader-" + fixture.Id, delegate(CaseRecorder test) { CharacterizeFixture(fixture, outputDirectory, test); });
                 }
 
+                RunCase("reader-frame-lifecycle", delegate(CaseRecorder test)
+                {
+                    CharacterizeFrameLifecycle(fixtures.First(f => f.Id == "bmp-rgb-7x5"), test);
+                });
+
                 FixtureSpec rotationFixture = fixtures.First(f => f.Id == "bmp-rgb-7x5");
                 foreach (ImageRotation rotation in Enum.GetValues(typeof(ImageRotation)))
                 {
@@ -110,6 +115,91 @@ namespace Kinovea.Bitmap.Characterization
             if (fatalError != null)
                 Console.Error.WriteLine("Fatal characterization setup error: " + fatalError);
             return Failures.Count == 0 && fatalError == null ? 0 : 1;
+        }
+
+        private static void CharacterizeFrameLifecycle(FixtureSpec fixture, CaseRecorder test)
+        {
+            var reader = new VideoReaderBitmap();
+            test.Equal(-1L, reader.Current.Timestamp, "initial current timestamp");
+            test.Equal(-1L, reader.Current.PreviousTimestamp, "initial previous timestamp");
+            test.Equal(true, reader.Current.Image == null, "initial image is null");
+            test.Equal(OpenVideoResult.Success.ToString(), reader.Open(fixture.Path).ToString(), "open for lifecycle characterization");
+
+            test.Equal(true, reader.MoveRequest(true, 123), "first sequential request accepted");
+            VideoFrame zero = reader.Current;
+            SystemBitmap shared = zero.Image;
+            test.Equal(0L, zero.Timestamp, "first sequential timestamp");
+            test.Equal(-1L, zero.PreviousTimestamp, "first sequential previous timestamp");
+            test.Equal(true, reader.MoveRequest(true, 123), "second sequential request accepted");
+            test.Equal(1L, reader.Current.Timestamp, "second sequential timestamp");
+            test.Equal(0L, reader.Current.PreviousTimestamp, "second sequential previous timestamp");
+            test.Equal(true, Object.ReferenceEquals(shared, reader.Current.Image), "sequential request reuses bitmap instance");
+
+            test.Equal(true, reader.MoveRequest(false, 37), "forward arbitrary timestamp accepted");
+            test.Equal(37L, reader.Current.Timestamp, "forward arbitrary timestamp value");
+            test.Equal(36L, reader.Current.PreviousTimestamp, "forward arbitrary previous timestamp");
+            test.Equal(true, reader.MoveRequest(false, 12), "backward arbitrary timestamp accepted");
+            test.Equal(12L, reader.Current.Timestamp, "backward arbitrary timestamp value");
+            test.Equal(11L, reader.Current.PreviousTimestamp, "backward arbitrary previous timestamp");
+            VideoFrame atTwelve = reader.Current;
+            test.Equal(true, reader.MoveRequest(false, 12), "same timestamp request accepted");
+            test.Equal(true, Object.ReferenceEquals(atTwelve, reader.Current), "same timestamp retains VideoFrame instance");
+
+            test.Equal(true, reader.MoveRequest(false, 249), "last in-zone timestamp accepted");
+            test.Equal(249L, reader.Current.Timestamp, "last in-zone timestamp");
+            SystemBitmap lastBitmap = reader.Current.Image;
+            test.Equal(true, reader.MoveRequest(true, 0) == false, "next past working-zone end rejected");
+            test.Equal(249L, reader.Current.Timestamp, "past-end next leaves frame unchanged");
+            test.Equal(true, reader.MoveRequest(false, 250), "out-of-zone timestamp request method return");
+            test.Equal(249L, reader.Current.Timestamp, "out-of-zone timestamp leaves frame unchanged");
+
+            test.Equal(true, reader.PlayerRequest(new PlayerState(7, PlayerAction.StepBackward, true, 249)), "backward player request");
+            test.Equal(248L, reader.Current.Timestamp, "backward player timestamp");
+            test.Equal(247L, reader.Current.PreviousTimestamp, "backward player previous timestamp");
+            test.Equal(true, Object.ReferenceEquals(lastBitmap, reader.Current.Image), "DisposePrevious does not release shared bitmap");
+
+            reader.Close();
+            test.Equal(false, reader.Loaded, "closed loaded state");
+            bool disposedBitmap;
+            try { int ignored = lastBitmap.Width; disposedBitmap = false; }
+            catch (ArgumentException) { disposedBitmap = true; }
+            test.Equal(true, disposedBitmap, "Close disposes shared bitmap");
+            test.Equal(248L, reader.Current.Timestamp, "Close retains current frame wrapper");
+
+            test.Equal(OpenVideoResult.Success.ToString(), reader.Open(fixture.Path).ToString(), "reopen result");
+            test.Equal(true, reader.MoveRequest(false, 248), "same-position request after reopen");
+            test.Equal(true, Object.ReferenceEquals(lastBitmap, reader.Current.Image), "same-position reopen retains old bitmap reference");
+            try { int ignored = reader.Current.Image.Width; test.Observation("sameTimestampReopenAccess", "accessible width=" + ignored); }
+            catch (Exception ex) { test.Observation("sameTimestampReopenAccess", ex.GetType().FullName); }
+            test.Equal(true, reader.MoveRequest(false, 247), "different-position request after reopen");
+            test.Equal(247L, reader.Current.Timestamp, "different-position reopen timestamp");
+            test.Equal(false, Object.ReferenceEquals(lastBitmap, reader.Current.Image), "different-position reopen creates fresh bitmap");
+            reader.Close();
+
+            var generator = new FrameGeneratorImageFile();
+            test.Equal(OpenVideoResult.Success.ToString(), generator.Open(fixture.Path).ToString(), "standalone image generator open");
+            SystemBitmap generated = generator.Generate(0);
+            generator.DisposePrevious(generated);
+            test.Equal(true, generated.Width > 0, "DisposePrevious leaves generated image alive");
+            generator.Close();
+            try { int ignored = generated.Width; disposedBitmap = false; }
+            catch (ArgumentException) { disposedBitmap = true; }
+            test.Equal(true, disposedBitmap, "generator Close disposes generated image");
+
+            var cacheGenerator = new FrameGeneratorImageFile();
+            cacheGenerator.Open(fixture.Path);
+            SystemBitmap cached = cacheGenerator.Generate(0);
+            var single = new SingleFrame();
+            single.Add(new VideoFrame(cached, 0, -1));
+            single.Clear();
+            try { int ignored = cached.Width; disposedBitmap = false; }
+            catch (ArgumentException) { disposedBitmap = true; }
+            test.Equal(true, disposedBitmap, "default SingleFrame eviction disposes shared generator bitmap");
+            SystemBitmap returnedAgain = cacheGenerator.Generate(1);
+            test.Equal(true, Object.ReferenceEquals(cached, returnedAgain), "generator returns cached bitmap after cache eviction");
+            test.Observation("cacheEviction", "SingleFrame.Clear disposed the generator-owned bitmap; the generator still returned that same disposed instance.");
+            cacheGenerator.Close();
+            single.Dispose();
         }
 
         private static string GetOutputDirectory(string[] args)

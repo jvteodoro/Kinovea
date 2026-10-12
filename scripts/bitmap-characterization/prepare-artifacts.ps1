@@ -46,6 +46,10 @@ $sourcePaths = @(
     "Kinovea.Video/VideoReaders/VideoReader.cs",
     "Kinovea.Video/VideoReaders/IFrameGenerator.cs",
     "Kinovea.Video/Caching/VideoFrame.cs",
+    "Kinovea.Video/Caching/SingleFrame.cs",
+    "Kinovea.Video/Caching/Cache.cs",
+    "Kinovea.Video/Caching/PreBuffer2.cs",
+    "Kinovea.Video/Delegates.cs",
     "Kinovea.Video/Caching/PlayerState.cs",
     "Kinovea.Video/Caching/PlayerAction.cs",
     "Kinovea.Video/VideoInfo.cs",
@@ -71,10 +75,16 @@ $sourcePaths = @(
     "src/Kinovea.PortableImageReader/Kinovea.PortableImageReader.csproj",
     "tests/PortableImageReader.Tests/Program.cs",
     "tests/PortableImageReader.Tests/PortableImageReader.Tests.csproj",
+    "src/Kinovea.PortableFrameGenerator/PortableImageFrame.cs",
+    "src/Kinovea.PortableFrameGenerator/PortableImageFrameGenerator.cs",
+    "src/Kinovea.PortableFrameGenerator/Kinovea.PortableFrameGenerator.csproj",
+    "tests/PortableFrameGenerator.Tests/Program.cs",
+    "tests/PortableFrameGenerator.Tests/PortableFrameGenerator.Tests.csproj",
     "scripts/bitmap-characterization/prepare-artifacts.ps1",
     ".github/workflows/bitmap-characterization.yml",
     ".github/workflows/windows-bitmap-adapter.yml",
-    ".github/workflows/portable-image-reader.yml"
+    ".github/workflows/portable-image-reader.yml",
+    ".github/workflows/portable-frame-integration.yml"
 )
 $sourceHashes = foreach ($relativePath in $sourcePaths) {
     $fullPath = Join-Path (Get-Location) $relativePath
