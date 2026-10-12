@@ -233,8 +233,9 @@ static void TestFixtureProvenance(string root)
     foreach (JsonElement fixture in fixtures.EnumerateArray())
     {
         string relative = fixture.GetProperty("fileName").GetString()!;
-        string fullPath = Path.GetFullPath(Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar)));
-        string prefix = Path.GetFullPath(root) + Path.DirectorySeparatorChar;
+        string fixtureRoot = Path.Combine(root, "fixtures");
+        string fullPath = Path.GetFullPath(Path.Combine(fixtureRoot, relative.Replace('/', Path.DirectorySeparatorChar)));
+        string prefix = Path.GetFullPath(fixtureRoot) + Path.DirectorySeparatorChar;
         Check(fullPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase), "Fixture path escaped the capture directory.");
         Check(File.Exists(fullPath), $"Fixture file is missing: {relative}");
         Check(Hash(File.ReadAllBytes(fullPath)) == fixture.GetProperty("sha256").GetString(),
