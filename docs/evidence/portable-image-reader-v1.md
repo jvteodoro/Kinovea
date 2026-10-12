@@ -1,8 +1,8 @@
 # Portable BMP/PNG reader v1 evidence
 
-Date: 2026-10-12  
-Branch: `port/portable-image-reader`  
-Base: `port/net10-linux` at merged PR #4, `8ed8666aae85ff8cf16d97cdd1629dc2043638ba`  
+Date: 2026-10-12
+Branch: `port/portable-image-reader`
+Base: `port/net10-linux` at merged PR #4, `8ed8666aae85ff8cf16d97cdd1629dc2043638ba`
 Legacy golden status: `CANDIDATE_NOT_APPROVED`
 
 ## Architecture and scope

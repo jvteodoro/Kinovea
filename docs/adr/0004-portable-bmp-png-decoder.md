@@ -1,7 +1,7 @@
 # ADR 0004: First portable BMP/PNG decoder
 
-Status: **PROPOSED — implementation evidence in PR review**  
-Date: 2026-10-11  
+Status: **PROPOSED — implementation evidence in PR review**
+Date: 2026-10-11
 Baseline: `port/net10-linux` after PR #4 merge, `8ed8666aae85ff8cf16d97cdd1629dc2043638ba`.
 
 ## Context
