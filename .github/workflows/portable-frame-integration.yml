@@ -142,16 +142,16 @@ jobs:
             $hostPath = "artifacts/portable-frame/portable-host-$name.json"
             dotnet run --project tests/PortableStillImageHost.Tests/Kinovea.PortableStillImageHost.Tests.csproj -c Release -- --host (Join-Path $fixtureRoot $fixture) 0 *> $hostPath
             if ($LASTEXITCODE -ne 0) { throw "Portable host failed for $fixture with exit code $LASTEXITCODE" }
-            $host = Get-Content -Raw $hostPath | ConvertFrom-Json
+            $portableResult = Get-Content -Raw $hostPath | ConvertFrom-Json
             $legacy = $trace.cases | Where-Object { $_.id -eq $name }
             if ($null -eq $legacy) { throw "Legacy trace is missing case $name" }
             $checks = @{
-              openStatus = ($legacy.openResult -eq "Success" -and $host.status -eq "Success")
-              dimensions = ($legacy.width -eq $host.width -and $legacy.height -eq $host.height)
-              timestamp = ($legacy.firstTimestamp -eq $host.timestamp -and $legacy.firstPreviousTimestamp -eq $host.previousTimestamp)
-              logicalPixelProbe = ($legacy.pixel.red -eq $host.pixelProbe.red -and $legacy.pixel.green -eq $host.pixelProbe.green -and $legacy.pixel.blue -eq $host.pixelProbe.blue -and $legacy.pixel.alpha -eq $host.pixelProbe.alpha)
-              repeatedIdentity = ($legacy.repeatedVideoFrameIdentity -and $legacy.repeatedBitmapIdentity -and $host.repeatedWrapperIdentity)
-              closeInvalidatesAccess = ($null -ne $legacy.pixelAccessAfterCloseException -and $host.newPixelAccessRejected)
+              openStatus = ($legacy.openResult -eq "Success" -and $portableResult.status -eq "Success")
+              dimensions = ($legacy.width -eq $portableResult.width -and $legacy.height -eq $portableResult.height)
+              timestamp = ($legacy.firstTimestamp -eq $portableResult.timestamp -and $legacy.firstPreviousTimestamp -eq $portableResult.previousTimestamp)
+              logicalPixelProbe = ($legacy.pixel.red -eq $portableResult.pixelProbe.red -and $legacy.pixel.green -eq $portableResult.pixelProbe.green -and $legacy.pixel.blue -eq $portableResult.pixelProbe.blue -and $legacy.pixel.alpha -eq $portableResult.pixelProbe.alpha)
+              repeatedIdentity = ($legacy.repeatedVideoFrameIdentity -and $legacy.repeatedBitmapIdentity -and $portableResult.repeatedWrapperIdentity)
+              closeInvalidatesAccess = ($null -ne $legacy.pixelAccessAfterCloseException -and $portableResult.newPixelAccessRejected)
             }
             foreach ($property in $checks.Keys) {
               if (-not $checks[$property]) { throw "$name $property comparison failed." }
