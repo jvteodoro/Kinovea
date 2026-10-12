@@ -1,0 +1,109 @@
+name: Windows Bitmap adapter
+
+on:
+  push:
+    branches: ["port/windows-bitmap-adapter"]
+    paths:
+      - "src/Kinovea.PortablePixels/**"
+      - "src/Kinovea.PortablePixels.GdiPlus/**"
+      - "tests/PortablePixels.Tests/**"
+      - "tests/WindowsBitmapAdapter.Tests/**"
+      - "tests/Bitmap.Characterization/**"
+      - "scripts/bitmap-characterization/**"
+      - ".github/workflows/windows-bitmap-adapter.yml"
+  pull_request:
+    branches: ["port/net10-linux"]
+    paths:
+      - "src/Kinovea.PortablePixels/**"
+      - "src/Kinovea.PortablePixels.GdiPlus/**"
+      - "tests/PortablePixels.Tests/**"
+      - "tests/WindowsBitmapAdapter.Tests/**"
+      - "tests/Bitmap.Characterization/**"
+      - "scripts/bitmap-characterization/**"
+      - ".github/workflows/windows-bitmap-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-core:
+    name: Portable core / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Run portable contract suite
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          dotnet --info *>&1 | Tee-Object -FilePath artifacts/portable-core-${{ matrix.os }}.txt
+          dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj --configuration Release -- --measure *>&1 | Tee-Object -FilePath artifacts/portable-core-${{ matrix.os }}.txt -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload portable contract evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: portable-core-${{ matrix.os }}
+          path: artifacts/portable-core-${{ matrix.os }}.txt
+          if-no-files-found: warn
+
+  windows-adapter:
+    name: Legacy reader capture and Windows adapter
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-msbuild@v2
+      - uses: NuGet/setup-nuget@v2
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Capture environment and verify .NET Framework 4.8 targeting pack
+        shell: pwsh
+        run: ./scripts/bitmap-characterization/prepare-artifacts.ps1 -ArtifactsPath artifacts/bitmap-adapter
+      - name: Restore legacy reader dependencies
+        shell: pwsh
+        run: |
+          nuget restore Kinovea.Services/packages.config -PackagesDirectory packages -NonInteractive -Verbosity normal *>&1 |
+            Tee-Object -FilePath artifacts/bitmap-adapter/nuget-restore.log
+          if ($LASTEXITCODE -ne 0) { throw "NuGet restore failed with exit code $LASTEXITCODE" }
+      - name: Build actual .NET Framework reader characterization harness
+        shell: pwsh
+        run: |
+          msbuild tests/Bitmap.Characterization/Kinovea.Bitmap.Characterization.csproj `
+            /t:Rebuild /m /nologo /verbosity:minimal `
+            /p:Configuration=Release /p:Platform=x64 `
+            "/flp:logfile=artifacts/bitmap-adapter/legacy-msbuild.log;verbosity=normal" `
+            /bl:artifacts/bitmap-adapter/legacy-msbuild.binlog
+          if ($LASTEXITCODE -ne 0) { throw "Legacy harness build failed with exit code $LASTEXITCODE" }
+      - name: Execute actual VideoReaderBitmap characterization
+        shell: pwsh
+        run: |
+          $exe = "tests/Bitmap.Characterization/bin/x64/Release/Kinovea.Bitmap.Characterization.exe"
+          if (-not (Test-Path -LiteralPath $exe)) { throw "Characterization executable missing: $exe" }
+          & $exe --output artifacts/bitmap-adapter/legacy-capture
+          if ($LASTEXITCODE -ne 0) { throw "Legacy reader characterization failed with exit code $LASTEXITCODE" }
+      - name: Run Windows .NET 10 adapter and reader-capture comparisons
+        shell: pwsh
+        run: |
+          dotnet --info *>&1 | Tee-Object -FilePath artifacts/bitmap-adapter/dotnet-info.txt
+          dotnet run --project tests/WindowsBitmapAdapter.Tests/WindowsBitmapAdapter.Tests.csproj --configuration Release -- --legacy-capture artifacts/bitmap-adapter/legacy-capture --measure *>&1 |
+            Tee-Object -FilePath artifacts/bitmap-adapter/adapter-tests.log
+          if ($LASTEXITCODE -ne 0) { throw "Adapter tests failed with exit code $LASTEXITCODE" }
+      - name: Upload all diagnostics and pixel evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-bitmap-adapter-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/bitmap-adapter/
+          if-no-files-found: warn
+          retention-days: 90

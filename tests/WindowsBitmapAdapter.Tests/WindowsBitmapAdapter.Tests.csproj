@@ -9,5 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Kinovea.PortablePixels.GdiPlus/Kinovea.PortablePixels.GdiPlus.csproj" />
+    <ProjectReference Include="../../src/Kinovea.PortablePixels/Kinovea.PortablePixels.csproj" />
   </ItemGroup>
 </Project>
