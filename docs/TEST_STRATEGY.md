@@ -99,19 +99,12 @@ Fixture inputs are generated in the artifact directory from a documented pixel f
 
 Windows runs `38175088092` and `38175219336` both passed on the same source SHA with 19 cases and 537 assertions. Comparing downloaded artifacts showed all 72 fixture and pixel files byte-for-byte identical; GDI+ version was `10.0.20348.5622` on both. The observed values and artifact hashes are recorded in `docs/evidence/2026-10-11-bitmap-characterization-infrastructure.md`. These are candidate outputs; no reviewer-approved golden snapshot exists yet. The scope does not cover other image formats, app UI integration, or cross-platform runtime behavior.
 
-## Portable pixel core v0.1
 
-The standalone `src/Kinovea.PortablePixels` project targets `net10.0` and has no Kinovea legacy assembly dependency. Run its package-free automated contract tests and allocation sample with:
+### Portable frame contract design
 
-```sh
-dotnet build src/Kinovea.PortablePixels/Kinovea.PortablePixels.csproj --configuration Release
-dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj --configuration Release -- --measure
-```
+The minimal parallel migration proposal is in [ADR 0003](adr/0003-portable-frame-representation.md), with production source checks and review traceability in [the design evidence](evidence/2026-10-11-portable-frame-contract-design.md). It keeps existing Windows frame APIs and behavior while a small `net10.0` buffer contract and synthetic producer are tested independently. Two test categories must remain distinct:
 
-`.github/workflows/portable-pixel-core.yml` runs these tests on `ubuntu-latest` and `windows-latest` and uploads per-platform output even on failure. The suite verifies byte layout, row addressing/padding, alpha labels, descriptor bounds/overflow, ownership and disposal. API invariants map to named executable tests in [PORTABLE_PIXEL_CORE.md](PORTABLE_PIXEL_CORE.md). This is portable-contract conformance only; it does not exercise or validate `VideoReaderBitmap`, legacy compatibility, a decoder, or any Kinovea consumer.
+- **Legacy compatibility regression:** execute the actual .NET Framework 4.8 reader/consumers on Windows. Strengthen raw channel-order, partial-alpha/premultiplication, independent EXIF raster, timestamp-boundary, generator/cache disposal, and exporter lifetime cases. Existing runs 38175088092/38175219336 reported 19 cases/537 assertions; candidate status is `PENDING_HUMAN_APPROVAL`, and those assertions do not yet independently establish all listed semantics.
+- **Portable contract conformance:** exercise only the new contract on Linux and Windows with deterministic synthetic buffers. Check exact channel bytes, declared alpha modes, positive/negative stride plus row-zero offset, padding, bounds/overflow, and disposal lifetime. Passing this suite does not establish legacy parity.
 
-### Portable pixel lifetime and concurrency limits
-
-The suite tests failed-construction owner retention, successful owner release, sequential idempotent disposal, rejection of new views after disposal, and the non-revocation of a previously copied `ReadOnlyMemory<byte>`. Source inspection confirms validation precedes wrapper creation and identifies the unsynchronized `bool disposed`. There are no concurrency tests: concurrent disposal and reads racing with disposal are unsupported and must not be inferred from sequential tests. Tests use managed array-backed owners; native, pooled, SDK callback, FFmpeg, OpenCV-retained, and asynchronous-cache lifetimes are `UNVERIFIED`.
-
-Before adapter integration, add boundary-specific tests for owner release on success/failure, exact byte layout and stride, and the point where native or asynchronous consumers finish using the storage. The first GDI+ adapter should convert synchronously and state whether it copies or borrows under a lock scope. Any operation retaining bytes after return needs an independently valid owner or a separately reviewed retention mechanism. See the integration prerequisite table in [PORTABLE_PIXEL_CORE.md](PORTABLE_PIXEL_CORE.md). Documentation review does not run the portable tests; for this review, runtime tests are `NOT_RUN` and the existing passing CI at implementation commit `2cf83cd12fca01e14d4eeab5fb2555906a1013f8` is [run 38182247261](https://github.com/jvteodoro/Kinovea/actions/runs/38182247261).
+No test from this design task ran. Linux reader parity remains `NOT_RUN`; do not conflate portable buffer tests with legacy compatibility.

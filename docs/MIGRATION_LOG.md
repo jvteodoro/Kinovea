@@ -133,19 +133,19 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Known limitation: candidate is not reviewer-approved; behavior outside its cases is `UNVERIFIED`. This change does not alter production code.
 - Follow-up: conduct separate golden review before copying this candidate into `approved/`; keep ADR 0002 `PROPOSED` pending architectural review.
 
-## 2026-10-11 — Implement portable pixel core v0.1
-- Baseline: `port/net10-linux` at `125dbbb907f554162bc31e54f95090876a19773f`; revised ADR 0003 on PR #2; final source SHA `41b0ae8384f9af6117cb241ae83d4989c7c6f20d` (core commit `55ae91760bf3f8996dd0881852e5ce38410210f1`).
-- Change: add standalone `net10.0` `Kinovea.PortablePixels` with RGB24/RGBA32 descriptors, signed stride and row-zero mapping, owner transfer/disposal, and deterministic synthetic RGB24 producer. Add 10 package-free automated tests and Linux/Windows workflow. No legacy source or behavior changed. Implementation PR: #3.
-- Verification: local Gentoo Linux SDK 10.0.111 Release library build passed (0 warnings/errors); 10 tests passed. GitHub Actions run `38181952234` passed 10 tests on Ubuntu 24.04 x64 and Windows 10.0.26100 x64 using SDK 10.0.401/runtime 10.0.12. Each platform report and SHA-256 is recorded in `docs/evidence/2026-10-11-portable-pixel-core.md`; `git diff --check` passed.
-- Allocation: final run `38181952234` measured 92,210,360 managed bytes on Linux and 92,170,400 on Windows for 92,160,000 payload bytes. Earlier samples differed, including a 40,672-byte Windows delta; the cause is unresolved. Values are descriptive samples only. Producer/Create perform no pixel copies by source inspection; one byte array, owner object and PixelBuffer wrapper are allocated per frame. No throughput or optimization claim.
-- Regression evidence: portable contract tests only. No `VideoReaderBitmap`, legacy Windows behavior, or cross-platform reader parity test ran. Existing Windows candidate stays `PENDING_HUMAN_APPROVAL`; Bitmap reader remains unported.
-- Limitations: core currently supports only Rgb24 and Rgba32; no decoder/conversion or Kinovea consumer is integrated. `ReadOnlyMemory<byte>` values already copied by callers cannot be revoked, so lifetime is caller-scoped and documented.
-- Follow-up: review PR #3, then select one real producer/consumer boundary for characterization and an adapter without changing legacy timing or algorithms.
 
-## 2026-10-11 — Document portable pixel lifetime review
-- Baseline: reviewed implementation `2cf83cd12fca01e14d4eeab5fb2555906a1013f8`; Linux and Windows CI run `38182247261` passed 10 portable contract tests on each platform.
-- Change: clarify `PixelBuffer` ownership transfer and disposal, borrowed `ReadOnlyMemory<byte>` limits, unsupported concurrent access/disposal, and boundary-specific prerequisites for GDI+, FFmpeg, OpenCV, asynchronous caches, and camera callbacks. Documentation only; no production code or lifetime mechanism changed.
-- Verification: source/tests/CI evidence reviewed; `git diff --check` run. Runtime tests for this documentation-only update: `NOT_RUN`.
-- Regression evidence: existing portable tests cover failed and successful owner transfer, one sequential release after repeated disposal, post-disposal access rejection, and the non-revocable borrowed-view caveat. No concurrent or native-owner tests exist. Bitmap reader parity is not claimed.
-- Limitations: thread-safe disposal/access and native or pooled memory lifetime remain unsupported or unverified as detailed in `docs/PORTABLE_PIXEL_CORE.md`.
-- Follow-up: before each real adapter, implement its ownership-boundary tests and verify whether the consumer retains storage after return; review asynchronous/native lifetime separately.
+## 2026-10-11 — Portable frame contract architecture proposal
+- Baseline: requested `port/net10-linux` head `125dbbb907f554162bc31e54f95090876a19773f`; Windows Bitmap evidence remains candidate data with status `PENDING_HUMAN_APPROVAL`.
+- Change: drafted ADR 0003 describing an explicit format/stride/alpha/timebase contract, ownership and disposal rules, a no-pool initial policy, producer/consumer map, conversion boundaries, tradeoffs, test gates and migration stages. Updated the matrix and test strategy. No production API or behavior changed.
+- Verification: source inspection only; `git diff --check` passed. No builds or behavior tests run.
+- Regression evidence: Windows candidate observations are cited as measured but remain pending human approval. Raw channel order, alpha premultiplication, independent EXIF pixel transforms, negative stride and resource leak behavior remain `UNVERIFIED`; Linux parity is `NOT_RUN`.
+- Limitations: implementation-wide Bitmap inventory remains incomplete for unrelated UI resources/drawing images; the design evidence identifies this boundary.
+- Follow-up: review and resolve ADR 0003 questions, complete missing Windows characterization, then implement the approved contract in a separate task on `port/net10-linux`.
+
+## 2026-10-11 — Revise ADR 0003 for minimal behavior-preserving migration
+- Baseline: PR #2 review `5485255332`; branch `design/portable-frame-contract` at `e01dc1b41cab64a58acedd463ef189e526c16fd0`; target `port/net10-linux` at `125dbbb907f554162bc31e54f95090876a19773f`.
+- Change: selected a parallel portable pixel seam while preserving legacy contracts. Added per-change compatibility classifications, Option A/B/C comparison, signed-stride and `ReadOnlyMemory` lifetime limits, legacy behavior guarantees, non-goals, and staged Windows/Linux regression and rollback criteria. Inspected actual reader/generator/cache/export/OpenCV code. Updated evidence, matrix and test strategy.
+- Verification: PR reviews/comments and issue comments queried with `gh api`; one architectural review was returned and no inline/issue comments were returned. Source inspection and `git diff --check`; no runtime test/build run.
+- Regression evidence: Windows characterization remains candidate `PENDING_HUMAN_APPROVAL`; no new behavior is asserted. Raw channels, premultiplication, EXIF pixel maps and disposal remain gaps; Linux parity `NOT_RUN`.
+- Limitations: UI rendering library and eventual decoder/native interop remain unresolved. No production code changed.
+- Follow-up: review the revised ADR, then implement only the isolated net10 pixel contract plus synthetic producer and conformance tests after approval.
