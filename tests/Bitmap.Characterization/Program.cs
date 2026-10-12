@@ -275,6 +275,29 @@ namespace Kinovea.Bitmap.Characterization
             test.Equal("Success", recoverySteps[3]["result"].ToString(), "valid image recovery result");
             test.Equal(0L, (long)StateOf(recoverySteps[4])["currentTimestamp"], "recovery repeat zero retains current frame");
 
+            var openedFailureSteps = new List<Dictionary<string, object>>();
+            var openedFailureFrames = new List<VideoFrame>();
+            var openedFailureImages = new List<SystemBitmap>();
+            var openedFailure = new VideoReaderBitmap();
+            TraceStep(openedFailureSteps, openedFailureFrames, openedFailureImages, "construct", new Dictionary<string, object>(), openedFailure, delegate { return "completed"; });
+            TraceStep(openedFailureSteps, openedFailureFrames, openedFailureImages, "open-bmp", new Dictionary<string, object> { { "fixtureId", bmp.Id } }, openedFailure, delegate { return openedFailure.Open(bmp.Path).ToString(); });
+            TraceStep(openedFailureSteps, openedFailureFrames, openedFailureImages, "first-frame", new Dictionary<string, object>(), openedFailure, delegate { return openedFailure.MoveRequest(true, 0); });
+            TraceStep(openedFailureSteps, openedFailureFrames, openedFailureImages, "failed-open-after-valid", new Dictionary<string, object> { { "fixtureId", corrupt.Id } }, openedFailure, delegate { return openedFailure.Open(corrupt.Path).ToString(); });
+            TraceStep(openedFailureSteps, openedFailureFrames, openedFailureImages, "repeat-current-after-failure", new Dictionary<string, object> { { "target", 0L } }, openedFailure, delegate { return openedFailure.MoveRequest(false, 0); });
+            TraceStep(openedFailureSteps, openedFailureFrames, openedFailureImages, "recover-open-bmp", new Dictionary<string, object> { { "fixtureId", bmp.Id } }, openedFailure, delegate { return openedFailure.Open(bmp.Path).ToString(); });
+            TraceStep(openedFailureSteps, openedFailureFrames, openedFailureImages, "repeat-current-after-recovery", new Dictionary<string, object> { { "target", 0L } }, openedFailure, delegate { return openedFailure.MoveRequest(false, 0); });
+            TraceStep(openedFailureSteps, openedFailureFrames, openedFailureImages, "seek-one-after-recovery", new Dictionary<string, object> { { "target", 1L } }, openedFailure, delegate { return openedFailure.MoveRequest(false, 1); });
+            TraceStep(openedFailureSteps, openedFailureFrames, openedFailureImages, "close", new Dictionary<string, object>(), openedFailure, delegate { openedFailure.Close(); return "completed"; });
+            StateTraces.Add(new Dictionary<string, object> { { "sequenceId", "failed-open-after-valid" }, { "steps", openedFailureSteps } });
+            test.Equal(9, openedFailureSteps.Count, "failed-open-after-valid trace operation count");
+            test.Equal("NotSupported", openedFailureSteps[3]["result"].ToString(), "failed open after image result");
+            test.Equal(false, (bool)StateOf(openedFailureSteps[3])["loaded"], "failed open after image loaded state");
+            test.Equal(true, StateOf(openedFailureSteps[3])["hasImage"], "legacy retains current image reference after failed open");
+            test.Equal(StateOf(openedFailureSteps[2])["imageIdentity"], StateOf(openedFailureSteps[3])["imageIdentity"], "legacy retains prior image identity after failed open");
+            test.Equal(0L, (long)StateOf(openedFailureSteps[6])["currentTimestamp"], "same timestamp remains selected after recovery");
+            test.Equal(StateOf(openedFailureSteps[2])["imageIdentity"], StateOf(openedFailureSteps[6])["imageIdentity"], "legacy keeps prior image identity after recovery at same timestamp");
+            test.Equal(1L, (long)StateOf(openedFailureSteps[7])["currentTimestamp"], "different timestamp after recovery selects frame");
+
             var unopenedSteps = new List<Dictionary<string, object>>();
             var unopenedFrames = new List<VideoFrame>();
             var unopenedImages = new List<SystemBitmap>();

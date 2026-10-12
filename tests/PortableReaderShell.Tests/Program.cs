@@ -109,7 +109,7 @@ internal static class Program
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllBytes(path));
         Equal(1, doc.RootElement.GetProperty("schemaVersion").GetInt32(), "legacy trace version");
         JsonElement sequences = doc.RootElement.GetProperty("sequences");
-        Equal(3, sequences.GetArrayLength(), "legacy trace sequence count");
+        Equal(4, sequences.GetArrayLength(), "legacy trace sequence count");
         JsonElement navigation = sequences.EnumerateArray().Single(x => x.GetProperty("sequenceId").GetString() == "navigation-close-reopen");
         JsonElement steps = navigation.GetProperty("steps");
         Equal(20, steps.GetArrayLength(), "legacy navigation trace steps");
@@ -120,9 +120,38 @@ internal static class Program
         Equal(PortableReaderMetadataNeverCompareCandidate(), doc.RootElement.GetProperty("approvalStatus").GetString(), "candidate remains unapproved");
         CompareNavigationTrace(steps, Path.Combine(FindRoot(), "tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures", "bmp-rgb-7x5.bmp"));
         CompareFailedOpenTrace(sequences.EnumerateArray().Single(x => x.GetProperty("sequenceId").GetString() == "failed-open-recovery"));
+        CompareFailedOpenAfterValidTrace(sequences.EnumerateArray().Single(x => x.GetProperty("sequenceId").GetString() == "failed-open-after-valid"));
         JsonElement unopened = sequences.EnumerateArray().Single(x => x.GetProperty("sequenceId").GetString() == "close-unopened").GetProperty("steps")[0];
         Equal("System.NullReferenceException", unopened.GetProperty("errorType").GetString(), "legacy close-before-open defect category");
         Console.WriteLine("Legacy reader trace: PASS (20 navigation operations; failed-open difference and close-before-open category reviewed; candidate evidence)");
+    }
+
+    private static void CompareFailedOpenAfterValidTrace(JsonElement sequence)
+    {
+        JsonElement steps = sequence.GetProperty("steps");
+        Equal(9, steps.GetArrayLength(), "failed-open-after-valid operation count");
+        string fixtures = Path.Combine(FindRoot(), "tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures");
+        using var reader = new PortableReaderShell();
+        Equal(PortableOpenResult.Success, reader.Open(Path.Combine(fixtures, "bmp-rgb-7x5.bmp")), "portable open before failed open");
+        True(reader.MoveRequest(true, 0), "portable first frame before failed open");
+        PortableReaderFrame prior = reader.Current;
+        Equal("NotSupported", steps[3].GetProperty("result").GetString(), "legacy failed-open-after-valid result");
+        Equal(false, steps[3].GetProperty("stateAfter").GetProperty("loaded").GetBoolean(), "legacy unloaded after failed open");
+        Equal(true, steps[3].GetProperty("stateAfter").GetProperty("hasImage").GetBoolean(), "legacy keeps previous image reference");
+        Equal(PortableOpenResult.NotSupported, reader.Open(Path.Combine(fixtures, "corrupt-image.png")), "portable failed-open-after-valid result");
+        Equal(0L, reader.Current.Timestamp, "portable failed open retains timestamp");
+        Same(prior, "failed open retains current wrapper", reader.Current);
+        Throws<ObjectDisposedException>(() => _ = reader.Current.Image!.Memory, "portable failed open releases previous pixels");
+        True(reader.MoveRequest(false, 0), "portable same timestamp during failed state");
+        Same(prior, "failed-state repeat does not replace current", reader.Current);
+        Equal(PortableOpenResult.Success, reader.Open(Path.Combine(fixtures, "bmp-rgb-7x5.bmp")), "portable recovery after open interval");
+        True(reader.MoveRequest(false, 0), "portable same timestamp refresh after recovery");
+        NotSame(prior, "recovery replaces stale wrapper", reader.Current);
+        Equal((byte)17, reader.Current.Image!.GetRowSpan(0)[0], "recovery selects decoded pixel bytes");
+        Equal(0L, steps[6].GetProperty("stateAfter").GetProperty("currentTimestamp").GetInt64(), "legacy same current timestamp after recovery");
+        Equal(steps[2].GetProperty("stateAfter").GetProperty("imageIdentity").GetInt32(),
+            steps[6].GetProperty("stateAfter").GetProperty("imageIdentity").GetInt32(), "legacy still references prior image identity after recovery");
+        reader.Close();
     }
 
     private static void CompareFailedOpenTrace(JsonElement sequence)
