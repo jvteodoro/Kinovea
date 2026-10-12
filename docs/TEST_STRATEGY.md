@@ -104,6 +104,10 @@ Windows runs `38175088092` and `38175219336` both passed on the same source SHA 
 
 The two Windows artifacts are independently audited in `docs/evidence/2026-10-11-bitmap-golden-audit.md`; the versioned manifest `tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/baseline-manifest.v1.json` records fixture/pixel hashes, source revision, source-hash line-ending interpretation, both run environments, reports, and archive provenance. Its status is `PENDING_HUMAN_APPROVAL`; the reviewer and approval timestamp are unset. Do not change it to `APPROVED` without a human review and separate approval commit.
 
+### Portable frame contract design
+
+The proposed platform-neutral representation and ownership rules are in [ADR 0003](adr/0003-portable-frame-representation.md), with source inventory and evidence limits in [the design investigation](evidence/2026-10-11-portable-frame-contract-design.md). The proposal favors a small format-preserving pixel descriptor plus explicit conversions; this remains **PROPOSED** pending architectural review. The Windows candidate data is not approved and leaves raw channel order, alpha premultiplication, independent EXIF pixel transforms, negative stride, and resource leak behavior unverified. Strengthen those Windows characterizations before using the candidate as a behavioral gate. No Linux parity test or portable frame implementation has run as part of this design task.
+
 Run the read-only package audit and comparator unit checks with Python 3 (standard library only):
 
 ```sh
