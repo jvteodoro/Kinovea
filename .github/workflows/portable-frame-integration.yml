@@ -2,12 +2,14 @@ name: Portable frame generator integration boundary
 
 on:
   push:
-    branches: ["port/portable-frame-integration"]
+    branches: ["port/portable-frame-integration", "port/portable-reader-shell"]
     paths:
       - "src/Kinovea.PortablePixels/**"
       - "src/Kinovea.PortableImageReader/**"
       - "src/Kinovea.PortableFrameGenerator/**"
+      - "src/Kinovea.PortableReaderShell/**"
       - "tests/PortableFrameGenerator.Tests/**"
+      - "tests/PortableReaderShell.Tests/**"
       - "tests/Bitmap.Characterization/**"
       - "scripts/bitmap-characterization/**"
       - ".github/workflows/portable-frame-integration.yml"
@@ -17,7 +19,9 @@ on:
       - "src/Kinovea.PortablePixels/**"
       - "src/Kinovea.PortableImageReader/**"
       - "src/Kinovea.PortableFrameGenerator/**"
+      - "src/Kinovea.PortableReaderShell/**"
       - "tests/PortableFrameGenerator.Tests/**"
+      - "tests/PortableReaderShell.Tests/**"
       - "tests/Bitmap.Characterization/**"
       - "scripts/bitmap-characterization/**"
       - ".github/workflows/portable-frame-integration.yml"
@@ -46,6 +50,8 @@ jobs:
           dotnet --info *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt
           dotnet run --project tests/PortableFrameGenerator.Tests/PortableFrameGenerator.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
           if ($LASTEXITCODE -ne 0) { throw "Portable frame tests failed: $LASTEXITCODE" }
+          dotnet run --project tests/PortableReaderShell.Tests/PortableReaderShell.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
+          if ($LASTEXITCODE -ne 0) { throw "Portable reader shell tests failed: $LASTEXITCODE" }
           dotnet run --project tests/PortableImageReader.Tests/PortableImageReader.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
           if ($LASTEXITCODE -ne 0) { throw "Portable image reader tests failed: $LASTEXITCODE" }
           dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
@@ -89,6 +95,11 @@ jobs:
         run: |
           dotnet run --project tests/PortableFrameGenerator.Tests/PortableFrameGenerator.Tests.csproj -c Release -- --legacy-capture artifacts/portable-frame/legacy-capture *>&1 | Tee-Object artifacts/portable-frame/generator-comparison.log
           if ($LASTEXITCODE -ne 0) { throw "Portable/legacy frame comparison failed: $LASTEXITCODE" }
+      - name: Compare portable reader shell to actual reader state trace
+        shell: pwsh
+        run: |
+          dotnet run --project tests/PortableReaderShell.Tests/PortableReaderShell.Tests.csproj -c Release -- --legacy-trace artifacts/portable-frame/legacy-capture/reader-state-traces.v1.json *>&1 | Tee-Object artifacts/portable-frame/reader-shell-comparison.log
+          if ($LASTEXITCODE -ne 0) { throw "Portable reader shell/legacy state trace comparison failed: $LASTEXITCODE" }
       - name: Upload legacy and comparison evidence
         if: always()
         uses: actions/upload-artifact@v6
