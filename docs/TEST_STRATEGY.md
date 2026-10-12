@@ -151,6 +151,16 @@ No test from this design task ran. Linux reader parity remains `NOT_RUN`; do not
 
 The legacy characterization also verifies request boundaries, repeat-frame identity, close/reopen behavior, `DisposePrevious`, and the default `SingleFrame` eviction hazard. This is not cache integration approval: the portable generator is synchronous and standalone. It does not implement legacy `IFrameGenerator`, the reader shell's `[0,249]` range, or any cache ownership callback. Concurrent access, asynchronous frame retention and consumer/cache integration are unsupported.
 
+### Portable SingleFrame ownership boundary
+
+`tests/PortableSingleFrame.Tests` exercises `Kinovea.PortableSingleFrame` against the existing `PortableReaderShell` on Linux and Windows .NET 10. It verifies that cache `Clear` and cache `Dispose` only detach the slot, while reader `Close` invalidates new pixel access; it also checks timestamp/wrapper identity, storage reuse, working-zone results, failed-open cleanup, reopen, disposal, and rejected use after adapter disposal. The cache is non-owning and does not copy pixels. Its own `Close` clears before closing the supplied reader. `Dispose` leaves that caller-owned reader open, which the caller must close separately.
+
+The Windows job first runs the actual .NET Framework 4.8 characterization harness against `VideoReaderBitmap`, `FrameGeneratorImageFile`, and `SingleFrame`. It uploads `single-frame-cache-traces.v1.json` and feeds it to the Windows .NET 10 suite for schema/behavior checks. The trace is candidate evidence, not approved golden data. Source search found no production `SingleFrame` construction site in this checkout; the generator-owned Bitmap eviction defect is an isolated contract probe, not a claim about live playback or the other caches.
+
+Supported synchronous lifetime: open through the adapter, navigate/read while the shell stays open, call cache `Clear` before dropping a cached reference, and use adapter `Close` to clear before releasing reader storage. Do not retain frames or borrowed `ReadOnlyMemory<byte>` beyond reader close. Calling the supplied shell's `Close` directly with a populated cache slot is unsupported; the wrapper remains cached but new pixel access throws `ObjectDisposedException`. Async consumers, `Cache`, `PreBuffer2`, and production playback are not integrated.
+
+Local command and results, plus the ownership-option comparison, are in [Portable SingleFrame cache evidence](evidence/portable-single-frame-cache-v1.md). Final Linux/Windows CI run IDs, test counts and trace/artifact hashes must be recorded there before this component is marked `PORTABLE_TESTED`.
+
 Local Linux commands (SDK 10.0.111):
 
 ```sh
