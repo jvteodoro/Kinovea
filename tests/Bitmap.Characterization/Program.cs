@@ -281,7 +281,7 @@ namespace Kinovea.Bitmap.Characterization
             var unopened = new VideoReaderBitmap();
             TraceStep(unopenedSteps, unopenedFrames, unopenedImages, "close-unopened", new Dictionary<string, object>(), unopened, delegate { unopened.Close(); return "completed"; });
             StateTraces.Add(new Dictionary<string, object> { { "sequenceId", "close-unopened" }, { "steps", unopenedSteps } });
-            test.Equal("NullReferenceException", unopenedSteps[0]["errorType"].ToString(), "legacy close-unopened failure category");
+            test.Equal("System.NullReferenceException", unopenedSteps[0]["errorType"].ToString(), "legacy close-unopened failure category");
         }
 
         private static void TraceStep(List<Dictionary<string, object>> steps, List<VideoFrame> frameIds, List<SystemBitmap> imageIds, string operation, object inputs, VideoReaderBitmap reader, Func<object> action)
