@@ -229,7 +229,7 @@ static void TestFixtureProvenance(string root)
     Check(document.GetProperty("approvalStatus").GetString() == "CANDIDATE_NOT_APPROVED",
         "Adapter test inputs must not promote or overwrite an approved baseline.");
     JsonElement fixtures = document.GetProperty("fixtures");
-    Check(fixtures.GetArrayLength() == 13, "Expected the documented thirteen deterministic reader fixtures.");
+    Check(fixtures.GetArrayLength() == 14, "Expected the documented fourteen deterministic reader fixtures.");
     foreach (JsonElement fixture in fixtures.EnumerateArray())
     {
         string relative = fixture.GetProperty("fileName").GetString()!;
