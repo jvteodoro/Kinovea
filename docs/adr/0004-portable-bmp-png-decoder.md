@@ -26,7 +26,7 @@ Use SkiaSharp 4.153.1 in a new `net10.0` library that references `Kinovea.Portab
 
 The initial public boundary is synchronous `Read(path) -> PixelBuffer`. It accepts BMP and PNG file extensions, decodes only BMP or PNG content, and returns an independently owned buffer. RGB-only images produce RGB24/`AlphaMode.None`; alpha-bearing images produce RGBA32/`AlphaMode.Straight`. Decode output is requested in RGBA byte order with unpremultiplied alpha. The decoded native bitmap is copied once into the owned PixelBuffer. If a legacy quarter-turn must be applied, the copy writes transformed pixel coordinates directly into the final buffer rather than allocating another full-frame buffer.
 
-The adapter will inspect `SKCodec.EncodedOrigin`. It will apply only the legacy 180/90/270-degree rotations for origin values 3/6/8; mirror origins remain untransformed, matching `FrameGeneratorImageFile.GetRotation`. This behavior will be changed only if the Windows characterization demonstrates that BMP/PNG input makes the rule different. If the selected codec does not expose an orientation supported by legacy GDI+, the mismatch remains documented and the reader will not claim parity for that fixture.
+The adapter inspects `SKCodec.EncodedOrigin` and applies only origins 3/6/8; mirror origins remain untransformed, matching `FrameGeneratorImageFile.GetRotation`. A fresh Windows .NET Framework 4.8 run with a generated PNG carrying eXIf orientation 6 observed no `PropertyItem`, no image rotation, unchanged 13x9 dimensions, and pixels identical to the untagged PNG fixture. The portable reader therefore does not parse PNG eXIf independently. This establishes behavior only for that orientation-6 fixture; other PNG eXIf layouts remain unverified. JPEG orientations remain outside this BMP/PNG reader.
 
 Invalid encoded BMP/PNG data raises `InvalidDataException`; unsupported extension or encoded format raises `NotSupportedException`; file system errors retain their normal `IOException` family. This is a new standalone API, so it does not imitate `OpenVideoResult` or the legacy reader's logging-and-status behavior. It closes file and codec resources before return; the returned buffer has independent ownership.
 
@@ -56,6 +56,6 @@ No change to `VideoReaderBitmap`, `FrameGeneratorImageFile`, cache policy, WinFo
 
 ## Open review items
 
-- Confirm repository maintainers accept SkiaSharp's MIT plus Skia BSD-3-Clause notices and the x64 glibc native dependency for the first distribution target.
-- Review the legacy reader's behavior for PNG eXIf orientation on Windows; existing candidate fixtures cover JPEG EXIF, not PNG eXIf.
-- Review whether a file-path `Read` API is sufficient before any connection to `IFrameGenerator` or reader lifecycle.
+- Windows/GDI+ behavior is measured for one generated PNG eXIf orientation-6 fixture: the orientation property is absent and no rotation occurs. Other PNG eXIf encodings and orientations remain unverified.
+- Confirm file-path `Read` is sufficient before any connection to `IFrameGenerator` or reader lifecycle. This standalone method is not an integrated Kinovea reader.
+- Application packaging for non-x64 Linux, musl/Alpine, and other Windows architectures remains a later distribution decision.

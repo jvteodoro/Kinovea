@@ -37,7 +37,9 @@ namespace Kinovea.Bitmap.Characterization
             string exifPngPath = System.IO.Path.Combine(directory, "png-exif-orientation-06.png");
             byte[] alphaPng = File.ReadAllBytes(System.IO.Path.Combine(directory, "png-alpha-13x9.png"));
             File.WriteAllBytes(exifPngPath, InsertPngExifOrientation(alphaPng, 6));
-            fixtures.Add(CreateSpec("png-exif-orientation-06", "png-exif-orientation-06.png", "PNG", 13, 9, 6, 1, true, exifPngPath));
+            // This generated PNG carries eXIf orientation 6, but the actual
+            // .NET Framework GDI+ reader does not expose it as PropertyItem.
+            fixtures.Add(CreateSpec("png-exif-orientation-06", "png-exif-orientation-06.png", "PNG", 13, 9, 6, 0, true, exifPngPath));
 
             AddJpegFixture(fixtures, directory, "jpeg-rgb-11x7", "jpeg-rgb-11x7.jpg", null);
 
