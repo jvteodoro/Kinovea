@@ -15,6 +15,7 @@ namespace Kinovea.Bitmap.Characterization
     {
         private static readonly List<Dictionary<string, object>> Cases = new List<Dictionary<string, object>>();
         private static readonly List<Dictionary<string, object>> Failures = new List<Dictionary<string, object>>();
+        private static readonly List<Dictionary<string, object>> StateTraces = new List<Dictionary<string, object>>();
         private static int assertionCount;
         private static int passedAssertions;
 
@@ -53,6 +54,10 @@ namespace Kinovea.Bitmap.Characterization
                 RunCase("reader-frame-lifecycle", delegate(CaseRecorder test)
                 {
                     CharacterizeFrameLifecycle(fixtures.First(f => f.Id == "bmp-rgb-7x5"), test);
+                });
+                RunCase("reader-state-trace", delegate(CaseRecorder test)
+                {
+                    CharacterizeReaderStateTrace(fixtures, test);
                 });
 
                 FixtureSpec rotationFixture = fixtures.First(f => f.Id == "bmp-rgb-7x5");
@@ -95,6 +100,14 @@ namespace Kinovea.Bitmap.Characterization
                 try
                 {
                     EvidenceWriter.WriteJson(Path.Combine(outputDirectory, "test-results.json"), report);
+                    EvidenceWriter.WriteJson(Path.Combine(outputDirectory, "reader-state-traces.v1.json"), new Dictionary<string, object>
+                    {
+                        { "schemaVersion", 1 },
+                        { "sourceReader", "Kinovea.Video.Bitmap.VideoReaderBitmap" },
+                        { "fixtureGenerator", "FixtureFactory v1" },
+                        { "approvalStatus", "CANDIDATE_NOT_APPROVED" },
+                        { "sequences", StateTraces }
+                    });
                     File.WriteAllText(Path.Combine(outputDirectory, "test-results.txt"),
                         string.Format(CultureInfo.InvariantCulture,
                             "Status: {0}{1}Cases: {2}; failed cases: {3}{1}Assertions: {4}; passed: {5}; failed: {6}{1}",
@@ -200,6 +213,131 @@ namespace Kinovea.Bitmap.Characterization
             test.Observation("cacheEviction", "SingleFrame.Clear disposed the generator-owned bitmap; the generator still returned that same disposed instance.");
             cacheGenerator.Close();
             single.Dispose();
+        }
+
+        private static void CharacterizeReaderStateTrace(List<FixtureSpec> fixtures, CaseRecorder test)
+        {
+            FixtureSpec bmp = fixtures.First(f => f.Id == "bmp-rgb-7x5");
+            FixtureSpec corrupt = fixtures.First(f => f.Format == "INVALID");
+            var frameIds = new List<VideoFrame>();
+            var imageIds = new List<SystemBitmap>();
+            var steps = new List<Dictionary<string, object>>();
+            var reader = new VideoReaderBitmap();
+
+            TraceStep(steps, frameIds, imageIds, "construct", new Dictionary<string, object>(), reader, delegate { return "completed"; });
+            TraceStep(steps, frameIds, imageIds, "move-next-unopened", new Dictionary<string, object> { { "next", true }, { "target", 321L } }, reader, delegate { return reader.MoveRequest(true, 321); });
+            TraceStep(steps, frameIds, imageIds, "open-bmp", new Dictionary<string, object> { { "fixtureId", bmp.Id } }, reader, delegate { return reader.Open(bmp.Path).ToString(); });
+            TraceStep(steps, frameIds, imageIds, "move-next-first", new Dictionary<string, object> { { "next", true }, { "target", 321L } }, reader, delegate { return reader.MoveRequest(true, 321); });
+            TraceStep(steps, frameIds, imageIds, "move-next-second", new Dictionary<string, object> { { "next", true }, { "target", -900L } }, reader, delegate { return reader.MoveRequest(true, -900); });
+            TraceStep(steps, frameIds, imageIds, "repeat-current", new Dictionary<string, object> { { "next", false }, { "target", 1L } }, reader, delegate { return reader.MoveRequest(false, 1); });
+            TraceStep(steps, frameIds, imageIds, "seek-forward", new Dictionary<string, object> { { "target", 37L } }, reader, delegate { return reader.MoveRequest(false, 37); });
+            TraceStep(steps, frameIds, imageIds, "seek-backward", new Dictionary<string, object> { { "target", 12L } }, reader, delegate { return reader.MoveRequest(false, 12); });
+            TraceStep(steps, frameIds, imageIds, "seek-last-valid", new Dictionary<string, object> { { "target", 249L } }, reader, delegate { return reader.MoveRequest(false, 249); });
+            TraceStep(steps, frameIds, imageIds, "next-past-end", new Dictionary<string, object> { { "next", true }, { "target", 0L } }, reader, delegate { return reader.MoveRequest(true, 0); });
+            TraceStep(steps, frameIds, imageIds, "seek-outside-zone", new Dictionary<string, object> { { "target", 250L } }, reader, delegate { return reader.MoveRequest(false, 250); });
+            TraceStep(steps, frameIds, imageIds, "player-timestamp", new Dictionary<string, object> { { "action", PlayerAction.Timestamp.ToString() }, { "reference", 9L } }, reader, delegate { return reader.PlayerRequest(new PlayerState(40, PlayerAction.Timestamp, true, 9)); });
+            TraceStep(steps, frameIds, imageIds, "player-step-forward", new Dictionary<string, object> { { "action", PlayerAction.StepForward.ToString() }, { "reference", 249L } }, reader, delegate { return reader.PlayerRequest(new PlayerState(41, PlayerAction.StepForward, true, 249)); });
+            TraceStep(steps, frameIds, imageIds, "player-step-backward", new Dictionary<string, object> { { "action", PlayerAction.StepBackward.ToString() }, { "reference", 0L } }, reader, delegate { return reader.PlayerRequest(new PlayerState(42, PlayerAction.StepBackward, true, 0)); });
+            TraceStep(steps, frameIds, imageIds, "close", new Dictionary<string, object>(), reader, delegate { reader.Close(); return "completed"; });
+            TraceStep(steps, frameIds, imageIds, "close-repeat", new Dictionary<string, object>(), reader, delegate { reader.Close(); return "completed"; });
+            TraceStep(steps, frameIds, imageIds, "reopen-bmp", new Dictionary<string, object> { { "fixtureId", bmp.Id } }, reader, delegate { return reader.Open(bmp.Path).ToString(); });
+            TraceStep(steps, frameIds, imageIds, "seek-same-after-reopen", new Dictionary<string, object> { { "target", 9L } }, reader, delegate { return reader.MoveRequest(false, 9); });
+            TraceStep(steps, frameIds, imageIds, "seek-different-after-reopen", new Dictionary<string, object> { { "target", 8L } }, reader, delegate { return reader.MoveRequest(false, 8); });
+            TraceStep(steps, frameIds, imageIds, "close-final", new Dictionary<string, object>(), reader, delegate { reader.Close(); return "completed"; });
+
+            StateTraces.Add(new Dictionary<string, object> { { "sequenceId", "navigation-close-reopen" }, { "steps", steps } });
+            test.Equal(20, steps.Count, "versioned navigation trace step count");
+            test.Equal(0L, (long)StateOf(steps[3])["currentTimestamp"], "trace first frame timestamp");
+            test.Equal(1L, (long)StateOf(steps[4])["currentTimestamp"], "trace second frame timestamp");
+            test.Equal(true, Object.Equals(StateOf(steps[4])["frameIdentity"], StateOf(steps[5])["frameIdentity"]), "trace repeated timestamp frame identity");
+            test.Equal(false, (bool)steps[9]["result"], "trace next past end return");
+            test.Equal(249L, (long)StateOf(steps[10])["currentTimestamp"], "trace outside-zone unchanged timestamp");
+            test.Equal(9L, (long)StateOf(steps[17])["currentTimestamp"], "trace close/reopen same timestamp retains current position");
+            test.Equal(StateOf(steps[13])["frameIdentity"], StateOf(steps[17])["frameIdentity"], "trace same timestamp after reopen retains wrapper identity");
+            test.Equal("System.ArgumentException", StateOf(steps[17])["pixelAccessErrorType"].ToString(), "trace same timestamp after reopen exposes disposed image failure");
+            test.Equal(8L, (long)StateOf(steps[18])["currentTimestamp"], "trace different timestamp after reopen selects fresh frame");
+            test.Observation("traceSchemaVersion", 1);
+
+            var recoverySteps = new List<Dictionary<string, object>>();
+            var recoveryFrames = new List<VideoFrame>();
+            var recoveryImages = new List<SystemBitmap>();
+            var recovery = new VideoReaderBitmap();
+            TraceStep(recoverySteps, recoveryFrames, recoveryImages, "construct", new Dictionary<string, object>(), recovery, delegate { return "completed"; });
+            TraceStep(recoverySteps, recoveryFrames, recoveryImages, "open-corrupt-png", new Dictionary<string, object> { { "fixtureId", corrupt.Id } }, recovery, delegate { return recovery.Open(corrupt.Path).ToString(); });
+            TraceStep(recoverySteps, recoveryFrames, recoveryImages, "seek-zero-after-failure", new Dictionary<string, object> { { "target", 0L } }, recovery, delegate { return recovery.MoveRequest(false, 0); });
+            TraceStep(recoverySteps, recoveryFrames, recoveryImages, "recover-open-bmp", new Dictionary<string, object> { { "fixtureId", bmp.Id } }, recovery, delegate { return recovery.Open(bmp.Path).ToString(); });
+            TraceStep(recoverySteps, recoveryFrames, recoveryImages, "repeat-zero-after-recovery", new Dictionary<string, object> { { "target", 0L } }, recovery, delegate { return recovery.MoveRequest(false, 0); });
+            TraceStep(recoverySteps, recoveryFrames, recoveryImages, "seek-one-after-recovery", new Dictionary<string, object> { { "target", 1L } }, recovery, delegate { return recovery.MoveRequest(false, 1); });
+            TraceStep(recoverySteps, recoveryFrames, recoveryImages, "close", new Dictionary<string, object>(), recovery, delegate { recovery.Close(); return "completed"; });
+            StateTraces.Add(new Dictionary<string, object> { { "sequenceId", "failed-open-recovery" }, { "steps", recoverySteps } });
+            test.Equal("NotSupported", recoverySteps[1]["result"].ToString(), "corrupt PNG legacy open result");
+            test.Equal(false, (bool)StateOf(recoverySteps[1])["loaded"], "failed open loaded state");
+            test.Equal("Success", recoverySteps[3]["result"].ToString(), "valid image recovery result");
+            test.Equal(0L, (long)StateOf(recoverySteps[4])["currentTimestamp"], "recovery repeat zero retains current frame");
+
+            var unopenedSteps = new List<Dictionary<string, object>>();
+            var unopenedFrames = new List<VideoFrame>();
+            var unopenedImages = new List<SystemBitmap>();
+            var unopened = new VideoReaderBitmap();
+            TraceStep(unopenedSteps, unopenedFrames, unopenedImages, "close-unopened", new Dictionary<string, object>(), unopened, delegate { unopened.Close(); return "completed"; });
+            StateTraces.Add(new Dictionary<string, object> { { "sequenceId", "close-unopened" }, { "steps", unopenedSteps } });
+            test.Equal("NullReferenceException", unopenedSteps[0]["errorType"].ToString(), "legacy close-unopened failure category");
+        }
+
+        private static void TraceStep(List<Dictionary<string, object>> steps, List<VideoFrame> frameIds, List<SystemBitmap> imageIds, string operation, object inputs, VideoReaderBitmap reader, Func<object> action)
+        {
+            object result = null;
+            string errorType = null;
+            try { result = action(); }
+            catch (Exception ex) { errorType = ex.GetType().FullName; }
+            object traceResult = result is Enum ? result.ToString() : result;
+            VideoFrame current = reader.Current;
+            SystemBitmap image = current == null ? null : current.Image;
+            var state = new Dictionary<string, object>
+            {
+                { "loaded", reader.Loaded },
+                { "currentTimestamp", current == null ? (object)null : current.Timestamp },
+                { "previousTimestamp", current == null ? (object)null : current.PreviousTimestamp },
+                { "hasImage", image != null },
+                { "frameIdentity", current == null ? (object)null : IdentityOf(frameIds, current) },
+                { "imageIdentity", image == null ? (object)null : IdentityOf(imageIds, image) },
+                { "workingZoneStart", reader.WorkingZone.Start },
+                { "workingZoneEnd", reader.WorkingZone.End },
+                { "framesPerSecond", reader.Info.FramesPerSeconds },
+                { "averageTimestampsPerFrame", reader.Info.AverageTimeStampsPerFrame },
+                { "durationTimestamps", reader.Info.DurationTimeStamps },
+                { "originalWidth", reader.Info.OriginalSize.Width },
+                { "originalHeight", reader.Info.OriginalSize.Height },
+                { "frameIntervalMilliseconds", reader.Info.FrameIntervalMilliseconds },
+                { "firstTimestamp", reader.Info.FirstTimeStamp },
+                { "lastTimestamp", reader.Info.LastTimeStamp }
+            };
+            if (image != null)
+            {
+                try
+                {
+                    Color c = image.GetPixel(0, 0);
+                    state["pixelProbe"] = new Dictionary<string, object> { { "r", c.R }, { "g", c.G }, { "b", c.B }, { "a", c.A } };
+                }
+                catch (Exception ex) { state["pixelAccessErrorType"] = ex.GetType().FullName; }
+            }
+            steps.Add(new Dictionary<string, object>
+            {
+                { "operation", operation }, { "inputs", inputs }, { "result", traceResult },
+                { "errorType", errorType }, { "stateAfter", state }
+            });
+        }
+
+        private static int IdentityOf<T>(List<T> identities, T item) where T : class
+        {
+            for (int i = 0; i < identities.Count; i++) if (Object.ReferenceEquals(identities[i], item)) return i;
+            identities.Add(item);
+            return identities.Count - 1;
+        }
+
+        private static Dictionary<string, object> StateOf(Dictionary<string, object> step)
+        {
+            return (Dictionary<string, object>)step["stateAfter"];
         }
 
         private static string GetOutputDirectory(string[] args)
