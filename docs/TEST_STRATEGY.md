@@ -112,6 +112,17 @@ For the additive PNG eXIf characterization, Windows Bitmap adapter workflow [381
 
 `tests/PortableImageReader.Tests` runs a .NET 10 console assertion suite against the separate `Kinovea.PortableImageReader` library. Linux and Windows jobs verify immutable candidate BMP/PNG binary inputs and outputs plus independently authored expected pixel formulas. Tests cover transparent and partial-alpha pixels, a generated 24-bit BMP with row padding, errors, and output/file lifetime. A generated PNG eXIf orientation-6 case is compared with a fresh actual .NET Framework 4.8 reader capture. That Windows run observed that GDI+ does not expose the PNG orientation property and retains 13x9 dimensions and original raster order. This establishes the one fixture's result only; other PNG eXIf variants remain unverified. The old candidate directory remains unchanged and `CANDIDATE_NOT_APPROVED`.
 
+### Portable reader shell navigation
+
+`tests/PortableReaderShell.Tests` executes the same synchronous BMP/PNG navigation scenarios on Linux and Windows .NET 10. It covers initial empty frame, open metadata, first/sequential selection, repeated-current wrapper identity, forward/backward navigation, working-zone limits, PlayerRequest steps, close/reopen, corrupt-image recovery and repeated disposal. Windows CI first runs the actual net48 `VideoReaderBitmap` harness to produce `reader-state-traces.v1.json`, then supplies that trace to the shell test with `--legacy-trace`. The trace remains candidate evidence, not an approved golden. The test suite checks schema and selected actual behavior; explicitly documented safe differences are tested separately: idempotent close-before-open, no synthetic 4x4 corrupt-image frame, and fresh frame data after reopen at a stale timestamp. This shell remains detached from caches and does not establish cache ownership safety.
+
+Local offline commands (Gentoo, SDK 10.0.111):
+
+```sh
+dotnet build tests/PortableReaderShell.Tests/PortableReaderShell.Tests.csproj -c Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false -m:1
+dotnet tests/PortableReaderShell.Tests/bin/Release/net10.0/PortableReaderShell.Tests.dll
+```
+
 Run locally with:
 
 ```sh
