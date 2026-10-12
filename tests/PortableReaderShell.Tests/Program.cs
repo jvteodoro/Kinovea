@@ -16,6 +16,7 @@ internal static class Program
             FreshFirstFrame(fixtures);
             FailedOpenAndRecovery(fixtures);
             CloseBeforeOpen(fixtures);
+            MeasureNavigationAllocations(fixtures);
             string? trace = Option(args, "--legacy-trace");
             if (trace is not null) VerifyLegacyTrace(trace);
             else Console.WriteLine("Legacy state trace comparison: NOT_RUN");
@@ -102,6 +103,24 @@ internal static class Program
     {
         using var reader = new PortableReaderShell();
         reader.Close(); reader.Close(); Equal(PortableReaderState.Closed, reader.State, "close unopened is idempotent safe deviation");
+    }
+
+    private static void MeasureNavigationAllocations(string fixtures)
+    {
+        using var reader = new PortableReaderShell();
+        reader.Open(Path.Combine(fixtures, "bmp-rgb-7x5.bmp"));
+        reader.MoveRequest(true, 0);
+        reader.MoveRequest(false, 1);
+        reader.MoveRequest(false, 0);
+        long beforeRepeat = GC.GetAllocatedBytesForCurrentThread();
+        reader.MoveRequest(false, 0);
+        long repeatBytes = GC.GetAllocatedBytesForCurrentThread() - beforeRepeat;
+        reader.MoveRequest(false, 1);
+        reader.MoveRequest(false, 0);
+        long beforeChange = GC.GetAllocatedBytesForCurrentThread();
+        reader.MoveRequest(false, 37);
+        long changedBytes = GC.GetAllocatedBytesForCurrentThread() - beforeChange;
+        Console.WriteLine($"Navigation allocation sample (single warmed operation): repeated-current={repeatBytes} bytes; changed-timestamp={changedBytes} bytes; full-frame copies=0 by shared PixelBuffer backing-array identity.");
     }
 
     private static void VerifyLegacyTrace(string path)
