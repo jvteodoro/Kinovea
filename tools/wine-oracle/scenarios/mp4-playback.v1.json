@@ -61,19 +61,12 @@
   ],
   "expectedOutcomes": [
     {
-      "observation": "The actual UI open path loads the specified 1280x720, 30 fps, 10 second H.264 reference clip.",
-      "status": "WINE_OBSERVED",
-      "verification": "Manual review of the Kinovea window title and visible dimensions/frame rate; input SHA-256 and ffprobe metadata are recorded."
+      "observation": "Open the specified H.264 reference clip and show its visible metadata.",
+      "verification": "Review title/dimensions/frame-rate in the app window and compare fixture provenance."
     },
     {
-      "observation": "Space starts and pauses playback, with the visible transport control changing state.",
-      "status": "WINE_OBSERVED",
-      "verification": "Manual review of screenshots captured before, during and after playback; no exact frame timing claim."
-    },
-    {
-      "observation": "Exact playback timing or decoder parity with Windows is established.",
-      "status": "NOT_ESTABLISHED",
-      "verification": "Screenshots are insufficient for timing or pixel equivalence."
+      "observation": "Space starts and pauses playback with visible transport-state changes.",
+      "verification": "Review screenshots before, during and after playback; do not infer exact timing."
     }
   ],
   "screenshots": [
@@ -89,11 +82,12 @@
   "cleanup": [
     "Harness sends Alt+F4 to the Kinovea window it launched; it never calls wineserver -k."
   ],
-  "evidenceConfidence": "WINE_OBSERVED for clip selection and visible play/pause controls after manual screenshot review; no timing/pixel equivalence.",
+  "evidenceConfidence": "Visual-only; human review is required, and screenshots do not establish exact timing or pixel equality.",
   "limitations": [
     "The local video is not committed; reproduce only with the matching SHA-256.",
     "The video is an environmental fixture, not a licensed project fixture.",
-    "Playback/frame rate claims are not inferred from screenshots."
+    "Playback/frame rate claims are not inferred from screenshots.",
+    "Screenshots are insufficient for timing or pixel equivalence."
   ],
   "prepare": {
     "clearSavedScreens": true

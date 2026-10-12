@@ -45,24 +45,20 @@
   ],
   "expectedOutcomes": [
     {
-      "observation": "A Kinovea window opens with the PNG selected through the application reader path.",
-      "status": "NOT_ESTABLISHED",
-      "verification": "Dialog interaction was executed, but the captured main window remained blank; this outcome is not established."
+      "observation": "Confirm the app displays the opened PNG as a still-image frame.",
+      "verification": "Review the application window and visible reader controls after the dialog closes."
     },
     {
-      "observation": "The displayed aspect ratio follows the 13x9 source image.",
-      "status": "NOT_ESTABLISHED",
-      "verification": "Dialog interaction was executed, but the captured main window remained blank; this outcome is not established."
+      "observation": "Confirm the image presentation follows the 13x9 source aspect ratio.",
+      "verification": "Review the image bounds in the captured application window."
     },
     {
-      "observation": "Transparent and partially transparent regions have a visible presentation.",
-      "status": "NOT_ESTABLISHED",
-      "verification": "Dialog interaction was executed, but the captured main window remained blank; this outcome is not established."
+      "observation": "Confirm transparent and partially transparent regions have a visible presentation.",
+      "verification": "Review the screenshot against the application background; this is not an alpha-byte measurement."
     },
     {
-      "observation": "Ctrl+F4 closes the player screen while the application remains open.",
-      "status": "NOT_ESTABLISHED",
-      "verification": "Dialog interaction was executed, but the captured main window remained blank; this outcome is not established."
+      "observation": "Confirm Ctrl+F4 closes the opened image screen while leaving Kinovea open.",
+      "verification": "Compare the application window before and after close."
     }
   ],
   "screenshots": [
@@ -77,7 +73,7 @@
   "cleanup": [
     "Harness sends Alt+F4 to the Kinovea window it launched; it never calls wineserver -k."
   ],
-  "evidenceConfidence": "WINE_OBSERVED for launch/dialog interaction only; image-reader behavior NOT_ESTABLISHED.",
+  "evidenceConfidence": "Low until human review; screenshots cannot establish decoded pixels, alpha bytes, or reader selection.",
   "limitations": [
     "Screenshot cannot establish alpha byte values, premultiplication, or exact aspect ratio.",
     "Candidate Windows fixture is pending human approval."

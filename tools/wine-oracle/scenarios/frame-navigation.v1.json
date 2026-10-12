@@ -74,19 +74,12 @@
   ],
   "expectedOutcomes": [
     {
-      "observation": "The actual UI open path loads the specified 1280x720, 30 fps H.264 reference clip.",
-      "status": "WINE_OBSERVED",
-      "verification": "Manual review of the visible clip title and dimensions plus fixture metadata."
+      "observation": "Open the specified H.264 reference clip and show its visible metadata.",
+      "verification": "Review title/dimensions/frame-rate in the app window and compare fixture provenance."
     },
     {
-      "observation": "Right requests change displayed frame content, and Left after two Right requests returns the capture to the prior forward-step image.",
-      "status": "WINE_OBSERVED",
-      "verification": "Manual review; forward-one and back-one screenshot SHA-256 values match for this captured run."
-    },
-    {
-      "observation": "Exact navigation timestamps and frame indices are determined from screenshots.",
-      "status": "NOT_ESTABLISHED",
-      "verification": "This visual trace does not establish exact timestamps or decoder frame indices."
+      "observation": "Two Right requests change displayed content and one Left returns the capture to the first forward-step image.",
+      "verification": "Review each screenshot; exact frame indices and timestamps are outside this visual assertion."
     }
   ],
   "screenshots": [
@@ -103,10 +96,11 @@
   "cleanup": [
     "Harness sends Alt+F4 to the Kinovea window it launched; it never calls wineserver -k."
   ],
-  "evidenceConfidence": "WINE_OBSERVED for visible content changes and return-to-prior screenshot hash in this environment; exact timing remains unestablished.",
+  "evidenceConfidence": "Visual-only; human review is required, and screenshots do not establish exact timestamps or frame indices.",
   "limitations": [
     "Default shortcut mappings were verified in source, but actual step outcome must be visually checked on this executable.",
-    "Screenshots do not prove exact timestamps or frame-selection semantics."
+    "Screenshots do not prove exact timestamps or frame-selection semantics.",
+    "This visual trace does not establish exact timestamps or decoder frame indices."
   ],
   "prepare": {
     "clearSavedScreens": true

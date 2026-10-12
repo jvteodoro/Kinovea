@@ -538,21 +538,29 @@ def run_scenario(scenario_path: Path, executable: Path, prefix: Path, output: Pa
                 entry["kinoveaWindowsAfterClose"] = len(kinovea_windows())
             else:
                 raise RuntimeError(f"unsupported action type: {kind}")
-            entry["status"] = "WINE_OBSERVED"
+            entry["executionStatus"] = "COMPLETED"
             result["actions"].append(entry)
-        result["status"] = "WINE_OBSERVED"
+        # The driver records successful automation only. It cannot infer that
+        # a visually similar result is the expected behavior; review stays
+        # separate in the versioned evidence record.
+        result["status"] = "NOT_ESTABLISHED"
+        result["classification"] = "NOT_ESTABLISHED"
         result["executionStatus"] = "COMPLETED"
         result["expectedOutcomes"] = scenario["expectedOutcomes"]
-        outcome_statuses = {item.get("status") for item in scenario["expectedOutcomes"]}
-        if "WINE_OBSERVED" not in outcome_statuses:
-            result["status"] = "NOT_ESTABLISHED"
-        result["classification"] = result["status"]
-        result["evidenceConfidence"] = scenario.get("evidenceConfidence", "WINE_OBSERVED; visual checks are not pixel equivalence")
+        result["observedOutcomes"] = [
+            {"observation": item["observation"], "status": "NOT_ESTABLISHED", "review": "Human review required; this run records screenshots and actions only."}
+            for item in scenario["expectedOutcomes"]
+        ]
+        result["evidenceConfidence"] = "Automation completed; scenario outcomes remain NOT_ESTABLISHED until a reviewer checks the captured evidence."
     except Exception as exc:
         result["status"] = "FAIL"
         result["classification"] = "FAIL"
         result["executionStatus"] = "FAILED"
         result["failure"] = f"{type(exc).__name__}: {exc}"
+        result["observedOutcomes"] = [
+            {"observation": item["observation"], "status": "NOT_ESTABLISHED", "review": "Run did not complete; outcome was not established."}
+            for item in scenario.get("expectedOutcomes", [])
+        ]
         if process and process.poll() is not None:
             result["launch"]["exitCode"] = process.returncode
         result["expectedOutcomes"] = scenario.get("expectedOutcomes", [])
@@ -611,7 +619,7 @@ def run_scenario(scenario_path: Path, executable: Path, prefix: Path, output: Pa
                     app_logs.append({"path": str(copied.relative_to(output)), "sha256": sha256(copied)})
             result["applicationLogs"] = app_logs
         (output / "result.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    return 0 if result.get("executionStatus") == "COMPLETED" and result["status"] in {"WINE_OBSERVED", "NOT_ESTABLISHED"} else 1
+    return 0 if result.get("executionStatus") == "COMPLETED" and result["status"] == "NOT_ESTABLISHED" else 1
 
 
 def validate_scenarios(scenario_dir: Path, repo_root: Path) -> int:

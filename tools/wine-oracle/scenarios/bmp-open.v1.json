@@ -45,19 +45,16 @@
   ],
   "expectedOutcomes": [
     {
-      "observation": "A Kinovea window opens with the BMP selected through the application reader path.",
-      "status": "NOT_ESTABLISHED",
-      "verification": "Dialog interaction was executed, but the captured main window remained blank; this outcome is not established."
+      "observation": "Confirm the app displays the opened BMP as a still-image frame.",
+      "verification": "Review the application window and visible reader controls after the dialog closes."
     },
     {
-      "observation": "The displayed picture visually reflects the 7x5 asymmetric test pattern.",
-      "status": "NOT_ESTABLISHED",
-      "verification": "Dialog interaction was executed, but the captured main window remained blank; this outcome is not established."
+      "observation": "Confirm the asymmetric 7x5 test pattern is visible.",
+      "verification": "Manually inspect the captured application window; visual review does not prove pixel equality."
     },
     {
-      "observation": "Ctrl+F4 closes the player screen while the application remains open.",
-      "status": "NOT_ESTABLISHED",
-      "verification": "Dialog interaction was executed, but the captured main window remained blank; this outcome is not established."
+      "observation": "Confirm Ctrl+F4 closes the opened image screen while leaving Kinovea open.",
+      "verification": "Compare the application window before and after close."
     }
   ],
   "screenshots": [
@@ -72,7 +69,7 @@
   "cleanup": [
     "Harness sends Alt+F4 to the Kinovea window it launched; it never calls wineserver -k."
   ],
-  "evidenceConfidence": "WINE_OBSERVED for launch/dialog interaction only; image-reader behavior NOT_ESTABLISHED.",
+  "evidenceConfidence": "Low until human review; screenshots cannot establish decoded pixels or reader selection.",
   "limitations": [
     "Screenshot appearance is not a pixel-level or numerical equivalence check.",
     "Candidate Windows fixture is pending human approval.",
