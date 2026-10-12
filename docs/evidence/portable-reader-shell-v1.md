@@ -1,6 +1,6 @@
 # Portable reader shell v1 state machine and evidence
 
-Status: implementation candidate; no production reader replacement or legacy cache connection. Legacy trace comparison and Windows/Linux CI remain pending for this commit.
+Status: portable shell tested on Linux and Windows; scoped legacy navigation comparison passed on Windows. This remains an implementation candidate with no production reader replacement or legacy cache connection. The Windows trace is candidate evidence, not an approved golden.
 
 ## Baseline and state model
 
@@ -47,7 +47,7 @@ These differences do not change production behavior; the new shell remains opt-i
 
 The Windows characterization runner writes `reader-state-traces.v1.json` with schema version 1, sequences, operation names, inputs, result/error type, and post-operation state. Each state includes loaded status, timestamps, frame/image identity numbers, working-zone bounds, timing metadata, and a logical pixel probe or access error. Fixture names are used instead of absolute paths in operation inputs. The trace is candidate evidence from a specific Windows run, not an approved golden.
 
-Initial trace sequences are `navigation-close-reopen`, `failed-open-recovery`, and `close-unopened`. The portable test suite executes navigation and recovery scenarios on Linux and Windows. The Windows comparison replays the navigation sequence from the fresh legacy trace and checks method results, loaded state, current/previous timestamps, zone, metadata, dimensions, and frame/image identity through close and reopen. It explicitly allows the fresh frame at same-timestamp reopen as the documented safe deviation. The failed-open sequence currently has selected trace assertions plus independent portable expectations; full field-by-field equivalence is not claimed. Trace status remains `CANDIDATE_NOT_APPROVED`.
+The four trace sequences are `navigation-close-reopen`, `failed-open-recovery`, `failed-open-after-valid`, and `close-unopened`. The portable test suite executes navigation and recovery scenarios on Linux and Windows. The Windows comparison replays the navigation sequence from the fresh legacy trace and checks method results, loaded state, current/previous timestamps, zone, metadata, dimensions, first-pixel values, and frame/image identity through close and reopen. It explicitly allows the fresh frame at same-timestamp reopen as the documented safe deviation. Failed-open traces assert the legacy placeholder/retained-image observations and the shell's safe release/recovery behavior. Trace status remains `CANDIDATE_NOT_APPROVED`.
 
 ## Implementation and local verification
 
@@ -68,16 +68,38 @@ Result: build `PASS`, 0 warnings/0 errors; portable shell `PASS`, 65 assertions.
 
 | Property | Status | Evidence / limitation |
 |---|---|---|
-| Portable shell first/sequential selection, timestamps and PreviousTimestamp | `PASS` portable contract locally | 65 assertions on Linux; fresh net48 comparison pending. |
-| Repeated current frame wrapper identity | `PASS` portable contract locally | Same `PortableReaderFrame` remains current when timestamp does not change. |
-| Decoded storage reuse across timestamps | `PASS` portable contract locally | Backing managed-array identity checked across multiple timestamp wrappers; no decode/copy on navigation. |
-| Metadata and default working zone | `PASS` portable contract locally | Fixed 25 fps, average 1 timestamp/frame, duration 250, 40 ms and `[0,249]` expected. |
-| Arbitrary forward/backward selection and return values | `PASS` portable contract locally | Seeks tested at 37, 12, 249, 250 and -1. |
-| Close/reopen and old frame access | `PASS` portable contract locally | New frame selected for same timestamp after reopen; old disposed PixelBuffer rejects fresh access. |
-| Exact legacy trace replay | `NOT_RUN` | Workflow must run the actual net48 harness and pass `reader-state-traces.v1.json` to the .NET 10 suite. |
-| Failed-open full state equivalence | `NOT_ESTABLISHED` | Legacy exposes a 4x4 placeholder after seeking while failed; portable shell intentionally leaves Current empty. |
+| Portable shell first/sequential selection, timestamps and PreviousTimestamp | `PASS` Linux and Windows; matched legacy trace | 65 standalone assertions on each OS; Windows trace replay compared all 20 navigation operations. |
+| Repeated current frame wrapper identity | `PASS` Linux and Windows; matched legacy trace | Same portable frame wrapper remains current on repeated timestamp; identity checked before close/reopen safe deviation. |
+| Decoded storage reuse across timestamps | `PASS` Linux and Windows; matched legacy trace | Backing managed-array identity checked across multiple timestamp wrappers; trace confirms same legacy image identity during open interval. No decode/copy during navigation. |
+| Metadata and default working zone | `PASS` Linux and Windows; matched legacy trace | Fixed 25 fps, average 1 timestamp/frame, duration 250, 40 ms and `[0,249]` matched. |
+| Arbitrary forward/backward selection and return values | `PASS` Linux and Windows; matched legacy trace | Seeks tested at 37, 12, 249, 250 and -1; bool results, current and previous timestamps compared. |
+| Logical pixel probe on selected frames | `PASS` Windows actual-reader comparison | RGB and alpha at `(0,0)` compared while live; full fixture pixels were independently compared by the existing reader/generator test. |
+| Close/reopen and old frame access | `PASS` portable contract; intentional legacy deviation | New frame selected for same timestamp after reopen; old disposed PixelBuffer rejects fresh access. Legacy stale wrapper is preserved until re-request and then refreshed safely. |
+| Actual net48 trace generation and replay | `PASS` Windows CI | Final run `38242577373`; legacy harness 22 cases/644 assertions, state trace replay 411 assertions. |
+| Failed-open full state equivalence | `PASS` for characterized divergence | Windows trace asserts legacy's transparent 4x4 placeholder after seek; portable shell intentionally leaves Current empty and recovers to real decoded pixels. |
 | Cache/PreBuffer integration | `NOT_ESTABLISHED` | Unsupported by design; no ownership retention or production call site changed. |
 | Concurrent/asynchronous use | `NOT_ESTABLISHED` | Externally serialized synchronous use only. |
 | Approved-golden parity | `NOT_ESTABLISHED` | The Windows candidate fixture remains unapproved. |
 
-The workflow source is `.github/workflows/portable-frame-integration.yml`. It adds the shell suite to both OS matrix legs and compares a fresh Windows state trace after running the actual legacy reader. Exact CI run IDs, source SHA, runtime metadata, trace hash and per-property results must be appended here after that workflow completes.
+The workflow source is `.github/workflows/portable-frame-integration.yml`. It adds the shell suite to both OS matrix legs and compares a fresh Windows state trace after running the actual legacy reader.
+
+## CI execution and provenance
+
+Final GitHub Actions run [38242577373](https://github.com/jvteodoro/Kinovea/actions/runs/38242577373) passed on source SHA `5d4e796ac2844412b7c9289327b09a7e38e5398b`. Linux and Windows matrix runners used .NET SDK `10.0.401` / host `10.0.12`. Ubuntu runner reported 24.04; Windows runner image `20261004.326.1` reported Server 2022 (`10.0.20348`). The legacy Windows job verified the .NET Framework 4.8 targeting pack, used Visual Studio MSBuild `17.14.60.43110`, and reported GDI+ `10.0.20348.5622`. Its source manifest contained 48 entries and no missing inputs.
+
+| Execution | Result |
+|---|---|
+| Portable Pixel Core — Ubuntu 24.04 | `PASS`, 10/10 tests |
+| Portable image reader — Ubuntu 24.04 | `PASS`, 1,322 assertions |
+| Portable frame generator — Ubuntu 24.04 | `PASS`, 617 assertions |
+| Portable reader shell — Ubuntu 24.04 | `PASS`, 65 assertions; standalone scenarios, legacy trace `NOT_RUN` |
+| Portable Pixel Core — Windows Server 2022 | `PASS`, 10/10 tests |
+| Portable image reader — Windows Server 2022 | `PASS`, 1,322 assertions |
+| Portable frame generator — Windows Server 2022 | `PASS`, 617 assertions |
+| Portable reader shell — Windows Server 2022 | `PASS`, 65 assertions; standalone scenarios, legacy trace `NOT_RUN` |
+| Actual legacy `VideoReaderBitmap` — Windows .NET Framework 4.8 | `PASS`, 22 cases / 636 assertions |
+| Portable shell against fresh legacy state trace | `PASS`, 411 assertions over 20 navigation steps, both failed-open paths, and close-before-open observation |
+
+The uploaded `reader-state-traces.v1.json` SHA-256 is `a7372df8e03e916b49a33c08fdbedb52a27ce37ccb3959f7fc9e7cc101259697`. It declares `CANDIDATE_NOT_APPROVED`. An initial run at SHA `3204cfaea26497c56719f0c25efa7c0b9f62e3d6` executed 22 cases / 636 assertions but failed one assertion because the harness compared the short exception name with a serialized full name. Commit `165076f2` corrected that; run `38241880986` passed the then-current 374 shell trace assertions. Run `38242219681` passed the additional fresh-failed-open comparison with 393 trace assertions. Final run `38242577373` covers both failed-open paths and passed 22 cases / 644 legacy assertions plus 411 trace assertions. The failed run is not counted as a pass.
+
+The successful trace replay compares method results, current/previous timestamps, loaded state, working-zone bounds, fps/interval/duration/dimensions, `(0,0)` logical pixel values and frame/image identity through close and reopen. Failed-open traces from both unopened and valid-image states verify the legacy placeholder/retained-image behavior and the portable shell's deliberate release and clean recovery. It separately allows the safe refresh on same-timestamp reopen, where legacy returns the same stale wrapper with a disposed GDI+ image. This is a scoped characterization result, not full reader parity or approved-golden verification.

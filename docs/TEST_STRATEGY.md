@@ -123,6 +123,8 @@ dotnet build tests/PortableReaderShell.Tests/PortableReaderShell.Tests.csproj -c
 dotnet tests/PortableReaderShell.Tests/bin/Release/net10.0/PortableReaderShell.Tests.dll
 ```
 
+Windows/Linux execution is recorded in [PortableReaderShell v1 evidence](evidence/portable-reader-shell-v1.md): final workflow `38242577373`, source SHA `5d4e796ac2844412b7c9289327b09a7e38e5398b`. The actual Windows reader passed 22 cases/644 assertions; the shell trace replay passed 411 assertions across navigation, failed-open recovery from both unopened and already-open states, and close-before-open observations. Its JSON trace SHA-256 is `a7372df8e03e916b49a33c08fdbedb52a27ce37ccb3959f7fc9e7cc101259697`. These are candidate results, not golden approval.
+
 Run locally with:
 
 ```sh
