@@ -1,0 +1,50 @@
+name: Portable pixel core
+
+on:
+  push:
+    branches: ["port/portable-pixel-core"]
+    paths:
+      - "src/Kinovea.PortablePixels/**"
+      - "tests/PortablePixels.Tests/**"
+      - ".github/workflows/portable-pixel-core.yml"
+  pull_request:
+    branches: ["port/net10-linux"]
+    paths:
+      - "src/Kinovea.PortablePixels/**"
+      - "tests/PortablePixels.Tests/**"
+      - ".github/workflows/portable-pixel-core.yml"
+  workflow_dispatch:
+
+jobs:
+  portable-tests:
+    name: ${{ matrix.os }} .NET 10 tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Run portable pixel tests and allocation sample
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          $report = "artifacts/portable-pixel-core-$env:RUNNER_OS.txt"
+          "Runner OS: $env:RUNNER_OS" | Tee-Object -FilePath $report
+          dotnet --info *>&1 | Tee-Object -FilePath $report -Append
+          dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj --configuration Release -- --measure *>&1 | Tee-Object -FilePath $report -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload platform evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: portable-pixel-core-${{ runner.os }}
+          path: artifacts/portable-pixel-core-*.txt
+          if-no-files-found: warn

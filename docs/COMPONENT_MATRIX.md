@@ -31,6 +31,12 @@ Inventory verified against `Kinovea.VS2019.sln` at `cce3013c4c327a9fcd22cdac0b82
 
 These are present in the checkout but are not entries in the original solution and are not included in its build result: `Kinovea.Tests/Kinovea.Tests.csproj` (net48; references ScreenManager, Services, PlayerServer and Video; references WinForms/GDI+; contains legacy test code), `VideoTests/Video.Tests.csproj` (net2.0; old NUnit 2.5.10 reference and a `Video/Video.csproj` reference that does not exist at the referenced path in this checkout), `Tools/UnusedResources/Converter/Converter.csproj`, and `Tools/UnusedResources/UnusedResources/UnusedResources.csproj` (legacy utility projects; no app migration classification made). `Tools/UnusedResources/UnusedResources.sln` is a second solution, not part of the assigned original-solution baseline. These require a separate inventory if brought into the migration build.
 
+## Parallel portable projects
+
+| Project | Target | Dependencies | Current verification | Scope and limits |
+|---|---|---|---|---|
+| `Kinovea.PortablePixels` — [project](../src/Kinovea.PortablePixels/Kinovea.PortablePixels.csproj) | `net10.0` | .NET BCL only (`System.Buffers`) | Targeted contract is `PORTABLE_TESTED`: Linux local build/tests and Linux+Windows .NET 10 CI passed 10 tests on implementation commit `2cf83cd12fca01e14d4eeab5fb2555906a1013f8`; CI run `38182247261`. | Isolated pixel-memory contract and synthetic RGB24 producer. Sequential ownership/disposal is covered; concurrent access/disposal is unsupported, native/pool owners are unverified, and no decoder or Kinovea consumer is integrated. This status does not promote `Kinovea.Video.Bitmap` or `Kinovea.Video` to PORTED. See [API invariants](PORTABLE_PIXEL_CORE.md) and [verification evidence](evidence/2026-10-11-portable-pixel-core.md). |
+
 ## Dependency-aware order and test prerequisites
 
 1. **Timecode logic only**: `Kinovea.Services/TimeHelper.cs` and its `TimecodeFormat`, `TimecodeType`, and timestamp delegate contracts. A package-free source-isolated harness now exists at `tests/Timecode.Characterization`; it links the original source files and passes its documented Linux assertions. Windows legacy comparison remains unavailable, so parity is still `UNVERIFIED`.
