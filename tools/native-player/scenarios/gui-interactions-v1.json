@@ -60,7 +60,7 @@
     "NOT_RUN",
     "NOT_ESTABLISHED"
   ],
-  "screenshots": "Generated locally in the output directory; never committed if they contain local media paths or desktop data.",
+  "screenshots": "Process-owned application screenshots with synthetic fixtures are retained under docs/evidence/native-player-gui-interactions-v1; local logs/reports remain in the output directory. The Wayland portal dialog itself is NOT_CAPTURED.",
   "separateViewportScenario": "viewport-gestures-v1 (tools/native-player/viewport-gestures.py; requires --bmp, --alpha, --png)",
   "screenshotCheckpoints": [
     "startup-empty",
