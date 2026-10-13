@@ -57,6 +57,8 @@ def main() -> int:
     parser.add_argument("--input", required=True, type=Path, help="BMP or PNG input fixture")
     parser.add_argument("--output", required=True, type=Path, help="local evidence output directory")
     parser.add_argument("--source-sha", required=True)
+    parser.add_argument("--exercise-navigation-close", action="store_true",
+                         help="tab to Next, activate it, then Ctrl+W and verify the empty state")
     args = parser.parse_args()
     assembly = args.assembly.resolve()
     image = args.input.resolve()
@@ -92,13 +94,48 @@ def main() -> int:
             report = json.loads(report_path.read_text(encoding="utf-8"))
             if report.get("inputSha256") != sha256(image):
                 raise RuntimeError("player report input hash does not match the requested fixture")
+            initial_report = dict(report)
             oracle.activate_window(window["id"])
             time.sleep(0.6)
             screenshot = capture_native_window(window, output / "player-open.png")
+            actions = []
+            additional_screenshots = []
+            if args.exercise_navigation_close:
+                # Open is first in the focus order, Close second, Previous disabled,
+                # then Next. Keyboard navigation avoids global screen coordinates.
+                for _ in range(3):
+                    oracle.send_key("Tab", window["id"])
+                oracle.send_key("Return", window["id"])
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline:
+                    report = json.loads(report_path.read_text(encoding="utf-8"))
+                    if report.get("timestamp") == 1 and report.get("previousTimestamp") == 0:
+                        break
+                    time.sleep(0.1)
+                else:
+                    raise RuntimeError("the GUI Next action did not advance to timestamp 1")
+                actions.append({"action": "keyboard-focus-next-enter", "result": "PASS",
+                                "timestamp": 1, "previousTimestamp": 0})
+                additional_screenshots.append(capture_native_window(window, output / "player-next.png"))
+
+                oracle.send_key("Control_L+w", window["id"])
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline:
+                    report = json.loads(report_path.read_text(encoding="utf-8"))
+                    if report.get("status") == "EMPTY":
+                        break
+                    time.sleep(0.1)
+                else:
+                    raise RuntimeError("Ctrl+W did not close the current reader")
+                actions.append({"action": "Ctrl+W-close-current", "result": "PASS",
+                                "readerState": report.get("readerState")})
+                additional_screenshots.append(capture_native_window(window, output / "player-empty.png"))
             manifest = {"schemaVersion": 1, "sourceSha": args.source_sha,
                         "processId": process.pid, "input": str(image),
-                        "inputSha256": sha256(image), "playerReport": report,
-                        "screenshot": screenshot,
+                        "inputSha256": sha256(image), "playerReport": initial_report,
+                        "finalReport": report,
+                        "screenshot": screenshot, "actions": actions,
+                        "additionalScreenshots": additional_screenshots,
                         "limitations": ["Window rendering is verified; screenshot pixels are not a decoder parity oracle."]}
             (output / "manifest.v1.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
             print(json.dumps(manifest, indent=2))
