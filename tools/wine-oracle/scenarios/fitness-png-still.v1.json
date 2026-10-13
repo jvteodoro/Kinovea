@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "id": "fitness-png-still-view",
+  "version": 1,
+  "title": "Fitness PNG still-image player characterization",
+  "application": {
+    "expectedVersion": "2025.2.0.0",
+    "executableSha256": "22d95a127257e59bd435eaa2689dd7fda2cae802829e801aa5cd367ee7a12534"
+  },
+  "launchArguments": [],
+  "input": {
+    "id": "local-fitness-PNG155",
+    "environmentVariable": "KINOVEA_ORACLE_FITNESS_PNG",
+    "sha256": "c77ebaf19be8212c7af9507cce94fcaf4e611a4d00cdb5c1538748ff992e4f02",
+    "provenance": "Pre-existing local image reported by the user as manually opened in Kinovea; not committed."
+  },
+  "preconditions": [
+    "Use the verified existing win64 Wine prefix and matching Kinovea executable.",
+    "No Kinovea window may already be open.",
+    "The logged-in KWin/Xwayland session and required automation tools must be available."
+  ],
+  "startupTimeoutSeconds": 45,
+  "actions": [
+    {
+      "type": "capture",
+      "checkpoint": "startup",
+      "description": "Capture Kinovea at startup before opening media.",
+      "waitSeconds": 3
+    },
+    {
+      "type": "open_fixture",
+      "method": "shortcut",
+      "waitSeconds": 2,
+      "description": "Open the fixture through the shortcut route."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "player-created",
+      "waitSeconds": 1,
+      "description": "Capture the main window after the open action returned."
+    },
+    {
+      "type": "verify_visible_text",
+      "checkpoint": "player-created",
+      "screenshot": "player-created.png",
+      "requiredText": [
+        "fitness_PNG155",
+        "276 x 398",
+        "25.00 fps"
+      ],
+      "description": "Verify that the player header identifies this image and its dimensions."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "first-visible-image",
+      "waitSeconds": 1,
+      "description": "Capture the first stable view of the opened still image."
+    },
+    {
+      "type": "key",
+      "keys": [
+        "Right"
+      ],
+      "betweenKeysSeconds": 0.5,
+      "description": "Request one frame step forward using the default keyboard action."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "step-forward",
+      "waitSeconds": 0.5,
+      "description": "Capture the visible result of frame stepping."
+    },
+    {
+      "type": "key",
+      "keys": [
+        "Left"
+      ],
+      "betweenKeysSeconds": 0.5,
+      "description": "Request one frame step backward."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "step-back",
+      "waitSeconds": 0.5,
+      "description": "Capture the visible result after stepping back."
+    },
+    {
+      "type": "key",
+      "keys": [
+        "Control_L+F4"
+      ],
+      "description": "Test the source-configured Ctrl+F4 close shortcut while the player is active."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "after-ctrl-f4",
+      "waitSeconds": 0.5,
+      "description": "Record whether the Ctrl+F4 shortcut closed the player."
+    },
+    {
+      "type": "verify_visible_text",
+      "checkpoint": "after-ctrl-f4",
+      "screenshot": "after-ctrl-f4.png",
+      "requiredText": [
+        "fitness_PNG155",
+        "276 x 398",
+        "25.00 fps"
+      ],
+      "description": "Determine whether Ctrl+F4 removed the active still-image player."
+    }
+  ],
+  "screenshots": [
+    "startup.png",
+    "open-dialog.png",
+    "open-dialog-path-entered.png",
+    "player-created.png",
+    "player-created-header.png",
+    "first-visible-image.png",
+    "step-forward.png",
+    "step-back.png",
+    "after-ctrl-f4.png",
+    "player-closed.png",
+    "player-closed-header.png",
+    "player-reopened.png",
+    "player-reopened-header.png",
+    "player-reopened-closed.png"
+  ],
+  "outputs": [
+    "result.json",
+    "scenario.json",
+    "wine.stdout.log",
+    "wine.stderr.log"
+  ],
+  "cleanup": [
+    "Harness sends Alt+F4 only to the Kinovea window launched by this run; never calls wineserver -k."
+  ],
+  "evidenceConfidence": "OCR checks only visible player header metadata; a human reviews presentation and controls.",
+  "limitations": [
+    "OCR can produce false negatives and is not a pixel or numerical equivalence test.",
+    "Frame-step screenshots do not establish exact timestamps.",
+    "Screenshots do not establish alpha values or premultiplication."
+  ],
+  "prepare": {
+    "clearSavedScreens": true
+  },
+  "expectedOutcomes": [
+    {
+      "observation": "Ctrl+O opens the local fitness PNG in a Kinovea player with filename, 276x398 dimensions and 25.00 fps.",
+      "verification": "OCR assertion and manual review of the player screenshot."
+    },
+    {
+      "observation": "The portrait image is shown on a black canvas with the regular timeline, navigation and drawing toolbar.",
+      "verification": "Manual review of the window screenshot; no pixel or alpha claim."
+    },
+    {
+      "observation": "Right/Left requests are sent; exact navigation state is not inferred from the raster.",
+      "verification": "Compare screenshots for visible UI changes only; exact timestamps remain NOT_ESTABLISHED."
+    },
+    {
+      "observation": "Ctrl+F4 closes the player.",
+      "verification": "NOT_ESTABLISHED; a post-request OCR assertion records if the header remains."
+    },
+    {
+      "observation": "Player close followed by reopening the same image.",
+      "verification": "NOT_ESTABLISHED; no reliable close interaction was found."
+    }
+  ]
+}

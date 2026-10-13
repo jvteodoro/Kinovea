@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "id": "still-image-bmp-open",
+  "version": 1,
+  "title": "Open candidate BMP in installed Kinovea",
+  "application": {
+    "expectedVersion": "2025.2.0.0",
+    "executableSha256": "22d95a127257e59bd435eaa2689dd7fda2cae802829e801aa5cd367ee7a12534"
+  },
+  "launchArguments": [],
+  "input": {
+    "id": "bitmap-candidate-bmp-rgb-7x5",
+    "sha256": "85e0feff83d9920703cbf8be2e6ccc76741da22b4ffe791d5d4c415724de1244",
+    "provenance": "Byte-identical copy of the tracked deterministic candidate BMP; candidate baseline is not approved.",
+    "environmentVariable": "KINOVEA_ORACLE_CANDIDATE_BMP"
+  },
+  "preconditions": [
+    "Use the verified existing win64 Wine prefix and matching Kinovea executable.",
+    "No Kinovea window may already be open.",
+    "The logged-in KWin/Xwayland session and required automation tools must be available."
+  ],
+  "startupTimeoutSeconds": 45,
+  "actions": [
+    {
+      "type": "capture",
+      "checkpoint": "startup",
+      "description": "Capture Kinovea at startup before opening media.",
+      "waitSeconds": 3
+    },
+    {
+      "type": "open_fixture",
+      "method": "shortcut",
+      "waitSeconds": 2,
+      "description": "Open the fixture through the shortcut route."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "player-created",
+      "waitSeconds": 1,
+      "description": "Capture the main window after the open action returned."
+    },
+    {
+      "type": "verify_visible_text",
+      "checkpoint": "player-created",
+      "screenshot": "player-created.png",
+      "requiredText": [
+        "bmp-rgb-7x5",
+        "7 x 5",
+        "25.00 fps"
+      ],
+      "description": "Verify that the player header identifies this image and its dimensions."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "first-visible-image",
+      "waitSeconds": 1,
+      "description": "Capture the first stable view of the opened still image."
+    },
+    {
+      "type": "key",
+      "keys": [
+        "Right"
+      ],
+      "betweenKeysSeconds": 0.5,
+      "description": "Request one frame step forward using the default keyboard action."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "step-forward",
+      "waitSeconds": 0.5,
+      "description": "Capture the visible result of frame stepping."
+    },
+    {
+      "type": "key",
+      "keys": [
+        "Left"
+      ],
+      "betweenKeysSeconds": 0.5,
+      "description": "Request one frame step backward."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "step-back",
+      "waitSeconds": 0.5,
+      "description": "Capture the visible result after stepping back."
+    },
+    {
+      "type": "close_screen",
+      "waitSeconds": 1,
+      "description": "Request player close with Ctrl+F4 and record the visible result."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "after-close-shortcut",
+      "description": "Capture the application after closing the player."
+    },
+    {
+      "type": "verify_visible_text",
+      "checkpoint": "after-close-shortcut",
+      "screenshot": "after-close-shortcut.png",
+      "description": "Check whether the player header remains after Ctrl+F4.",
+      "requiredText": [
+        "bmp-rgb-7x5",
+        "7 x 5",
+        "25.00 fps"
+      ]
+    }
+  ],
+  "screenshots": [
+    "startup.png",
+    "open-dialog.png",
+    "open-dialog-path-entered.png",
+    "player-created.png",
+    "player-created-header.png",
+    "first-visible-image.png",
+    "step-forward.png",
+    "step-back.png",
+    "player-closed.png",
+    "player-closed-header.png"
+  ],
+  "outputs": [
+    "result.json",
+    "scenario.json",
+    "wine.stdout.log",
+    "wine.stderr.log"
+  ],
+  "cleanup": [
+    "Harness sends Alt+F4 only to the Kinovea window launched by this run; never calls wineserver -k."
+  ],
+  "evidenceConfidence": "OCR checks only visible player header metadata; a human reviews presentation and controls.",
+  "limitations": [
+    "OCR can produce false negatives and is not a pixel or numerical equivalence test.",
+    "Frame-step screenshots do not establish exact timestamps.",
+    "Screenshots do not establish alpha values or premultiplication."
+  ],
+  "prepare": {
+    "clearSavedScreens": true
+  },
+  "expectedOutcomes": [
+    {
+      "observation": "The image opens in a player showing its filename, dimensions and 25.00 fps header.",
+      "verification": "OCR assertion plus window screenshot review."
+    },
+    {
+      "observation": "The player canvas shows the image; toolbar and timeline are present.",
+      "verification": "Manual visual review; raster details for tiny fixtures are not established."
+    },
+    {
+      "observation": "Ctrl+F4 closes the player.",
+      "verification": "NOT_ESTABLISHED; the scenario records whether the header remains after the request."
+    }
+  ]
+}
