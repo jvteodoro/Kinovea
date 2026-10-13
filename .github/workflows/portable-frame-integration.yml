@@ -12,6 +12,8 @@ on:
       - "tests/PortableFrameGenerator.Tests/**"
       - "tests/PortableReaderShell.Tests/**"
       - "tests/PortableSingleFrame.Tests/**"
+      - "tests/PortableStillImageHost.Tests/**"
+      - "tests/StillImageHost.LegacyCharacterization/**"
       - "tests/Bitmap.Characterization/**"
       - "scripts/bitmap-characterization/**"
       - ".github/workflows/portable-frame-integration.yml"
@@ -26,6 +28,8 @@ on:
       - "tests/PortableFrameGenerator.Tests/**"
       - "tests/PortableReaderShell.Tests/**"
       - "tests/PortableSingleFrame.Tests/**"
+      - "tests/PortableStillImageHost.Tests/**"
+      - "tests/StillImageHost.LegacyCharacterization/**"
       - "tests/Bitmap.Characterization/**"
       - "scripts/bitmap-characterization/**"
       - ".github/workflows/portable-frame-integration.yml"
@@ -49,6 +53,8 @@ jobs:
           dotnet-version: 10.0.x
       - name: Run portable frame tests
         shell: pwsh
+        env:
+          KINOVEA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
           dotnet --info *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt
@@ -62,12 +68,28 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Portable image reader tests failed: $LASTEXITCODE" }
           dotnet run --project tests/PortablePixels.Tests/PortablePixels.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
           if ($LASTEXITCODE -ne 0) { throw "Portable pixel tests failed: $LASTEXITCODE" }
+          dotnet run --project tests/PortableStillImageHost.Tests/Kinovea.PortableStillImageHost.Tests.csproj -c Release *>&1 | Tee-Object artifacts/portable-frame-$env:RUNNER_OS.txt -Append
+          if ($LASTEXITCODE -ne 0) { throw "Portable still-image host tests failed: $LASTEXITCODE" }
+          $hostDll = "tests/PortableStillImageHost.Tests/bin/Release/net10.0/Kinovea.PortableStillImageHost.Tests.dll"
+          $fixtureRoot = "tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures"
+          foreach ($fixture in @("bmp-rgb-7x5.bmp", "png-alpha-13x9.png")) {
+            $name = [System.IO.Path]::GetFileNameWithoutExtension($fixture)
+            $jsonPath = "artifacts/portable-host-$env:RUNNER_OS-$name.json"
+            dotnet $hostDll --host (Join-Path $fixtureRoot $fixture) 0 *>&1 | Tee-Object $jsonPath
+            if ($LASTEXITCODE -ne 0) { throw "Portable host CLI failed for $fixture with exit code $LASTEXITCODE" }
+            $result = Get-Content -Raw $jsonPath | ConvertFrom-Json
+            if ($result.status -ne "Success" -or $result.timestamp -ne 0 -or $result.previousTimestamp -ne -1 -or -not $result.repeatedWrapperIdentity -or -not $result.newPixelAccessRejected) {
+              throw "Portable host CLI output did not satisfy frame/lifetime checks for $fixture"
+            }
+          }
       - name: Upload portable test evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: portable-frame-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/portable-frame-${{ runner.os }}.txt
+          path: |
+            artifacts/portable-frame-${{ runner.os }}.txt
+            artifacts/portable-host-${{ runner.os }}-*.json
           if-no-files-found: warn
           retention-days: 90
 
@@ -96,6 +118,53 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Legacy characterization build failed: $LASTEXITCODE" }
           & tests/Bitmap.Characterization/bin/x64/Release/Kinovea.Bitmap.Characterization.exe --output artifacts/portable-frame/legacy-capture
           if ($LASTEXITCODE -ne 0) { throw "Legacy reader characterization failed: $LASTEXITCODE" }
+      - name: Build and run actual legacy reader-selection path
+        shell: pwsh
+        env:
+          KINOVEA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          msbuild tests/StillImageHost.LegacyCharacterization/Kinovea.StillImageHost.LegacyCharacterization.csproj /t:Rebuild /m /nologo /verbosity:minimal /p:Configuration=Release /p:Platform=x64 "/flp:logfile=artifacts/portable-frame/still-image-selection-msbuild.log;verbosity=normal" /bl:artifacts/portable-frame/still-image-selection.binlog
+          if ($LASTEXITCODE -ne 0) { throw "Legacy selection characterization build failed: $LASTEXITCODE" }
+          $exe = "tests/StillImageHost.LegacyCharacterization/bin/x64/Release/Kinovea.StillImageHost.LegacyCharacterization.exe"
+          $fixtures = "tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures"
+          & $exe --fixtures $fixtures --output artifacts/portable-frame/legacy-selection/trace.v1.json
+          if ($LASTEXITCODE -ne 0) { throw "Legacy selection characterization failed: $LASTEXITCODE" }
+      - name: Compare actual reader selection with portable host
+        shell: pwsh
+        env:
+          KINOVEA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          $fixtureRoot = "tests/Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures"
+          $trace = Get-Content -Raw artifacts/portable-frame/legacy-selection/trace.v1.json | ConvertFrom-Json
+          $cases = @()
+          foreach ($fixture in @("bmp-rgb-7x5.bmp", "png-alpha-13x9.png")) {
+            $name = [System.IO.Path]::GetFileNameWithoutExtension($fixture)
+            $hostPath = "artifacts/portable-frame/portable-host-$name.json"
+            dotnet run --project tests/PortableStillImageHost.Tests/Kinovea.PortableStillImageHost.Tests.csproj -c Release -- --host (Join-Path $fixtureRoot $fixture) 0 *> $hostPath
+            if ($LASTEXITCODE -ne 0) { throw "Portable host failed for $fixture with exit code $LASTEXITCODE" }
+            $portableResult = Get-Content -Raw $hostPath | ConvertFrom-Json
+            $legacy = $trace.cases | Where-Object { $_.id -eq $name }
+            if ($null -eq $legacy) { throw "Legacy trace is missing case $name" }
+            $checks = @{
+              openStatus = ($legacy.openResult -eq "Success" -and $portableResult.status -eq "Success")
+              dimensions = ($legacy.width -eq $portableResult.width -and $legacy.height -eq $portableResult.height)
+              timestamp = ($legacy.firstTimestamp -eq $portableResult.timestamp -and $legacy.firstPreviousTimestamp -eq $portableResult.previousTimestamp)
+              logicalPixelProbe = ($legacy.pixel.red -eq $portableResult.pixelProbe.red -and $legacy.pixel.green -eq $portableResult.pixelProbe.green -and $legacy.pixel.blue -eq $portableResult.pixelProbe.blue -and $legacy.pixel.alpha -eq $portableResult.pixelProbe.alpha)
+              repeatedIdentity = ($legacy.repeatedVideoFrameIdentity -and $legacy.repeatedBitmapIdentity -and $portableResult.repeatedWrapperIdentity)
+              closeInvalidatesAccess = ($null -ne $legacy.pixelAccessAfterCloseException -and $portableResult.newPixelAccessRejected)
+            }
+            foreach ($property in $checks.Keys) {
+              if (-not $checks[$property]) { throw "$name $property comparison failed." }
+            }
+            $cases += [pscustomobject]@{ fixture = $name; properties = $checks }
+          }
+          [pscustomobject]@{
+            schemaVersion = 1
+            sourceSha = $env:KINOVEA_SOURCE_SHA
+            legacySource = "VideoTypeManager -> VideoReaderBitmap (net48)"
+            portableSource = "PortableReaderShell -> PortableImageReader (net10.0)"
+            cases = $cases
+          } | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 artifacts/portable-frame/still-image-host-comparison.v1.json
       - name: Compare portable generator to actual reader pixels
         shell: pwsh
         run: |
