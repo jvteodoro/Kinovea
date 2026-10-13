@@ -1,6 +1,12 @@
 # Verification: Wine functional and visual oracle v1
 
-Recorded 2026-10-12. Base source: `port/net10-linux` SHA `8b73d5440908d5df954fda0e255fa3d79ed5694b`. Final scenario runner: `test/wine-functional-oracle` SHA `214137a96d5c14703ecc3d2fb26b1c66e1aa640f`.
+Recorded 2026-10-12; corrected after screenshot review on 2026-10-13. Base source: `port/net10-linux` SHA `8b73d5440908d5df954fda0e255fa3d79ed5694b`. Original scenario runner: `test/wine-functional-oracle` SHA `214137a96d5c14703ecc3d2fb26b1c66e1aa640f`.
+
+## Review correction — still images did open
+
+The first review incorrectly described the BMP and PNG application windows as blank. Reviewing the captured application-window screenshots showed active player screens instead. This corrects that earlier interpretation: the 7x5 BMP and 13x9 PNG both opened through the actual Kinovea UI, and their headers showed their filenames, dimensions, and `25.00 fps`. The tiny raster patterns were visible as very small marks in the player canvas. The active player also showed Kinovea's usual timeline/navigation strip and drawing toolbar. This correction is scoped to the visual evidence; it does not establish pixel equality or alpha semantics.
+
+The exact opening route was not captured in the original screenshots. The still-image v2 scenarios recorded on commit `d4b3574892e133d0a1e322d1d4fd5a6169e8e4e4` reproduced two keyboard routes: `Ctrl+O`, and the File menu sequence `Alt`, `Home`, `Enter`, `Enter`. `Alt+F` selected `Ferramentas` in the Portuguese UI and was not used as the File menu route. See the [v2 machine-readable evidence](wine-still-image-gui-v2.json).
 
 ## Environment and executable provenance
 
@@ -29,8 +35,8 @@ A successful automation run records `executionStatus: COMPLETED`, but the runner
 
 | Scenario | Automation | Manually reviewed outcome | Limits |
 |---|---|---|---|
-| BMP open/close | `COMPLETED`, exit 0. Ctrl+O accepted the fixture path and returned to the app window. | `NOT_ESTABLISHED`: the main window remained blank. Image reader selection, display, pattern and player-screen close behavior were not established. | Candidate input only; UI path acceptance is not proof that the reader opened the image. |
-| PNG alpha open/close | `COMPLETED`, exit 0. Ctrl+O accepted the fixture path and returned to the app window. | `NOT_ESTABLISHED`: the main window remained blank. Image display, aspect ratio, alpha presentation and player-screen close behavior were not established. | A screenshot cannot establish alpha bytes or premultiplication. |
+| BMP open/close | `COMPLETED`, exit 0. | `WINE_OBSERVED`: player header showed `bmp-rgb-7x5`, `7x5 px`, and `25.00 fps`; the tiny raster was visible on the player canvas. | The exact opening route is not established by this older screenshot set. Close behavior, pixel values and row orientation remain unverified. Candidate input only. |
+| PNG alpha open/close | `COMPLETED`, exit 0. | `WINE_OBSERVED`: player header showed `png-alpha-13x9`, `13x9 px`, and `25.00 fps`; the tiny raster was visible on the player canvas. | The exact opening route is not established by this older screenshot set. Screenshot appearance does not reveal alpha values or premultiplication; close behavior remains unverified. Candidate input only. |
 | MP4 playback | `COMPLETED`, exit 0. | `WINE_OBSERVED`: the app showed `reference`, `1280x720 px`, and `30.00 fps`; Space visibly changed the transport state between play and pause, and visible video content advanced. | Exact frame timing/rate, pixel values, reader parity with Windows, and source correspondence are `NOT_ESTABLISHED`. |
 | Frame navigation | `COMPLETED`, exit 0. | `WINE_OBSERVED`: two Right requests changed visible content; one Left returned the full-window capture to the first forward-step capture. Forward-one/back-one SHA-256 is `d066f53095a23ee0dc64270713066e997a1a5cf1fe4510e7c28d41ae83ec52fe`; forward-two is `1a7912a20d4dd706855675c917e038c983dd918f9290b0e13be5eaca392ad1a7`. | Exact frame indices/timestamps and Windows parity are `NOT_ESTABLISHED`. The UI time overlay is not treated as a measurement. |
 
@@ -63,7 +69,7 @@ Each scenario starts a separate isolated prefix overlay. The wrapper refuses to 
 - `CROSS_ENVIRONMENT_MATCH`: `NOT_ESTABLISHED`.
 - Native .NET 10 GUI comparison: `NOT_RUN`.
 - Exact pixels, alpha channel values, exact playback timing, frame indices and timestamps: `NOT_ESTABLISHED`.
-- BMP/PNG opening through this installed GUI: `NOT_ESTABLISHED`; paths were entered, but the resulting application canvas was blank.
+- BMP/PNG opening through this installed GUI: `WINE_OBSERVED` after screenshot review; see the correction above and v2 run evidence. A later local run verified active player headers for five image fixtures.
 - Installed executable to checked-out source correspondence: `NOT_ESTABLISHED`.
 - Native Wayland input/capture and desktops other than KWin/Xwayland: `NOT_RUN`.
 
@@ -71,4 +77,4 @@ No GitHub Actions workflow was added or run. This oracle needs a private local i
 
 ## Next vertical slice
 
-First make still-image opening a successful Wine observation by identifying the correct UI route for BMP/PNG, then capture display, dimensions/fit, close and open-failure states. After that, implement an isolated .NET 10 host that selects and displays one BMP/PNG with explicit dimensions, fit and close behavior. Compare functional state, numerical metadata, and visual appearance separately before adding annotations or video playback.
+Use the deterministic synthetic 1280x720 PNG as the first native .NET 10 viewer reference: its known color bars, diagonal and checker region make visible fit and aspect behavior easier to compare without relying on private media. Its Wine screenshot was opened with the File menu keyboard route and shows a 1280x720, 25 fps player header. Keep numerical metadata, visual appearance and pixel-level comparison separate. The Wine close/reopen and player-navigation interactions remain unverified; do not treat this screenshot as a full viewer behavior specification.

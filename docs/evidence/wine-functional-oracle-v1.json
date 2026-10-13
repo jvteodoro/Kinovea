@@ -71,7 +71,7 @@
       "version": 1,
       "executionStatus": "COMPLETED",
       "resultStatus": "NOT_ESTABLISHED",
-      "reviewedStatus": "NOT_ESTABLISHED",
+      "reviewedStatus": "WINE_OBSERVED",
       "sourceCommit": "214137a96d5c14703ecc3d2fb26b1c66e1aa640f",
       "startedUtc": "2026-10-12T15:35:28.107496+00:00",
       "finishedUtc": "2026-10-12T15:35:44.832804+00:00",
@@ -96,19 +96,19 @@
       ],
       "reviewedObservations": [
         {
-          "observation": "A Kinovea window opens with the BMP selected through the application reader path.",
-          "status": "NOT_ESTABLISHED",
-          "review": "The file dialog accepted the path, but the resulting app canvas remained blank."
+          "observation": "The captured Kinovea window shows an active BMP player header with filename bmp-rgb-7x5, dimensions 7x5 px, and 25.00 fps.",
+          "status": "WINE_OBSERVED",
+          "review": "Corrected after reviewing bmp-open.png; the previous review text incorrectly called the window blank."
         },
         {
-          "observation": "The displayed picture visually reflects the 7x5 asymmetric test pattern.",
-          "status": "NOT_ESTABLISHED",
-          "review": "The pattern was not visible in the captured app window."
+          "observation": "The very small 7x5 raster appears on the player canvas.",
+          "status": "WINE_OBSERVED",
+          "review": "Visual appearance only; no decoded pixel comparison."
         },
         {
-          "observation": "Ctrl+F4 closes the player screen while the application remains open.",
+          "observation": "Ctrl+F4 closes the player.",
           "status": "NOT_ESTABLISHED",
-          "review": "The screen was blank before and after Ctrl+F4, so player-screen close behavior was not established."
+          "review": "The original run did not establish close behavior."
         }
       ],
       "screenshots": [
@@ -618,5 +618,11 @@
     "Installed binary source revision is unknown.",
     "BMP/PNG path acceptance did not result in visible image content; reader/open/display behavior is NOT_ESTABLISHED.",
     "No GitHub Actions workflow was added or run."
-  ]
+  ],
+  "reviewCorrection": {
+    "recordedUtc": "2026-10-13",
+    "correction": "The 2026-10-12 review text incorrectly said the BMP/PNG windows were blank. Manual review of the original window-scoped screenshots shows active Kinovea player headers and canvases for both images.",
+    "evidence": "docs/evidence/wine-still-image-gui-v2.json records reproducible OCR-checked runs at source SHA d4b3574892e133d0a1e322d1d4fd5a6169e8e4e4.",
+    "scope": "Visual opening and header metadata only. Does not establish decoded pixel equality, alpha semantics, player navigation, close/reopen, or source/binary correspondence."
+  }
 }
