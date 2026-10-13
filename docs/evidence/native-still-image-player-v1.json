@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "baseBranch": "port/net10-linux",
+    "baseSha": "22a77fb8c0ae146dd1e14ee70bdc184374e88de5",
+    "implementationSha": "aca9b64f529580f3c17e4003b9d5fdabceb1dd42",
+    "testSha": "845838d9e80967590336859e4f1c590ea09d610f",
+    "guiSmokeSha": "bee3c97d7d86ceaeaf7212baeb5ad96df1219735",
+    "zoomIndicatorFixSha": "47758d1f6a18e6745efaa2e85db58121002a15b4",
+    "headAtEvidence": "47758d1f6a18e6745efaa2e85db58121002a15b4",
+    "legacyProductionSourceChanged": false,
+    "portableReaderSourceChanged": false,
+    "portableReaderPackageAlignmentChanged": true
+  },
+  "environment": {
+    "os": "Gentoo Linux",
+    "kernel": "6.18.50-gentoo-dist-bin",
+    "architecture": "x86_64",
+    "dotnetSdk": "10.0.111",
+    "dotnetRuntime": "10.0.11",
+    "msbuild": "18.0.11+e2f47b011",
+    "avalonia": "12.1.4",
+    "skiasharp": "3.119.4",
+    "desktop": "KWin 6.7.5 Wayland/Xwayland",
+    "display": ":1",
+    "desktopResolution": "1920x1080",
+    "capturedWindowSize": "1680x969",
+    "hostedActions": "NOT_RUN",
+    "windows": "NOT_RUN"
+  },
+  "architecture": {
+    "appTarget": "net10.0",
+    "presentationTarget": "net10.0",
+    "reused": [
+      "Kinovea.PortablePixels",
+      "Kinovea.PortableImageReader",
+      "Kinovea.PortableFrameGenerator",
+      "Kinovea.PortableReaderShell"
+    ],
+    "legacyProductionPathsModified": false,
+    "pixelPresentationCopyCountPerOpen": 1,
+    "pixelPresentationRetainsBorrowedMemory": false,
+    "synchronousExternallySerialized": true,
+    "packageDecision": "Align PortableImageReader SkiaSharp packages from 4.153.1 to 3.119.4 to match Avalonia.Skia 12.1.4; decoder source and package family remain SkiaSharp. Windows behavior after alignment is NOT_RUN."
+  },
+  "testReports": [
+    {"suite": "Portable desktop presentation/session", "platform": "Gentoo Linux x64", "result": "PASS", "assertions": 97},
+    {"suite": "Portable Pixel Core", "platform": "Gentoo Linux x64", "result": "PASS", "checks": 10},
+    {"suite": "Portable Image Reader after Skia alignment", "platform": "Gentoo Linux x64", "result": "PASS", "assertions": 1322},
+    {"suite": "Portable Frame Generator", "platform": "Gentoo Linux x64", "result": "PASS", "assertions": 617},
+    {"suite": "Portable Reader Shell", "platform": "Gentoo Linux x64", "result": "PASS", "assertions": 65},
+    {"suite": "Windows native player", "platform": "Windows", "result": "NOT_RUN"},
+    {"suite": "GitHub Actions", "platform": "hosted", "result": "NOT_RUN"}
+  ],
+  "fixtures": [
+    {"name": "synthetic-rgb-1280x720.png", "sha256": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f", "provenance": "Existing deterministic Wine oracle generator; hash is shared with Wine v2 scenario.", "result": "VISIBLE_FRAME_RENDERED", "dimensions": "1280x720", "fps": 25, "pixelFormat": "Rgb24", "alphaMode": "None", "presentationBytesCopied": 2764800},
+    {"name": "native-player-rgb-640x480.bmp", "sha256": "3f7f8b5907ddeef41c6478d79c8b42414f222b0233f99778337e97117670a314", "provenance": "tools/native-player/generate-fixtures.py; authored six-color palette, asymmetric diagonal, interleaved BGR.", "result": "VISIBLE_FRAME_RENDERED", "dimensions": "640x480", "fps": 25, "pixelFormat": "Rgb24", "alphaMode": "None", "presentationBytesCopied": 921600},
+    {"name": "bmp-rgb-7x5.bmp", "sha256": "85e0feff83d9920703cbf8be2e6ccc76741da22b4ffe791d5d4c415724de1244", "provenance": "Existing Windows .NET Framework characterization candidate; not approved golden data.", "result": "VISIBLE_FRAME_RENDERED", "dimensions": "7x5", "fps": 25, "pixelFormat": "Rgb24", "alphaMode": "None", "presentationBytesCopied": 105},
+    {"name": "png-alpha-13x9.png", "sha256": "e0759d696bfef305e0a2c1c8fc7b7673e9e46390ef15beb541679c6766041dcd", "provenance": "Existing Windows .NET Framework characterization candidate; not approved golden data.", "result": "VISIBLE_FRAME_RENDERED", "dimensions": "13x9", "fps": 25, "pixelFormat": "Rgba32", "alphaMode": "Straight", "presentationBytesCopied": 468}
+  ],
+  "guiScenario": {
+    "result": "PASS",
+    "steps": [
+      {"operation": "CLI startup --open PNG", "result": "PASS", "timestamp": 0, "previousTimestamp": -1, "workingZone": [0, 249]},
+      {"operation": "Tab to Next and Enter", "result": "PASS", "timestamp": 1, "previousTimestamp": 0},
+      {"operation": "Ctrl+W close current reader", "result": "PASS", "readerState": "Empty"}
+    ],
+    "filePickerSelection": "NOT_ESTABLISHED",
+    "zoomPanInteraction": "NOT_RUN",
+    "sameProcessGuiReopen": "NOT_ESTABLISHED",
+    "screenshotPixelEquivalence": "NOT_ESTABLISHED"
+  },
+  "screenshots": [
+    {"localPath": "/tmp/kinovea-native-player-results/final-png-navigation/player-open.png", "sha256": "fb3c5bbceb0cf9109f65629f4ea415a2faa4181aceb0cf5d20614dabdb924ae5", "capture": "ffmpeg x11grab -window_id", "size": "1680x969", "lumaAverage": 100.821},
+    {"localPath": "/tmp/kinovea-native-player-results/final-png-navigation/player-next.png", "sha256": "d4298f9eb5deaa311df2051cfedd48a2d774ac8c7f836cca6bfb53a639dd3f3b", "capture": "ffmpeg x11grab -window_id", "size": "1680x969", "lumaAverage": 100.863},
+    {"localPath": "/tmp/kinovea-native-player-results/final-png-navigation/player-empty.png", "sha256": "58e5f075928ea132c19554debbc079f30716bd9c3b1705f4bc6bc3c2f3fba9f7", "capture": "ffmpeg x11grab -window_id", "size": "1680x969", "lumaAverage": 39.2966},
+    {"localPath": "/tmp/kinovea-native-player-results/final-bmp-640/player-open.png", "sha256": "93cfb8b3312b04ff7f50e260fcf2c7c5d8724e611ad2956054a827661ce000f8", "capture": "ffmpeg x11grab -window_id", "size": "1680x969", "lumaAverage": 85.233},
+    {"localPath": "/tmp/kinovea-native-player-results/final-candidate-bmp-7x5/player-open.png", "sha256": "6e5f91a65530f8023cb07e2cbe3d268257ac445ab8ec43dd3577b5c43b4bbe13", "capture": "ffmpeg x11grab -window_id", "size": "1680x969", "lumaAverage": 84.0972},
+    {"localPath": "/tmp/kinovea-native-player-results/final-candidate-png-13x9/player-open.png", "sha256": "0b1702981a566630874a16164c5ab533d453d7874132033e4e9c75b0f9aed41b", "capture": "ffmpeg x11grab -window_id", "size": "1680x969", "lumaAverage": 87.4745}
+  ],
+  "performance": [
+    {"fixture": "synthetic-rgb-1280x720.png", "warmups": 2, "samples": 5, "medianOpenDecodePresentMs": 19.69, "medianManagedAllocatedBytes": 2781056, "presentationCopies": 1, "presentationBytes": 2764800},
+    {"fixture": "native-player-rgb-640x480.bmp", "warmups": 2, "samples": 5, "medianOpenDecodePresentMs": 8.682, "medianManagedAllocatedBytes": 927328, "presentationCopies": 1, "presentationBytes": 921600}
+  ],
+  "wineComparison": {
+    "wineExecutableVersion": "2025.2.0.0",
+    "checkedOutSourceVersion": "2026.1.0.0",
+    "sourceBinaryCorrespondence": "NOT_ESTABLISHED",
+    "sharedFixtureMetadata": "CROSS_ENVIRONMENT_MATCH",
+    "matchingProperties": ["displayed dimensions", "25 fps header"],
+    "pixelEquality": "NOT_ESTABLISHED",
+    "alphaEquality": "NOT_ESTABLISHED",
+    "approvedGoldenBaseline": false
+  },
+  "limitations": [
+    "Windows build/runtime and Windows native rendering are NOT_RUN.",
+    "Native file-picker selection, same-process GUI re-open, zoom/pan gesture and window resize are not established.",
+    "No legacy Bitmap reader regression or full application equivalence claim is made.",
+    "Synchronous loading latency is measured only on one Gentoo host; native allocations are excluded.",
+    "The existing Wine BMP generator has a channel-plane layout defect; existing artifacts were not changed."
+  ]
+}

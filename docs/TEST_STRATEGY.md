@@ -188,3 +188,24 @@ The v1 run used base SHA `8b73d5440908d5df954fda0e255fa3d79ed5694b`; its runner/
 Still-image limitations are explicit: right/left keys changed the file-browser selection rather than a verified player frame; Ctrl+F4 left the player header visible; the committed click guard requested `(1904,104)` and observed `(486,520)`, then refused to send a click. Player navigation, close/reopen, zoom, exact scaling, pixel values, alpha and EXIF remain `NOT_ESTABLISHED`. Internal file-browser double-click and drag/drop are source-inspected but `NOT_RUN`. Host `/tmp` inputs failed to produce a player in this prefix; identical, hash-verified fixtures under the home test-data directory did open. The cause is unknown. Wine source/binary correspondence is still `NOT_ESTABLISHED` (`2025.2.0.0` installed vs. `2026.1.0.0` checkout).
 
 No GitHub workflow was added: this oracle requires a local installation, prefix and live desktop; hosted runs cannot reproduce those safely. The workflow files on this branch do not match `tools/wine-oracle/**` or the documentation paths, so this PR does not consume GitHub Actions minutes. Wine observations remain independent of Windows .NET Framework characterization and future native .NET 10 tests.
+
+### Native still-image desktop presentation and GUI smoke
+
+`src/Kinovea.PortableDesktop` is a small Avalonia 12.1.4 `net10.0` executable. `Kinovea.PortableDesktop.Presentation` owns the synchronous reader session, PixelBuffer-to-WriteableBitmap boundary, and double-precision image/viewport transform. `tests/Kinovea.PortableDesktop.Tests` checks raw destination rows, RGB/RGBA format and alpha labels, presentation lifetime, open/failure/step/repeat/seek/close/reopen, working-zone limits, and image/viewport round trips including anchored zoom. This is portable presentation conformance, not a Windows Bitmap reader regression suite.
+
+On Gentoo the process launched under KWin/Xwayland and rendered BMP/PNG images in a real Avalonia window. `tools/native-player/smoke.py` verifies the window belongs to the launched process, checks the image hash and `VISIBLE_FRAME_RENDERED` report, activates that exact window, captures only it, and rejects blank/occluded captures using FFmpeg luma statistics. `--exercise-navigation-close` tabs to Next, presses Enter, verifies timestamp `1/0`, then presses Ctrl+W and verifies Empty. Screenshots establish visible presentation, not decoded pixel equality. File-picker selection, zoom/pan mouse input, and GUI re-open within one process were not exercised; tests cover same-session reader re-open and CLI `--open` covers reproducible startup.
+
+The adapter copies each logical PixelBuffer row once into an independently owned `WriteableBitmap`; it retains no frame, borrowed view or native pointer on return. Close clears the displayed bitmap reference before closing the reader, then disposes the Avalonia bitmap. Navigation does not decode or copy another frame. The coordinate math tests cover fit, aspect ratio, viewport resize, image/viewport round trips and anchored zoom. Actual window resize and zoom/pan gestures are `NOT_RUN`.
+
+Local Linux x64 commands:
+
+```sh
+dotnet restore src/Kinovea.PortableDesktop/Kinovea.PortableDesktop.csproj -r linux-x64
+dotnet build src/Kinovea.PortableDesktop/Kinovea.PortableDesktop.csproj -c Release -r linux-x64 --no-restore
+dotnet restore tests/Kinovea.PortableDesktop.Tests/Kinovea.PortableDesktop.Tests.csproj -r linux-x64
+dotnet build tests/Kinovea.PortableDesktop.Tests/Kinovea.PortableDesktop.Tests.csproj -c Release -r linux-x64 --no-restore -m:1
+DISPLAY=:1 WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 dotnet tests/Kinovea.PortableDesktop.Tests/bin/Release/net10.0/linux-x64/Kinovea.PortableDesktop.Tests.dll
+DISPLAY=:1 WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 python3 tools/native-player/smoke.py --assembly src/Kinovea.PortableDesktop/bin/Release/net10.0/linux-x64/Kinovea.PortableDesktop.dll --input <fixture> --output <local-evidence-dir> --source-sha <git-sha> --exercise-navigation-close
+```
+
+No hosted workflow ran. The reader package was aligned from SkiaSharp 4.153.1 to Avalonia's 3.119.4 backend because the managed/native ABI versions cannot coexist in this process. Linux reader tests passed after the change; Windows remains `NOT_RUN`. The draft PR HEAD uses `[skip ci]` to keep hosted Actions idle. See [native player v1 evidence](evidence/native-still-image-player-v1.md).
