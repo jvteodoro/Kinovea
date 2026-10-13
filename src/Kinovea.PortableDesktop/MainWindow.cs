@@ -63,6 +63,7 @@ internal sealed class MainWindow : Window
         var zoomOut = new Button { Content = "−", Margin = new Thickness(4) };
         var zoomIn = new Button { Content = "+", Margin = new Thickness(4) };
         var zoomLabel = new TextBlock { Text = "Fit", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0) };
+        viewport.ZoomChanged += zoom => zoomLabel.Text = zoom == 1 ? "Fit" : $"{zoom:P0}";
         var emptyHint = new TextBlock
         {
             Text = "Open a BMP or PNG image",

@@ -16,6 +16,7 @@ internal sealed class ImageViewport : Control
     public double Zoom { get; private set; } = 1;
     public Vector Pan { get; private set; }
     public event Action? ImageRendered;
+    public event Action<double>? ZoomChanged;
 
     public ViewportTransform? Transform => Bitmap is null || Bounds.Width <= 0 || Bounds.Height <= 0
         ? null
@@ -26,6 +27,7 @@ internal sealed class ImageViewport : Control
         Bitmap = bitmap;
         Zoom = 1;
         Pan = default;
+        ZoomChanged?.Invoke(Zoom);
         InvalidateVisual();
     }
 
@@ -33,6 +35,7 @@ internal sealed class ImageViewport : Control
     {
         Zoom = 1;
         Pan = default;
+        ZoomChanged?.Invoke(Zoom);
         InvalidateVisual();
     }
 
@@ -104,6 +107,7 @@ internal sealed class ImageViewport : Control
         Point imagePoint = ViewportTransform.Create(Bitmap.PixelSize.Width, Bitmap.PixelSize.Height, Bounds.Size, Zoom, Pan).ViewportToImage(anchor);
         Pan = ViewportTransform.PanForZoomAt(anchor, imagePoint, Bounds.Size, Bitmap.PixelSize.Width, Bitmap.PixelSize.Height, next);
         Zoom = next;
+        ZoomChanged?.Invoke(Zoom);
         InvalidateVisual();
     }
 }
