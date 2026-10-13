@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "mp4-frame-navigation",
+  "version": 1,
+  "title": "Pause and step through frames in the local H.264 video",
+  "application": {
+    "expectedVersion": "2025.2.0.0",
+    "executableSha256": "22d95a127257e59bd435eaa2689dd7fda2cae802829e801aa5cd367ee7a12534"
+  },
+  "launchArguments": [],
+  "input": {
+    "id": "local-h264-1280x720-30fps-10s",
+    "environmentVariable": "KINOVEA_ORACLE_MP4",
+    "sha256": "04761f49477fe2662f93666f67b728c0434cc067cca7ba02cc4df6568298431d",
+    "provenance": "Pre-existing local reference fixture; not copied into the repository. SHA-256 and ffprobe codec/dimensions/frame-rate/duration verified locally."
+  },
+  "preconditions": [
+    "Set KINOVEA_ORACLE_MP4 to the verified local video file.",
+    "Use the verified existing win64 Wine prefix and matching Kinovea executable.",
+    "No Kinovea window may already be open."
+  ],
+  "startupTimeoutSeconds": 45,
+  "actions": [
+    {
+      "type": "open_fixture",
+      "waitSeconds": 0.5,
+      "description": "Use Kinovea's Ctrl+O dialog to open the specified fixture from a blank disposable workspace."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "navigation-paused-start",
+      "waitSeconds": 1,
+      "description": "Capture the initial frame after opening; the dialog open path leaves this clip paused in this environment."
+    },
+    {
+      "type": "key",
+      "keys": [
+        "Right"
+      ],
+      "description": "Request next frame with Kinovea's default Right shortcut."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "navigation-forward-one",
+      "waitSeconds": 0.5,
+      "description": "Capture after one next-frame request."
+    },
+    {
+      "type": "key",
+      "keys": [
+        "Right"
+      ],
+      "description": "Request a second next frame."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "navigation-forward-two",
+      "waitSeconds": 0.5,
+      "description": "Capture after the second next-frame request."
+    },
+    {
+      "type": "key",
+      "keys": [
+        "Left"
+      ],
+      "description": "Request the previous frame with Kinovea's default Left shortcut."
+    },
+    {
+      "type": "capture",
+      "checkpoint": "navigation-back-one",
+      "waitSeconds": 0.5,
+      "description": "Capture after one previous-frame request."
+    }
+  ],
+  "expectedOutcomes": [
+    {
+      "observation": "Open the specified H.264 reference clip and show its visible metadata.",
+      "verification": "Review title/dimensions/frame-rate in the app window and compare fixture provenance."
+    },
+    {
+      "observation": "Two Right requests change displayed content and one Left returns the capture to the first forward-step image.",
+      "verification": "Review each screenshot; exact frame indices and timestamps are outside this visual assertion."
+    }
+  ],
+  "screenshots": [
+    "open-dialog.png",
+    "open-dialog-path-entered.png",
+    "navigation-paused-start.png",
+    "navigation-forward-one.png",
+    "navigation-forward-two.png",
+    "navigation-back-one.png"
+  ],
+  "outputs": [
+    "result.json",
+    "wine.stdout.log",
+    "wine.stderr.log"
+  ],
+  "cleanup": [
+    "Harness sends Alt+F4 to the Kinovea window it launched; it never calls wineserver -k."
+  ],
+  "evidenceConfidence": "Visual-only; human review is required, and screenshots do not establish exact timestamps or frame indices.",
+  "limitations": [
+    "Default shortcut mappings were verified in source, but actual step outcome must be visually checked on this executable.",
+    "Screenshots do not prove exact timestamps or frame-selection semantics.",
+    "This visual trace does not establish exact timestamps or decoder frame indices."
+  ],
+  "prepare": {
+    "clearSavedScreens": true
+  }
+}
