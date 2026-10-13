@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Kinovea.PortableDesktop.Presentation/Kinovea.PortableDesktop.Presentation.csproj" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <None Include="../Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures/bmp-rgb-7x5.bmp" Link="Fixtures/bmp-rgb-7x5.bmp" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures/png-alpha-13x9.png" Link="Fixtures/png-alpha-13x9.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures/corrupt-image.png" Link="Fixtures/corrupt-image.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures/unsupported.gif" Link="Fixtures/unsupported.gif" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
