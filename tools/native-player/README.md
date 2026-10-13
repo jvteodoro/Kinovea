@@ -21,7 +21,12 @@ mkdir -p .local-build/tmp "$KINOVEA_LOCAL_EVIDENCE"
 export TMPDIR="$PWD/.local-build/tmp" TMP="$PWD/.local-build/tmp" TEMP="$PWD/.local-build/tmp"
 export DOTNET_CLI_USE_MSBUILD_SERVER=0 MSBUILDDISABLENODEREUSE=1
 
+dotnet restore src/Kinovea.PortableDesktop/Kinovea.PortableDesktop.csproj
+# Restore each test project before building it when using a clean NuGet cache.
+dotnet restore tests/Kinovea.PortableDesktop.Tests/Kinovea.PortableDesktop.Tests.csproj
 dotnet build src/Kinovea.PortableDesktop/Kinovea.PortableDesktop.csproj \
+  -c Release --no-restore -m:1 -p:UseSharedCompilation=false
+dotnet build tests/Kinovea.PortableDesktop.Tests/Kinovea.PortableDesktop.Tests.csproj \
   -c Release --no-restore -m:1 -p:UseSharedCompilation=false
 ```
 
