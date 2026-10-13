@@ -28,4 +28,4 @@ Avalonia 12.1.4 is MIT licensed. Linux uses Avalonia's Skia rendering backend an
 
 Only BMP and PNG are offered by the portable reader; other extensions and corrupt files show an error. The UI is not a port of Kinovea's WinForms player and does not implement drawing tools, analysis, video, GIF, export, tracking, cache integration or annotations. Screenshot checks establish visible presentation, not decoded pixel parity. Linux is locally tested; Windows execution remains `NOT_RUN` for this task.
 
-The local window smoke helper is [tools/native-player/smoke.py](../../../tools/native-player/smoke.py). It requires the existing KWin/Xwayland oracle dependencies, a running desktop session, and a built app; it activates the process-owned window, captures only that window and fails on a blank screenshot.
+The local window smoke helper is [tools/native-player/smoke.py](../../tools/native-player/smoke.py). It requires the existing KWin/Xwayland oracle dependencies, a running desktop session, and a built app; it activates the process-owned window, captures only that window and fails on a blank screenshot.
