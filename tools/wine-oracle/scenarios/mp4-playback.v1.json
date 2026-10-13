@@ -70,6 +70,8 @@
     }
   ],
   "screenshots": [
+    "open-dialog.png",
+    "open-dialog-path-entered.png",
     "mp4-open-paused.png",
     "mp4-playing.png",
     "mp4-paused.png"

@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Run scoped Kinovea GUI observations under an existing Wine prefix.
 
-This tool only sends keyboard events after selecting a Kinovea-owned Xwayland
-window. It captures that window by X11 window id; it never captures the desktop.
+Keyboard events target the active Kinovea Xwayland client. Mouse clicks are
+sent only when XTest confirms pointer movement reached the requested point.
+Captures are scoped to the Kinovea window; the desktop is never captured.
 """
 
 from __future__ import annotations
 
 import argparse
+import ctypes
+import ctypes.util
 import hashlib
 import json
 import os
@@ -232,6 +235,91 @@ x11.XCloseDisplay(d)
     result = subprocess.run([sys.executable, "-c", script, target_window_id, text], capture_output=True, text=True)
     if result.returncode:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "XTest text input failed")
+
+
+def send_window_click(target_window_id: str, x_fraction: float, y_fraction: float, count: int = 1) -> dict:
+    """Click a normalized point inside the requested active Xwayland window."""
+    if not (0 <= x_fraction <= 1 and 0 <= y_fraction <= 1):
+        raise RuntimeError("window-relative click fractions must be within [0, 1]")
+    if not any(window["id"].casefold() == target_window_id.casefold() for window in list_x11_windows()):
+        raise RuntimeError("refusing mouse input because the target X11 window no longer exists")
+    activate_window(target_window_id)
+    x11 = ctypes.CDLL(ctypes.util.find_library("X11"))
+    xtst = ctypes.CDLL(ctypes.util.find_library("Xtst"))
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    x11.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+    x11.XDefaultRootWindow.restype = ctypes.c_ulong
+    x11.XGetGeometry.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_uint), ctypes.POINTER(ctypes.c_uint), ctypes.POINTER(ctypes.c_uint), ctypes.POINTER(ctypes.c_uint)]
+    x11.XTranslateCoordinates.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_ulong)]
+    x11.XQueryPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_uint)]
+    x11.XQueryPointer.restype = ctypes.c_int
+    x11.XSetInputFocus.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong]
+    x11.XGetInputFocus.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_int)]
+    x11.XFlush.argtypes = [ctypes.c_void_p]
+    x11.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    xtst.XTestFakeMotionEvent.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_ulong]
+    xtst.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
+    display = x11.XOpenDisplay(None)
+    if not display:
+        raise RuntimeError("cannot connect to Xwayland for mouse input")
+    try:
+        active = subprocess.run(["xprop", "-root", "_NET_ACTIVE_WINDOW"], capture_output=True, text=True, check=True).stdout
+        match = re.search(r"0x[0-9a-fA-F]+", active)
+        if not match or match.group(0).casefold() != target_window_id.casefold():
+            raise RuntimeError("refusing mouse input because KWin did not activate the target Kinovea window")
+        target = int(target_window_id, 16)
+        root = x11.XDefaultRootWindow(display)
+        root_return = ctypes.c_ulong()
+        x = ctypes.c_int(); y = ctypes.c_int()
+        width = ctypes.c_uint(); height = ctypes.c_uint()
+        border = ctypes.c_uint(); depth = ctypes.c_uint()
+        if not x11.XGetGeometry(display, target, ctypes.byref(root_return), ctypes.byref(x), ctypes.byref(y), ctypes.byref(width), ctypes.byref(height), ctypes.byref(border), ctypes.byref(depth)):
+            raise RuntimeError("could not read target Kinovea window dimensions")
+        root_x = ctypes.c_int(); root_y = ctypes.c_int(); child = ctypes.c_ulong()
+        if not x11.XTranslateCoordinates(display, target, root, 0, 0, ctypes.byref(root_x), ctypes.byref(root_y), ctypes.byref(child)):
+            raise RuntimeError("could not translate target Kinovea window coordinates")
+        screen_x = root_x.value + min(width.value - 1, int(x_fraction * width.value))
+        screen_y = root_y.value + min(height.value - 1, int(y_fraction * height.value))
+        x11.XSetInputFocus(display, target, 2, 0)
+        x11.XFlush(display)
+        time.sleep(0.05)
+        focus = ctypes.c_ulong(); revert = ctypes.c_int()
+        x11.XGetInputFocus(display, ctypes.byref(focus), ctypes.byref(revert))
+        if focus.value != target:
+            raise RuntimeError(f"could not focus target Kinovea window (X focus 0x{focus.value:x})")
+        xtst.XTestFakeMotionEvent(display, 0, screen_x, screen_y, 0)
+        x11.XFlush(display)
+        x11.XSync(display, 0)
+        pointer_root_x = ctypes.c_int(); pointer_root_y = ctypes.c_int()
+        pointer_window_x = ctypes.c_int(); pointer_window_y = ctypes.c_int()
+        pointer_root = ctypes.c_ulong(); pointer_child = ctypes.c_ulong(); pointer_mask = ctypes.c_uint()
+        x11.XQueryPointer(display, root, ctypes.byref(pointer_root), ctypes.byref(pointer_child), ctypes.byref(pointer_root_x), ctypes.byref(pointer_root_y), ctypes.byref(pointer_window_x), ctypes.byref(pointer_window_y), ctypes.byref(pointer_mask))
+        if abs(pointer_root_x.value - screen_x) > 2 or abs(pointer_root_y.value - screen_y) > 2:
+            raise RuntimeError(
+                "XTest pointer movement did not reach the requested window-relative point; "
+                f"requested root=({screen_x},{screen_y}), observed root=({pointer_root_x.value},{pointer_root_y.value}); click refused"
+            )
+        time.sleep(0.1)
+        for _ in range(count):
+            xtst.XTestFakeButtonEvent(display, 1, 1, 0)
+            xtst.XTestFakeButtonEvent(display, 1, 0, 0)
+            x11.XFlush(display)
+            x11.XSync(display, 0)
+            time.sleep(0.12)
+        return {
+            "xFraction": x_fraction,
+            "yFraction": y_fraction,
+            "clickCount": count,
+            "targetWindow": target_window_id,
+            "targetWindowSize": f"{width.value}x{height.value}",
+            "rootPosition": f"{root_x.value},{root_y.value}",
+            "rootClick": f"{screen_x},{screen_y}",
+            "pointerAfterMove": f"{pointer_root_x.value},{pointer_root_y.value}",
+            "coordinateSpace": "target Xwayland client window",
+        }
+    finally:
+        x11.XCloseDisplay(display)
 
 
 def xwayland_resolution() -> str | None:
@@ -510,7 +598,23 @@ def run_scenario(scenario_path: Path, executable: Path, prefix: Path, output: Pa
                 # Saved playback screens were removed from the disposable
                 # overlay; exercise the real menu/dialog file-open route.
                 before_dialog = {item["id"].casefold() for item in list_x11_windows()}
-                send_key("Control_L+o", window["id"])
+                method = action.get("method", "shortcut")
+                if method == "shortcut":
+                    send_key("Control_L+o", window["id"])
+                elif method == "file_menu":
+                    # Enter the menu bar, use Home to select its first entry
+                    # (File), then activate that menu's first command.
+                    send_key("Alt_L", window["id"])
+                    time.sleep(0.15)
+                    send_key("Home", window["id"])
+                    time.sleep(0.25)
+                    menu_screenshot = capture_window(window, output / "file-menu-open.png")
+                    result.setdefault("screenshots", []).append({**menu_screenshot, "checkpoint": "file-menu-open", "confidence": "VISUAL_OBSERVATION_ONLY"})
+                    send_key("Return", window["id"])
+                    time.sleep(0.15)
+                    send_key("Return", window["id"])
+                else:
+                    raise RuntimeError(f"unsupported open method: {method}")
                 dialog = wait_dialog(window.get("pid"), window["id"], before_dialog, float(action.get("dialogTimeoutSeconds", 10)))
                 dialog_capture = capture_window(dialog, output / "open-dialog.png")
                 result.setdefault("screenshots", []).append({**dialog_capture, "checkpoint": "open-dialog", "confidence": "VISUAL_OBSERVATION_ONLY"})
@@ -524,16 +628,75 @@ def run_scenario(scenario_path: Path, executable: Path, prefix: Path, output: Pa
                 entry["dialogTitle"] = dialog["title"]
                 entry["dialogScreenshot"] = dialog_capture
                 entry["typedPathScreenshot"] = typed_capture
+                if method == "file_menu":
+                    entry["menuScreenshot"] = menu_screenshot
                 remaining_dialog = [item for item in list_x11_windows() if item["id"].casefold() == dialog["id"].casefold()]
                 if remaining_dialog:
                     raise RuntimeError("Kinovea file dialog remained open after selecting the fixture path")
                 entry["inputId"] = input_record["id"]
                 entry["typedPath"] = "<fixture-path-redacted>"
+                entry["openMethod"] = method
+            elif kind == "verify_visible_text":
+                screenshot_path = output / action["screenshot"]
+                if not screenshot_path.is_file():
+                    raise RuntimeError(f"OCR checkpoint screenshot is missing: {action['screenshot']}")
+                if not shutil.which("tesseract"):
+                    entry["assertionStatus"] = "INCONCLUSIVE"
+                    entry["reason"] = "tesseract is not installed; player metadata could not be checked"
+                    result["actions"].append(entry)
+                    raise RuntimeError("player visibility assertion inconclusive: tesseract is required")
+                try:
+                    from PIL import Image
+                except ImportError as exc:
+                    entry["assertionStatus"] = "INCONCLUSIVE"
+                    entry["reason"] = "Pillow is not installed; player header could not be isolated"
+                    result["actions"].append(entry)
+                    raise RuntimeError("player visibility assertion inconclusive: Pillow is required") from exc
+                with Image.open(screenshot_path) as image:
+                    width, height = image.size
+                    top = int(height * 0.035)
+                    bottom = int(height * 0.105)
+                    header = image.crop((0, top, width, bottom)).resize((width * 2, (bottom - top) * 2))
+                    header_path = output / f"{action['checkpoint']}-header.png"
+                    header.save(header_path)
+                ocr = subprocess.run(["tesseract", str(header_path), "stdout", "--psm", "6"], capture_output=True, text=True)
+                if ocr.returncode:
+                    entry["assertionStatus"] = "INCONCLUSIVE"
+                    entry["reason"] = ocr.stderr.strip() or f"tesseract exit code {ocr.returncode}"
+                    result["actions"].append(entry)
+                    raise RuntimeError("player visibility assertion inconclusive: OCR failed")
+                recognized = re.sub(r"[^a-z0-9]+", "", ocr.stdout.casefold())
+                required = action.get("requiredText", [])
+                forbidden = action.get("absentText", [])
+                missing = [text for text in required if re.sub(r"[^a-z0-9]+", "", text.casefold()) not in recognized]
+                unexpectedly_present = [text for text in forbidden if re.sub(r"[^a-z0-9]+", "", text.casefold()) in recognized]
+                entry["checkpoint"] = action["checkpoint"]
+                entry["ocr"] = ocr.stdout.strip()
+                entry["ocrScreenshot"] = {"path": header_path.name, "sha256": sha256(header_path)}
+                entry["requiredText"] = required
+                entry["absentText"] = forbidden
+                entry["assertionStatus"] = "PASS" if not missing and not unexpectedly_present else "FAIL"
+                entry["missingText"] = missing
+                entry["unexpectedlyPresentText"] = unexpectedly_present
+                if missing or unexpectedly_present:
+                    result["actions"].append(entry)
+                    raise RuntimeError(f"player visibility assertion failed; missing={missing}, unexpectedly present={unexpectedly_present}")
+            elif kind == "click":
+                entry["targetWindow"] = window["id"]
+                entry["click"] = send_window_click(window["id"], float(action["xFraction"]), float(action["yFraction"]), int(action.get("count", 1)))
             elif kind == "wait":
                 time.sleep(float(action["seconds"]))
                 entry["seconds"] = action["seconds"]
             elif kind == "close_screen":
-                send_key("Control_L+F4", window["id"])
+                method = action.get("method", "shortcut")
+                if method == "shortcut":
+                    send_key("Control_L+F4", window["id"])
+                elif method == "player_close_button":
+                    position = action.get("position", {"xFraction": 0.992, "yFraction": 0.064})
+                    entry["click"] = send_window_click(window["id"], float(position["xFraction"]), float(position["yFraction"]))
+                else:
+                    raise RuntimeError(f"unsupported close method: {method}")
+                entry["closeMethod"] = method
                 time.sleep(float(action.get("waitSeconds", 1)))
                 entry["kinoveaWindowsAfterClose"] = len(kinovea_windows())
             else:
@@ -643,8 +806,10 @@ def validate_scenarios(scenario_dir: Path, repo_root: Path) -> int:
                 if scenario["input"].get("sha256") and sha256(fixture) != scenario["input"]["sha256"]:
                     raise ValueError(f"fixture checksum mismatch: {scenario['input']['id']}")
             for action in scenario["actions"]:
-                if action.get("type") not in {"capture", "key", "wait", "close_screen", "open_fixture"}:
+                if action.get("type") not in {"capture", "key", "wait", "close_screen", "open_fixture", "verify_visible_text", "click"}:
                     raise ValueError(f"unsupported action type: {action.get('type')}")
+                if action.get("type") == "verify_visible_text" and not (action.get("requiredText") or action.get("absentText")):
+                    raise ValueError("verify_visible_text requires requiredText or absentText")
             print(f"PASS {path.name}: {scenario['id']} v{scenario['version']}")
         except Exception as exc:
             errors.append(f"FAIL {path.name}: {exc}")
