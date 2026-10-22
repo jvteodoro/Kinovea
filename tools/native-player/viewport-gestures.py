@@ -93,6 +93,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--source-sha", required=True)
     args = parser.parse_args()
+    gui.xwayland_capture.verify_source_sha(REPO, args.source_sha)
     assembly = args.assembly.resolve(); bmp = args.bmp.resolve(); alpha = args.alpha.resolve(); png = args.png.resolve(); output = args.output.resolve()
     if not assembly.is_file() or not bmp.is_file() or not alpha.is_file() or not png.is_file():
         raise FileNotFoundError("app assembly or viewport fixtures unavailable")
