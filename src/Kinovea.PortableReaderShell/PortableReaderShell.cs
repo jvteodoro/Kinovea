@@ -17,18 +17,26 @@ public sealed record PortableReaderMetadata(
     double FramesPerSecond, long DurationTimestamps, double FrameIntervalMilliseconds);
 
 /// <summary>
-/// Synchronous, externally serialized shell reproducing VideoReaderBitmap navigation
-/// for BMP and PNG files. It is opt-in and is not connected to legacy caches or UI.
+/// Synchronous, externally serialized still-image shell reproducing
+/// VideoReaderBitmap navigation. The default registry selects BMP and PNG
+/// sources; alternate sources can be registered without changing the shell.
+/// This shell retains the legacy still-image 25 fps navigation profile and is
+/// not a variable-frame-rate video navigator. It is not connected to legacy
+/// caches or UI.
 /// </summary>
 public sealed class PortableReaderShell : IDisposable
 {
-    private readonly PortableImageFrameGenerator generator;
+    private readonly PortableReaderRegistry registry;
+    private IPortableFrameSource? source;
     private bool firstFrame = true;
     private bool disposed;
     private int currentImageGeneration;
+    private long lastRequestedTimestamp;
 
-    public PortableReaderShell() : this(new PortableImageFrameGenerator()) { }
-    internal PortableReaderShell(PortableImageFrameGenerator generator) => this.generator = generator;
+    public PortableReaderShell() : this(PortableReaderRegistry.CreateDefault()) { }
+
+    public PortableReaderShell(PortableReaderRegistry registry) =>
+        this.registry = registry ?? throw new ArgumentNullException(nameof(registry));
 
     public PortableReaderState State { get; private set; } = PortableReaderState.Unopened;
     public bool IsLoaded => State == PortableReaderState.Open;
@@ -42,17 +50,31 @@ public sealed class PortableReaderShell : IDisposable
         ThrowIfDisposed();
         try
         {
-            generator.Open(path);
+            IPortableFrameSource candidate = registry.CreateForPath(path);
+            try
+            {
+                candidate.Open(path);
+            }
+            catch
+            {
+                candidate.Dispose();
+                throw;
+            }
+
+            IPortableFrameSource? previous = source;
+            source = candidate;
+            previous?.Dispose();
         }
         catch (Exception ex) when (ex is InvalidDataException or NotSupportedException or IOException or ArgumentException)
         {
-            generator.Close();
+            source?.Dispose();
+            source = null;
             State = PortableReaderState.FailedOpen;
             return PortableOpenResult.NotSupported;
         }
 
         State = PortableReaderState.Open;
-        Metadata = new PortableReaderMetadata(path, generator.Width, generator.Height, 0, 0, 1, 25, 250, 40);
+        Metadata = new PortableReaderMetadata(path, source!.Width, source.Height, 0, 0, 1, 25, 250, 40);
         WorkingZoneStart = 0;
         WorkingZoneEnd = 249;
         currentImageGeneration++;
@@ -100,27 +122,31 @@ public sealed class PortableReaderShell : IDisposable
     public void Close()
     {
         if (disposed) return;
-        generator.Close();
+        source?.Dispose();
+        source = null;
         State = PortableReaderState.Closed;
     }
 
     public void Dispose()
     {
         if (disposed) return;
-        generator.Dispose();
+        source?.Dispose();
+        source = null;
         disposed = true;
         State = PortableReaderState.Disposed;
     }
 
     private void UpdateCurrent(long timestamp)
     {
-        if (!generator.IsOpen || timestamp < WorkingZoneStart || timestamp > WorkingZoneEnd)
+        IPortableFrameSource? activeSource = source;
+        if (activeSource is not { IsOpen: true } || timestamp < WorkingZoneStart || timestamp > WorkingZoneEnd)
             return;
-        if (Current.Timestamp == timestamp && Current.Image is not null && currentImageGeneration == generationAtCurrent)
+        if (lastRequestedTimestamp == timestamp && Current.Image is not null && currentImageGeneration == generationAtCurrent)
             return;
 
-        PortableImageFrame image = generator.Generate(timestamp);
-        Current = new PortableReaderFrame(image, timestamp, unchecked(timestamp - (long)(Metadata?.AverageTimestampsPerFrame ?? 0)));
+        PortableImageFrame image = activeSource.Generate(timestamp);
+        Current = new PortableReaderFrame(image, image.Timestamp, image.PreviousTimestamp);
+        lastRequestedTimestamp = timestamp;
         generationAtCurrent = currentImageGeneration;
     }
 

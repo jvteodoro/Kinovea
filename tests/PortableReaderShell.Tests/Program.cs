@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Runtime.InteropServices;
+using System.Buffers;
+using Kinovea.PortablePixels;
 using Kinovea.PortableFrameGenerator;
 using Kinovea.PortableReaderShell;
 
@@ -16,6 +18,9 @@ internal static class Program
             FreshFirstFrame(fixtures);
             FailedOpenAndRecovery(fixtures);
             CloseBeforeOpen(fixtures);
+            RegistrySelectionAndLifetime();
+            RegistryFailures();
+            SourceReplacementOwnership();
             MeasureNavigationAllocations(fixtures);
             string? trace = Option(args, "--legacy-trace");
             if (trace is not null) VerifyLegacyTrace(trace);
@@ -103,6 +108,83 @@ internal static class Program
     {
         using var reader = new PortableReaderShell();
         reader.Close(); reader.Close(); Equal(PortableReaderState.Closed, reader.State, "close unopened is idempotent safe deviation");
+    }
+
+    private static void RegistrySelectionAndLifetime()
+    {
+        var registry = new PortableReaderRegistry();
+        var source = new TestFrameSource();
+        registry.Register("frames", () => source);
+        using var reader = new PortableReaderShell(registry);
+
+        Equal(PortableOpenResult.Success, reader.Open("sample.FRAMES"), "registered extension selection is case insensitive");
+        Equal(1, source.OpenCount, "selected source opened once");
+        True(reader.MoveRequest(false, 20), "request forwarded to source");
+        Equal(17L, reader.Current.Timestamp, "source-selected timestamp preserved");
+        Equal(11L, reader.Current.PreviousTimestamp, "source previous timestamp preserved");
+        PortableReaderFrame first = reader.Current;
+        True(reader.MoveRequest(false, 20), "repeat source request");
+        Same(first, "repeat request preserves wrapper identity", reader.Current);
+        Equal(1, source.GenerateCount, "repeat request does not decode again");
+
+        reader.Close();
+        reader.Close();
+        Equal(1, source.DisposeCount, "close releases selected source once");
+        Throws<ObjectDisposedException>(() => _ = first.Image!.Memory, "source close invalidates new borrowed access");
+
+        registry.Register("other", () => new TestFrameSource());
+        IPortableFrameSource selected = registry.CreateForPath("another.other");
+        selected.Dispose();
+        Throws<InvalidOperationException>(() => registry.Register(".FRAMES", () => new TestFrameSource()), "duplicate extension rejected without precedence ambiguity");
+    }
+
+    private static void RegistryFailures()
+    {
+        var noMatch = new PortableReaderShell(new PortableReaderRegistry());
+        Equal(PortableOpenResult.NotSupported, noMatch.Open("unknown.raw"), "unregistered extension is deterministic");
+        Equal(PortableReaderState.FailedOpen, noMatch.State, "unregistered extension failed state");
+        noMatch.Dispose();
+
+        var failingSource = new TestFrameSource(failOpen: true);
+        var registry = new PortableReaderRegistry().Register("broken", () => failingSource);
+        using var reader = new PortableReaderShell(registry);
+        Equal(PortableOpenResult.NotSupported, reader.Open("bad.broken"), "source open failure is reported");
+        Equal(1, failingSource.DisposeCount, "failed source is disposed");
+        Equal(PortableReaderState.FailedOpen, reader.State, "source open failure state");
+    }
+
+    private static void SourceReplacementOwnership()
+    {
+        var firstSource = new TestFrameSource();
+        var replacementSource = new TestFrameSource();
+        var failureSource = new TestFrameSource(failOpen: true);
+        var sources = new Queue<TestFrameSource>([firstSource, replacementSource, failureSource]);
+        var registry = new PortableReaderRegistry()
+            .Register("frame", () => sources.Dequeue());
+        using var reader = new PortableReaderShell(registry);
+
+        Equal(PortableOpenResult.Success, reader.Open("first.frame"), "first source opens");
+        True(reader.MoveRequest(false, 0), "first source generates frame");
+        PortableReaderFrame stale = reader.Current;
+        MemoryMarshal.TryGetArray(stale.Image!.Memory, out ArraySegment<byte> firstStorage);
+        Equal(PortableOpenResult.Success, reader.Open("replacement.frame"), "replacement source opens");
+        Equal(1, firstSource.DisposeCount, "replaced source releases its buffer once");
+        Throws<ObjectDisposedException>(() => _ = stale.Image!.GetRowSpan(0), "replacement invalidates old borrowed pixels");
+        True(reader.MoveRequest(false, 0), "same request refreshes after replacement");
+        NotSame(stale, "replacement publishes a fresh wrapper", reader.Current);
+        Equal((byte)31, reader.Current.Image!.GetRowSpan(0)[0], "replacement uses independently owned pixels");
+        MemoryMarshal.TryGetArray(reader.Current.Image.Memory, out ArraySegment<byte> replacementStorage);
+        True(!ReferenceEquals(firstStorage.Array, replacementStorage.Array), "replacement storage has an independent owner");
+
+        PortableReaderFrame replaced = reader.Current;
+        Equal(PortableOpenResult.NotSupported, reader.Open("broken.frame"), "replacement open exception reported");
+        Equal(1, replacementSource.DisposeCount, "active source released after failed replacement");
+        Equal(1, failureSource.DisposeCount, "failed candidate source released");
+        Throws<ObjectDisposedException>(() => _ = replaced.Image!.Memory, "failed replacement leaves no live prior pixels");
+        reader.Close();
+        reader.Dispose();
+        Equal(1, firstSource.DisposeCount, "closed old source is not disposed again");
+        Equal(1, replacementSource.DisposeCount, "failed-open source is not disposed again");
     }
 
     private static void MeasureNavigationAllocations(string fixtures)
@@ -304,4 +386,49 @@ internal static class Program
     private static void Same(object? e, string n, object? a) { checks++; if (!ReferenceEquals(e, a)) throw new Exception("Expected same identity: " + n); }
     private static void NotSame(object? e, string n, object? a) { checks++; if (ReferenceEquals(e, a)) throw new Exception("Expected different identity: " + n); }
     private static void Throws<T>(Action f, string n) where T : Exception { checks++; try { f(); } catch (T) { return; } throw new Exception("Expected " + typeof(T).Name + ": " + n); }
+
+    private sealed class TestFrameSource(bool failOpen = false) : IPortableFrameSource
+    {
+        private PixelBuffer? pixels;
+        public bool IsOpen => pixels is not null;
+        public int Width => pixels?.Width ?? throw new InvalidOperationException();
+        public int Height => pixels?.Height ?? throw new InvalidOperationException();
+        public int OpenCount { get; private set; }
+        public int GenerateCount { get; private set; }
+        public int DisposeCount { get; private set; }
+
+        public void Open(string path)
+        {
+            OpenCount++;
+            if (failOpen) throw new InvalidDataException("Authored source failure.");
+            var owner = new TestMemoryOwner([31, 47, 59]);
+            pixels = PixelBuffer.Create(1, 1, PixelFormat.Rgb24, AlphaMode.None, 3, 0, owner);
+        }
+
+        public PortableImageFrame Generate(long timestamp)
+        {
+            GenerateCount++;
+            PixelBuffer current = pixels ?? throw new InvalidOperationException();
+            return new PortableImageFrame(current, timestamp - 3, timestamp - 9);
+        }
+
+        public void Close()
+        {
+            pixels?.Dispose();
+            pixels = null;
+        }
+
+        public void Dispose()
+        {
+            DisposeCount++;
+            Close();
+        }
+    }
+
+    private sealed class TestMemoryOwner(byte[] data) : IMemoryOwner<byte>
+    {
+        private byte[]? bytes = data;
+        public Memory<byte> Memory => bytes ?? throw new ObjectDisposedException(nameof(TestMemoryOwner));
+        public void Dispose() => bytes = null;
+    }
 }

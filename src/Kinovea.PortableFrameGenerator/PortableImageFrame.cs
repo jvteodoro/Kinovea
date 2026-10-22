@@ -14,8 +14,13 @@ public sealed class PortableImageFrame
 {
     private readonly PixelBuffer pixels;
 
-    internal PortableImageFrame(PixelBuffer pixels, long timestamp, long previousTimestamp)
+    /// <summary>
+    /// Creates a borrowed frame view. The caller remains responsible for the
+    /// PixelBuffer lifetime and must keep it alive while this frame is used.
+    /// </summary>
+    public PortableImageFrame(PixelBuffer pixels, long timestamp, long previousTimestamp)
     {
+        ArgumentNullException.ThrowIfNull(pixels);
         this.pixels = pixels;
         Timestamp = timestamp;
         PreviousTimestamp = previousTimestamp;

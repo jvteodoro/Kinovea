@@ -14,7 +14,7 @@ namespace Kinovea.PortableFrameGenerator;
 /// Calls must be externally serialized; concurrent Generate, Close, or
 /// Dispose and asynchronous retention are unsupported.
 /// </remarks>
-public sealed class PortableImageFrameGenerator : IDisposable
+public sealed class PortableImageFrameGenerator : IPortableFrameSource
 {
     private readonly ImageReader reader;
     private PixelBuffer? pixels;
