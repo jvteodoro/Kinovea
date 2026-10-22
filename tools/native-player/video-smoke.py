@@ -51,9 +51,11 @@ def click_control(window: dict, state: dict, control_name: str) -> dict:
     bounds = state.get(control_name)
     if not bounds:
         raise RuntimeError(f"player did not report {control_name} bounds")
-    scale = float(state["renderScaling"])
-    x = round((float(bounds["x"]) + float(bounds["width"]) / 2) * scale)
-    y = round((float(bounds["y"]) + float(bounds["height"]) / 2) * scale)
+    geometry = gui.window_geometry(window["id"])
+    scale_x = geometry["width"] / float(state["windowLogicalWidth"])
+    scale_y = geometry["height"] / float(state["windowLogicalHeight"])
+    x = round((float(bounds["x"]) + float(bounds["width"]) / 2) * scale_x)
+    y = round((float(bounds["y"]) + float(bounds["height"]) / 2) * scale_y)
     return gui.point_in_window(window["id"], x, y, [1])
 
 
