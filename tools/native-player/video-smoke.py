@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import subprocess
@@ -16,6 +17,11 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools" / "wine-oracle"))
 import oracle
 import xwayland_capture
+
+gui_spec = importlib.util.spec_from_file_location("native_gui", Path(__file__).with_name("gui-interactions.py"))
+gui = importlib.util.module_from_spec(gui_spec)
+assert gui_spec.loader is not None
+gui_spec.loader.exec_module(gui)
 
 
 def sha256(path: Path) -> str:
@@ -39,6 +45,16 @@ def wait_for(path: Path, predicate, description: str, timeout: float = 10) -> di
             return last
         time.sleep(0.05)
     raise RuntimeError(f"timed out waiting for {description}; last report: {last}")
+
+
+def click_control(window: dict, state: dict, control_name: str) -> dict:
+    bounds = state.get(control_name)
+    if not bounds:
+        raise RuntimeError(f"player did not report {control_name} bounds")
+    scale = float(state["renderScaling"])
+    x = round((float(bounds["x"]) + float(bounds["width"]) / 2) * scale)
+    y = round((float(bounds["y"]) + float(bounds["height"]) / 2) * scale)
+    return gui.point_in_window(window["id"], x, y, [1])
 
 
 def main() -> int:
@@ -111,16 +127,9 @@ def main() -> int:
                 {"action": "speed-Down", "result": "PASS", "rate": normal.get("playbackRate")},
             ])
 
-            loop_bounds = initial.get("loopButton")
-            if not loop_bounds:
-                raise RuntimeError("player did not report loop control bounds")
-            logical_width = float(initial["windowLogicalWidth"])
-            logical_height = float(initial["windowLogicalHeight"])
-            x_fraction = (float(loop_bounds["x"]) + float(loop_bounds["width"]) / 2) / logical_width
-            y_fraction = (float(loop_bounds["y"]) + float(loop_bounds["height"]) / 2) / logical_height
-            oracle.send_window_click(window["id"], x_fraction, y_fraction)
+            click_control(window, initial, "loopButton")
             loop_off = wait_for(report_path, lambda item: item.get("loopPlayback") is False, "loop disabled")
-            oracle.send_window_click(window["id"], x_fraction, y_fraction)
+            click_control(window, loop_off, "loopButton")
             loop_on = wait_for(report_path, lambda item: item.get("loopPlayback") is True, "loop enabled")
             actions.extend([
                 {"action": "toggle-loop-off", "result": "PASS", "enabled": loop_off.get("loopPlayback")},
@@ -164,7 +173,7 @@ def main() -> int:
                             "to": wrapped.get("timestamp")})
             oracle.send_key("space", window["id"])
             wait_for(report_path, lambda item: item.get("isPlaying") is False, "pause after loop")
-            oracle.send_window_click(window["id"], x_fraction, y_fraction)
+            click_control(window, loop_on, "loopButton")
             loop_off = wait_for(report_path, lambda item: item.get("loopPlayback") is False, "loop disabled for EOF check")
             oracle.send_key("Home", window["id"])
             at_start = wait_for(report_path, lambda item: item.get("timestamp") == item.get("workingZoneStart"), "Home seeks to timeline start")
