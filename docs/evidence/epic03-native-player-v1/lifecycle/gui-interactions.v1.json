@@ -1,0 +1,453 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "b3e3fdf3b03cd01ff19859565b0c28e3df97553b",
+  "host": {
+    "platform": "linux",
+    "python": "3.14.7",
+    "dotnetRuntime": "10.0.11",
+    "display": ":1",
+    "waylandDisplay": "wayland-0",
+    "xwaylandResolution": "1920 x 1080",
+    "sessionType": "wayland"
+  },
+  "processId": 1555550,
+  "windowId": "0x160000f",
+  "fixtures": {
+    "png": {
+      "fileName": "synthetic-rgb-1280x720.png",
+      "sha256": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f"
+    },
+    "bmp": {
+      "fileName": "native-player-rgb-640x480.bmp",
+      "sha256": "3f7f8b5907ddeef41c6478d79c8b42414f222b0233f99778337e97117670a314"
+    },
+    "corrupt": {
+      "fileName": "corrupt-image.png",
+      "sha256": "9f2b222cc66ffcc47742bb2f7dabd3f5f8be0ded008fb37297cc6b8f2ae4b36a"
+    },
+    "alpha": {
+      "fileName": "png-alpha-13x9.png",
+      "sha256": "e0759d696bfef305e0a2c1c8fc7b7673e9e46390ef15beb541679c6766041dcd"
+    }
+  },
+  "actions": [
+    {
+      "action": "startup empty state",
+      "result": "PASS",
+      "processId": 1555550,
+      "readerState": "Empty",
+      "report": {
+        "schemaVersion": 1,
+        "status": "EMPTY",
+        "sourceSha": "b3e3fdf3b03cd01ff19859565b0c28e3df97553b",
+        "fileName": null,
+        "inputSha256": null,
+        "width": null,
+        "height": null,
+        "fps": null,
+        "timestamp": -1,
+        "previousTimestamp": -1,
+        "workingZoneStart": 0,
+        "workingZoneEnd": 0,
+        "pixelFormat": null,
+        "alphaMode": null,
+        "readerState": "Empty",
+        "errorMessage": null,
+        "lastPickerResult": null,
+        "lastOpenResult": null,
+        "lastAttemptedFileName": null,
+        "presentationCopyCount": 0,
+        "presentationBytesCopied": 0,
+        "windowLogicalWidth": 1120,
+        "windowLogicalHeight": 760,
+        "renderScaling": 1.5,
+        "viewportLogicalX": 0,
+        "viewportLogicalY": 171.33333333333334,
+        "viewportLogicalWidth": 1120,
+        "viewportLogicalHeight": 588.6666666666666,
+        "zoom": 1,
+        "panX": 0,
+        "panY": 0,
+        "wheelEventCount": 0,
+        "pointerPressCount": 0,
+        "pointerMoveCount": 0,
+        "lastWheelViewportX": 0,
+        "lastWheelViewportY": 0,
+        "imageRectX": null,
+        "imageRectY": null,
+        "imageRectWidth": null,
+        "imageRectHeight": null,
+        "openButton": {
+          "x": 10,
+          "y": 15.333333333333334,
+          "width": 109.33333333333333,
+          "height": 30.666666666666668
+        },
+        "closeButton": {
+          "x": 127.33333333333333,
+          "y": 15.333333333333334,
+          "width": 54.666666666666664,
+          "height": 30.666666666666668
+        },
+        "fitButton": {
+          "x": 570.6666666666666,
+          "y": 15.333333333333334,
+          "width": 34.666666666666664,
+          "height": 30.666666666666668
+        },
+        "previousButton": {
+          "x": 272,
+          "y": 15.333333333333334,
+          "width": 27.333333333333332,
+          "height": 31.333333333333332
+        },
+        "nextButton": {
+          "x": 299.3333333333333,
+          "y": 15.333333333333334,
+          "width": 27.333333333333332,
+          "height": 31.333333333333332
+        },
+        "processId": 1555550
+      }
+    },
+    {
+      "action": "real Avalonia storage provider selection",
+      "result": "PASS",
+      "fileName": "synthetic-rgb-1280x720.png",
+      "selectedFixtureSha256": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f",
+      "activeImageSha256": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f",
+      "dialogControlsScreenshot": {
+        "status": "NOT_CAPTURED",
+        "reason": "Wayland portal surface is not an X11 client; screenshot utility changes activation"
+      },
+      "visibleScreenshot": {
+        "file": "png-visible.png",
+        "sha256": "b3f3c7160aa3a42fb705867312918f28a5d7066bc1e74b3e91231f44e2ad8a53",
+        "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+        "captureAttempts": 1,
+        "size": {
+          "x": 120,
+          "y": 42,
+          "width": 1680,
+          "height": 969
+        },
+        "lumaAverage": 94.0044
+      },
+      "beforePresentationCopyCount": 0,
+      "afterPresentationCopyCount": 1
+    },
+    {
+      "action": "PNG legacy metadata",
+      "result": "PASS",
+      "fileName": "synthetic-rgb-1280x720.png",
+      "dimensions": [
+        1280,
+        720
+      ],
+      "fps": 25,
+      "timestamp": 0,
+      "previousTimestamp": -1
+    },
+    {
+      "action": "Next button keyboard activation",
+      "result": "PASS",
+      "timestamp": 1,
+      "previousTimestamp": 0,
+      "presentationCopyCount": 1,
+      "buttonBoundsLogical": {
+        "x": 299.3333333333333,
+        "y": 15.333333333333334,
+        "width": 27.333333333333332,
+        "height": 31.333333333333332
+      },
+      "focusSequence": [
+        "Tab",
+        "Tab",
+        "Tab",
+        "Return"
+      ]
+    },
+    {
+      "action": "Escape cancels real file picker",
+      "result": "PASS",
+      "activeImageHash": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f",
+      "presentationCopyCount": 1,
+      "readerState": "Open"
+    },
+    {
+      "action": "real Avalonia storage provider selection",
+      "result": "PASS",
+      "fileName": "corrupt-image.png",
+      "selectedFixtureSha256": "9f2b222cc66ffcc47742bb2f7dabd3f5f8be0ded008fb37297cc6b8f2ae4b36a",
+      "activeImageSha256": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f",
+      "dialogControlsScreenshot": {
+        "status": "NOT_CAPTURED",
+        "reason": "Wayland portal surface is not an X11 client; screenshot utility changes activation"
+      },
+      "visibleScreenshot": {
+        "file": "corrupt-visible.png",
+        "sha256": "7ce4c9ea9c4cf7e4193274ba0e95af595c3fa77605489882ed723ee7777242e3",
+        "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+        "captureAttempts": 1,
+        "size": {
+          "x": 120,
+          "y": 42,
+          "width": 1680,
+          "height": 969
+        },
+        "lumaAverage": 94.2685
+      },
+      "beforePresentationCopyCount": 1,
+      "afterPresentationCopyCount": 1,
+      "retainedActiveHash": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f",
+      "errorMessage": "Could not open 'corrupt-image.png' as a supported BMP or PNG image."
+    },
+    {
+      "action": "Ctrl+W closes PNG",
+      "result": "PASS",
+      "readerState": "Empty",
+      "inputSha256": null,
+      "presentationCopyCount": 1
+    },
+    {
+      "action": "real Avalonia storage provider selection",
+      "result": "PASS",
+      "fileName": "native-player-rgb-640x480.bmp",
+      "selectedFixtureSha256": "3f7f8b5907ddeef41c6478d79c8b42414f222b0233f99778337e97117670a314",
+      "activeImageSha256": "3f7f8b5907ddeef41c6478d79c8b42414f222b0233f99778337e97117670a314",
+      "dialogControlsScreenshot": {
+        "status": "NOT_CAPTURED",
+        "reason": "Wayland portal surface is not an X11 client; screenshot utility changes activation"
+      },
+      "visibleScreenshot": {
+        "file": "bmp-visible.png",
+        "sha256": "7efa5d2af2e3dc7fff0f274bd9cbd08b0a248d1fa563c4e042fd3257a9ddbc5c",
+        "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+        "captureAttempts": 1,
+        "size": {
+          "x": 120,
+          "y": 42,
+          "width": 1680,
+          "height": 969
+        },
+        "lumaAverage": 80.6917
+      },
+      "beforePresentationCopyCount": 1,
+      "afterPresentationCopyCount": 2
+    },
+    {
+      "action": "BMP legacy metadata",
+      "result": "PASS",
+      "fileName": "native-player-rgb-640x480.bmp",
+      "dimensions": [
+        640,
+        480
+      ],
+      "fps": 25,
+      "timestamp": 0,
+      "previousTimestamp": -1
+    },
+    {
+      "action": "BMP next and previous frame controls",
+      "result": "PASS",
+      "timestamps": [
+        1,
+        0
+      ],
+      "previousTimestamps": [
+        0,
+        -1
+      ],
+      "presentationCopyCount": 2
+    },
+    {
+      "action": "Ctrl+W closes BMP",
+      "result": "PASS",
+      "readerState": "Empty",
+      "inputSha256": null
+    },
+    {
+      "action": "reopen PNG after PNG and BMP close",
+      "result": "PASS",
+      "inputSha256": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f",
+      "timestamp": 0,
+      "previousTimestamp": -1,
+      "presentationCopyCount": 3
+    },
+    {
+      "action": "exit application",
+      "result": "PASS",
+      "exitCode": 0
+    }
+  ],
+  "screenshots": [
+    {
+      "checkpoint": "startup-empty",
+      "file": "01-startup-empty.png",
+      "sha256": "52efecf1487314d3f5c8c2d63634849fd6c889fd5f028a6331d87fe6f1a1fa8f",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 41.5131
+    },
+    {
+      "checkpoint": "png-first-visible",
+      "file": "png-visible.png",
+      "sha256": "b3f3c7160aa3a42fb705867312918f28a5d7066bc1e74b3e91231f44e2ad8a53",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 94.0044
+    },
+    {
+      "checkpoint": "navigation-next",
+      "file": "02-navigation-next.png",
+      "sha256": "ad82cf374e8037b43cc0dcb3a80bf70e11fdf1f4bd10b64b7b634f1cb15492c5",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 94.0467
+    },
+    {
+      "checkpoint": "cancelled-picker-player",
+      "file": "03-cancel-picker.png",
+      "sha256": "b3f3c7160aa3a42fb705867312918f28a5d7066bc1e74b3e91231f44e2ad8a53",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 94.0044
+    },
+    {
+      "checkpoint": "png-closed-empty",
+      "file": "04-png-closed.png",
+      "sha256": "17dfbe2cd4116783b84ddeb1928fb77bc542dd9b8771e1a2aa7b2a4a4616076f",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 41.5042
+    },
+    {
+      "checkpoint": "bmp-first-visible",
+      "file": "bmp-visible.png",
+      "sha256": "7efa5d2af2e3dc7fff0f274bd9cbd08b0a248d1fa563c4e042fd3257a9ddbc5c",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 80.6917
+    },
+    {
+      "checkpoint": "bmp-navigation",
+      "file": "05-bmp-navigation.png",
+      "sha256": "7efa5d2af2e3dc7fff0f274bd9cbd08b0a248d1fa563c4e042fd3257a9ddbc5c",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 80.6917
+    },
+    {
+      "checkpoint": "bmp-closed-empty",
+      "file": "06-bmp-closed.png",
+      "sha256": "17dfbe2cd4116783b84ddeb1928fb77bc542dd9b8771e1a2aa7b2a4a4616076f",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 41.5042
+    },
+    {
+      "checkpoint": "png-reopened",
+      "file": "reopen-png-visible.png",
+      "sha256": "b3f3c7160aa3a42fb705867312918f28a5d7066bc1e74b3e91231f44e2ad8a53",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 94.0044
+    }
+  ],
+  "resourceSamples": [
+    {
+      "after": "first PNG open",
+      "rssKiB": 182716,
+      "openFileDescriptors": 149,
+      "mappedSkiaAndHarfBuzzLibraries": [
+        "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libHarfBuzzSharp.so",
+        "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libSkiaSharp.so"
+      ]
+    },
+    {
+      "after": "BMP reopened in same process",
+      "rssKiB": 188804,
+      "openFileDescriptors": 149,
+      "mappedSkiaAndHarfBuzzLibraries": [
+        "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libHarfBuzzSharp.so",
+        "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libSkiaSharp.so"
+      ]
+    },
+    {
+      "after": "PNG reopened after two closed sessions",
+      "rssKiB": 194464,
+      "openFileDescriptors": 149,
+      "mappedSkiaAndHarfBuzzLibraries": [
+        "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libHarfBuzzSharp.so",
+        "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libSkiaSharp.so"
+      ]
+    }
+  ],
+  "packageEvidence": {
+    "avalonia": "12.1.4",
+    "skiaSharp": "3.119.4",
+    "linuxNativeSkiaMappedLibraries": [
+      "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libHarfBuzzSharp.so",
+      "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libSkiaSharp.so"
+    ]
+  },
+  "limitations": [
+    "Screenshot appearance is not full decoded-pixel parity.",
+    "Windows GUI behavior was not run.",
+    "No hosted CI was run."
+  ]
+}

@@ -1,0 +1,174 @@
+[
+  {
+    "point": "bmp-open",
+    "state": {
+      "schemaVersion": 1,
+      "status": "VISIBLE_FRAME_RENDERED",
+      "sourceSha": "b3e3fdf3b03cd01ff19859565b0c28e3df97553b",
+      "fileName": "native-player-rgb-640x480.bmp",
+      "inputSha256": "3f7f8b5907ddeef41c6478d79c8b42414f222b0233f99778337e97117670a314",
+      "width": 640,
+      "height": 480,
+      "fps": 25,
+      "timestamp": 0,
+      "previousTimestamp": -1,
+      "workingZoneStart": 0,
+      "workingZoneEnd": 249,
+      "pixelFormat": "Rgb24",
+      "alphaMode": "None",
+      "readerState": "Open",
+      "errorMessage": null,
+      "lastPickerResult": "CommandLine",
+      "lastOpenResult": "Opened",
+      "lastAttemptedFileName": "native-player-rgb-640x480.bmp",
+      "presentationCopyCount": 1,
+      "presentationBytesCopied": 921600,
+      "windowLogicalWidth": 1120,
+      "windowLogicalHeight": 646,
+      "renderScaling": 1.5,
+      "viewportLogicalX": 0,
+      "viewportLogicalY": 171.33333333333334,
+      "viewportLogicalWidth": 1120,
+      "viewportLogicalHeight": 474.6666666666667,
+      "zoom": 1,
+      "panX": 0,
+      "panY": 0,
+      "wheelEventCount": 0,
+      "pointerPressCount": 0,
+      "pointerMoveCount": 0,
+      "lastWheelViewportX": 0,
+      "lastWheelViewportY": 0,
+      "imageRectX": 243.55555555555554,
+      "imageRectY": 0,
+      "imageRectWidth": 632.8888888888889,
+      "imageRectHeight": 474.6666666666667,
+      "openButton": {
+        "x": 10,
+        "y": 15.333333333333334,
+        "width": 109.33333333333333,
+        "height": 30.666666666666668
+      },
+      "closeButton": {
+        "x": 127.33333333333333,
+        "y": 15.333333333333334,
+        "width": 54.666666666666664,
+        "height": 30.666666666666668
+      },
+      "fitButton": {
+        "x": 570.6666666666666,
+        "y": 15.333333333333334,
+        "width": 34.666666666666664,
+        "height": 30.666666666666668
+      },
+      "previousButton": {
+        "x": 272,
+        "y": 15.333333333333334,
+        "width": 27.333333333333332,
+        "height": 31.333333333333332
+      },
+      "nextButton": {
+        "x": 299.3333333333333,
+        "y": 15.333333333333334,
+        "width": 27.333333333333332,
+        "height": 31.333333333333332
+      },
+      "processId": 1554393
+    }
+  },
+  {
+    "point": "wheel-zoom",
+    "state": {
+      "schemaVersion": 1,
+      "status": "VISIBLE_FRAME_RENDERED",
+      "sourceSha": "b3e3fdf3b03cd01ff19859565b0c28e3df97553b",
+      "fileName": "native-player-rgb-640x480.bmp",
+      "inputSha256": "3f7f8b5907ddeef41c6478d79c8b42414f222b0233f99778337e97117670a314",
+      "width": 640,
+      "height": 480,
+      "fps": 25,
+      "timestamp": 0,
+      "previousTimestamp": -1,
+      "workingZoneStart": 0,
+      "workingZoneEnd": 249,
+      "pixelFormat": "Rgb24",
+      "alphaMode": "None",
+      "readerState": "Open",
+      "errorMessage": null,
+      "lastPickerResult": "CommandLine",
+      "lastOpenResult": "Opened",
+      "lastAttemptedFileName": "native-player-rgb-640x480.bmp",
+      "presentationCopyCount": 1,
+      "presentationBytesCopied": 921600,
+      "windowLogicalWidth": 1120,
+      "windowLogicalHeight": 646,
+      "renderScaling": 1.5,
+      "viewportLogicalX": 0,
+      "viewportLogicalY": 171.33333333333334,
+      "viewportLogicalWidth": 1120,
+      "viewportLogicalHeight": 474.6666666666667,
+      "zoom": 1.2,
+      "panX": 43.33333333333333,
+      "panY": 14.800000000000011,
+      "wheelEventCount": 1,
+      "pointerPressCount": 0,
+      "pointerMoveCount": 1,
+      "lastWheelViewportX": 343.3333333333333,
+      "lastWheelViewportY": 163.33333333333334,
+      "imageRectX": 223.59999999999997,
+      "imageRectY": -32.66666666666666,
+      "imageRectWidth": 759.4666666666667,
+      "imageRectHeight": 569.6,
+      "openButton": {
+        "x": 10,
+        "y": 15.333333333333334,
+        "width": 109.33333333333333,
+        "height": 30.666666666666668
+      },
+      "closeButton": {
+        "x": 127.33333333333333,
+        "y": 15.333333333333334,
+        "width": 54.666666666666664,
+        "height": 30.666666666666668
+      },
+      "fitButton": {
+        "x": 570.6666666666666,
+        "y": 15.333333333333334,
+        "width": 34.666666666666664,
+        "height": 30.666666666666668
+      },
+      "previousButton": {
+        "x": 272,
+        "y": 15.333333333333334,
+        "width": 27.333333333333332,
+        "height": 31.333333333333332
+      },
+      "nextButton": {
+        "x": 299.3333333333333,
+        "y": 15.333333333333334,
+        "width": 27.333333333333332,
+        "height": 31.333333333333332
+      },
+      "processId": 1554393
+    },
+    "anchorViewportLogical": [
+      683.1999999999999,
+      375.44000000000005
+    ],
+    "windowInput": {
+      "windowPoint": [
+        1025,
+        563
+      ],
+      "rootPoint": [
+        1145,
+        605
+      ],
+      "window": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      }
+    }
+  }
+]

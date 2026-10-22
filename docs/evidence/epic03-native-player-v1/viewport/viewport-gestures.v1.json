@@ -1,0 +1,377 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "native-player-viewport-gestures-v1",
+  "sourceSha": "b3e3fdf3b03cd01ff19859565b0c28e3df97553b",
+  "host": {
+    "os": "Gentoo Linux",
+    "dotnetRuntime": "10.0.11",
+    "display": ":1",
+    "waylandDisplay": "wayland-0",
+    "sessionType": "wayland",
+    "xwaylandResolution": "1920 x 1080"
+  },
+  "fixtures": {
+    "bmp": {
+      "fileName": "native-player-rgb-640x480.bmp",
+      "sha256": "3f7f8b5907ddeef41c6478d79c8b42414f222b0233f99778337e97117670a314"
+    },
+    "alphaPng": {
+      "fileName": "png-alpha-13x9.png",
+      "sha256": "e0759d696bfef305e0a2c1c8fc7b7673e9e46390ef15beb541679c6766041dcd"
+    },
+    "pngOpenedAfterGestures": {
+      "fileName": "synthetic-rgb-1280x720.png",
+      "sha256": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f"
+    }
+  },
+  "actions": [
+    {
+      "action": "mouse-wheel zoom",
+      "result": "PASS",
+      "wheelEvents": 1,
+      "zoomBefore": 1,
+      "zoomAfter": 1.2,
+      "requestedViewportLogical": [
+        683.1999999999999,
+        204.1066666666667
+      ],
+      "avaloniaPointerLogical": [
+        343.3333333333333,
+        163.33333333333334
+      ],
+      "anchorAfterLogical": [
+        343.3333333333333,
+        163.33333333333334
+      ],
+      "windowRelativeInput": {
+        "windowPoint": [
+          1025,
+          563
+        ],
+        "rootPoint": [
+          1145,
+          605
+        ],
+        "window": {
+          "x": 120,
+          "y": 42,
+          "width": 1680,
+          "height": 969
+        }
+      }
+    },
+    {
+      "action": "mouse drag pan",
+      "result": "PASS",
+      "expectedLogicalDelta": [
+        36.0,
+        22.0
+      ],
+      "observedLogicalDelta": [
+        36.0,
+        22.00000000000003
+      ],
+      "pointer": {
+        "from": [
+          840,
+          613
+        ],
+        "to": [
+          894,
+          646
+        ],
+        "delta": [
+          54,
+          33
+        ]
+      }
+    },
+    {
+      "action": "Fit and rendered color/orientation",
+      "result": "PASS",
+      "fitInput": {
+        "windowPoint": [
+          882,
+          46
+        ],
+        "rootPoint": [
+          1002,
+          88
+        ],
+        "window": {
+          "x": 120,
+          "y": 42,
+          "width": 1680,
+          "height": 969
+        }
+      },
+      "logicalBounds": {
+        "x": 570.6666666666666,
+        "y": 15.333333333333334,
+        "width": 34.666666666666664,
+        "height": 30.666666666666668
+      },
+      "samples": {
+        "topLeftBand": {
+          "expected": [
+            235,
+            40,
+            35
+          ],
+          "rendered": [
+            235,
+            40,
+            35
+          ]
+        },
+        "asymmetricDiagonal": {
+          "expected": [
+            250,
+            250,
+            250
+          ],
+          "rendered": [
+            250,
+            250,
+            250
+          ]
+        },
+        "middleBlueBand": {
+          "expected": [
+            30,
+            55,
+            220
+          ],
+          "rendered": [
+            30,
+            55,
+            220
+          ]
+        }
+      },
+      "tolerance": 24,
+      "capture": {
+        "file": "viewport-bmp-fit.png",
+        "sha256": "96ce2666a10963162b15fe0c8f60b61cb435cd987c12e591ba67d92fb1c316fc",
+        "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+        "captureAttempts": 1,
+        "size": {
+          "x": 120,
+          "y": 42,
+          "width": 1680,
+          "height": 969
+        },
+        "lumaAverage": 80.6764
+      }
+    },
+    {
+      "action": "actual window resize",
+      "result": "PASS",
+      "windowLogicalBefore": [
+        1120,
+        646
+      ],
+      "windowLogicalAfter": [
+        960,
+        646
+      ],
+      "viewportAfter": [
+        960,
+        474.6666666666667
+      ],
+      "imageAspect": 1.3333333333333333
+    },
+    {
+      "action": "open PNG after zoom, pan, fit, and resize",
+      "result": "PASS",
+      "inputSha256": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f",
+      "dimensions": [
+        1280,
+        720
+      ],
+      "timestamp": 0,
+      "previousTimestamp": -1,
+      "zoom": 1,
+      "pan": [
+        0,
+        0
+      ],
+      "presentationCopyCount": 2,
+      "picker": "real Avalonia storage provider selection"
+    },
+    {
+      "action": "straight-alpha render",
+      "result": "PASS",
+      "alphaMode": "Straight",
+      "transparentExpectedBackground": [
+        17,
+        21,
+        27
+      ],
+      "transparentRendered": [
+        17,
+        21,
+        27
+      ],
+      "partialExpectedComposite": [
+        26,
+        27,
+        54
+      ],
+      "partialRendered": [
+        27,
+        28,
+        55
+      ],
+      "tolerance": 30,
+      "capture": {
+        "file": "viewport-alpha.png",
+        "sha256": "579fec5d22d8b32cc81e6f37894f5af409df22bd78db991a15af4bc4034e02eb",
+        "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+        "captureAttempts": 1,
+        "size": {
+          "x": 120,
+          "y": 42,
+          "width": 1680,
+          "height": 969
+        },
+        "lumaAverage": 82.5474
+      },
+      "limitation": "screenshot compositing; raw alpha values separately checked by image reader tests"
+    }
+  ],
+  "screenshots": [
+    {
+      "checkpoint": "bmp-initial-fit",
+      "file": "viewport-bmp-initial.png",
+      "sha256": "7efa5d2af2e3dc7fff0f274bd9cbd08b0a248d1fa563c4e042fd3257a9ddbc5c",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 80.6917
+    },
+    {
+      "checkpoint": "bmp-wheel-zoom",
+      "file": "viewport-bmp-zoom.png",
+      "sha256": "afb444e101a6b422ff8aa72f05d5e5059ed76b26ba38145ccc6d82e0d9280101",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 91.2509
+    },
+    {
+      "checkpoint": "bmp-wheel-pan",
+      "file": "viewport-bmp-pan.png",
+      "sha256": "9843b0013329b53c38732e2a720a03830f61836d2a0c34dbd82fb2abd3e4b187",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 89.5793
+    },
+    {
+      "checkpoint": "bmp-fit-color-orientation",
+      "file": "viewport-bmp-fit.png",
+      "sha256": "96ce2666a10963162b15fe0c8f60b61cb435cd987c12e591ba67d92fb1c316fc",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 80.6764
+    },
+    {
+      "checkpoint": "bmp-window-resized",
+      "file": "viewport-bmp-resized.png",
+      "sha256": "c13141a5c800ebae1c86de6342f9fcbc400c918eedf25ed9b2acf434218e492e",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1440,
+        "height": 969
+      },
+      "lumaAverage": 87.5043
+    },
+    {
+      "checkpoint": "png-opened-after-viewport-gestures",
+      "file": "png-after-gestures-visible.png",
+      "sha256": "3c595641892c8fe62ce455288deba4c986617e631202a3de7d84d0d7828654eb",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1440,
+        "height": 969
+      },
+      "lumaAverage": 103.033
+    },
+    {
+      "checkpoint": "straight-alpha-render",
+      "file": "viewport-alpha.png",
+      "sha256": "579fec5d22d8b32cc81e6f37894f5af409df22bd78db991a15af4bc4034e02eb",
+      "method": "ffmpeg x11grab -window_id (target Kinovea window only)",
+      "captureAttempts": 1,
+      "size": {
+        "x": 120,
+        "y": 42,
+        "width": 1680,
+        "height": 969
+      },
+      "lumaAverage": 82.5474
+    }
+  ],
+  "resourceSamples": [
+    {
+      "fixture": "native-player-rgb-640x480.bmp",
+      "rssKiB": 174460,
+      "openFileDescriptors": 149,
+      "mappedSkiaAndHarfBuzzLibraries": [
+        "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libHarfBuzzSharp.so",
+        "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libSkiaSharp.so"
+      ]
+    },
+    {
+      "fixture": "png-alpha-13x9.png",
+      "rssKiB": 170472,
+      "openFileDescriptors": 149,
+      "mappedSkiaAndHarfBuzzLibraries": [
+        "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libHarfBuzzSharp.so",
+        "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libSkiaSharp.so"
+      ]
+    }
+  ],
+  "packages": {
+    "Avalonia": "12.1.4",
+    "SkiaSharp": "3.119.4",
+    "mappedNativeLibraries": [
+      "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libHarfBuzzSharp.so",
+      "src/Kinovea.PortableDesktop/bin/Release/net10.0/runtimes/linux-x64/native/libSkiaSharp.so"
+    ]
+  },
+  "limits": [
+    "This scenario starts the BMP using the repeatable --open path so it can isolate pointer behavior from the DBus portal.",
+    "A separate GUI lifecycle scenario tests the real storage provider and repeated in-process sessions.",
+    "Rendered screenshot comparisons are not cross-renderer pixel parity.",
+    "Windows GUI execution is NOT_RUN."
+  ]
+}
