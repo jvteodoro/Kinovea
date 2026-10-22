@@ -1,9 +1,9 @@
 # Native video playback boundary assessment v1
 
-Date: 2026-10-22  
-Base: `port/net10-linux` at `61850e7931456d57bba09c69a15d746b2773bf39`  
-Assessment prepared on: `investigate/native-video-playback`; included as a docs-only follow-up in draft PR #13.  
-Status: source and environment investigation; no decoder integration or playback behavior verified.
+- Date: 2026-10-22
+- Base: `port/net10-linux` at `61850e7931456d57bba09c69a15d746b2773bf39`
+- Provenance: prepared on `investigate/native-video-playback`; initially included as a docs-only follow-up in PR #13, subsequently merged into `port/net10-linux` at `78dad5ad3897b12596cdebdb7821454b009b4fe8`.
+- Status: source and environment investigation; no decoder integration or playback behavior verified.
 
 ## Scope and result
 
