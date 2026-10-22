@@ -30,9 +30,14 @@ for JPEG comparison. No hosted workflow was triggered.
 The nonzero-start fixture is authored with `setpts=PTS+2/TB`, `-copyts` and
 `-avoid_negative_ts disabled`; its stream time base is `1/16384`. The reader
 uses FFmpeg `best_effort_timestamp`; it does not derive timestamps from frame
-number. This proves only the listed local FFmpeg path. Actual C++/CLI
-`VideoReaderFFMpeg` timing and seek parity are `NOT_RUN`; Wine GUI screenshots
-are visual observations and do not supply numerical seek traces.
+number. This proves only the listed local FFmpeg path. The same deterministic
+VFR fixture was also opened and play/pause actions were sent to installed
+Kinovea 2025.2.0.0 under a disposable Wine 11.19 prefix overlay. The run
+completed with `NOT_ESTABLISHED` behavioral status; its local result manifest
+SHA-256 is `6ce0f1c15bcb8ed2d4ecbe21a61d103ebe235cf6272205267959ae26a8143b9d`
+at `/tmp/kinovea-epic02-legacy-vfr/result.json`. Actual C++/CLI
+`VideoReaderFFMpeg` timing and seek parity are still `NOT_RUN`; Wine GUI
+screenshots are visual observations and do not supply numerical seek traces.
 
 ## Media and color matrix
 
