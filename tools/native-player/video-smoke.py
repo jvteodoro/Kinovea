@@ -41,12 +41,11 @@ def wait_for(path: Path, predicate, description: str, timeout: float = 10) -> di
     raise RuntimeError(f"timed out waiting for {description}; last report: {last}")
 
 
-def toggle_loop_with_keyboard(window_id: str, focus: bool = False) -> None:
-    if focus:
-        # The native toolbar order is Open, Close, Play, Previous, Next, Timeline,
-        # Fit, Zoom out, Zoom in, Speed down, Speed up, Loop.
-        for _ in range(11):
-            oracle.send_key("Tab", window_id)
+def toggle_loop_with_keyboard(window_id: str, tabs_to_loop: int = 0) -> None:
+    # The native toolbar order is Open, Close, Play, Previous, Next, Timeline,
+    # Fit, Zoom out, Zoom in, Speed down, Speed up, Loop.
+    for _ in range(tabs_to_loop):
+        oracle.send_key("Tab", window_id)
     oracle.send_key("Return", window_id)
 
 
@@ -120,10 +119,14 @@ def main() -> int:
                 {"action": "speed-Down", "result": "PASS", "rate": normal.get("playbackRate")},
             ])
 
-            toggle_loop_with_keyboard(window["id"], focus=True)
+            toggle_loop_with_keyboard(window["id"], tabs_to_loop=11)
             loop_off = wait_for(report_path, lambda item: item.get("loopPlayback") is False, "loop disabled")
             toggle_loop_with_keyboard(window["id"])
             loop_on = wait_for(report_path, lambda item: item.get("loopPlayback") is True, "loop enabled")
+            # Move keyboard focus off Loop so Space starts playback instead of
+            # also activating the focused button.
+            for _ in range(8):
+                oracle.send_key("Tab", window["id"])
             actions.extend([
                 {"action": "toggle-loop-off", "result": "PASS", "enabled": loop_off.get("loopPlayback")},
                 {"action": "toggle-loop-on", "result": "PASS", "enabled": loop_on.get("loopPlayback")},
@@ -166,7 +169,7 @@ def main() -> int:
                             "to": wrapped.get("timestamp")})
             oracle.send_key("space", window["id"])
             wait_for(report_path, lambda item: item.get("isPlaying") is False, "pause after loop")
-            toggle_loop_with_keyboard(window["id"])
+            toggle_loop_with_keyboard(window["id"], tabs_to_loop=6)
             loop_off = wait_for(report_path, lambda item: item.get("loopPlayback") is False, "loop disabled for EOF check")
             oracle.send_key("Home", window["id"])
             at_start = wait_for(report_path, lambda item: item.get("timestamp") == item.get("workingZoneStart"), "Home seeks to timeline start")
