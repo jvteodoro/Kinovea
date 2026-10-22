@@ -148,6 +148,27 @@ full-frame copy was identified in these paths by source inspection.
 | #32 GIF/SVG | `NOT_IMPLEMENTED` | Existing GDI+-based readers remain. No replacement dependency or changed image reader was added. GIF timing/loop/palette/transparency and SVG viewBox/rasterization still need independent Windows characterization and dependency review. |
 | #33 media/color matrix | `PARTIAL` | Tested: H.264 in MP4, one 64x48 video stream, CFR+VFR, 8 frames, RGB24 output, local FFmpeg 8.1.2. Untested: other containers/codecs, audio, multistream selection, JPEG, orientation/rotation, color range/matrix, HDR, interlacing, hardware decode, Windows. |
 
+### Source-inspected GIF/SVG behavior still requiring an oracle
+
+The legacy GIF reader ([`VideoReaderGif.cs`](../../Kinovea.Video.GIF/VideoReaderGif.cs#L198)) uses `PropertyTagFrameDelay` (`0x5100`) but applies the
+first frame's delay to every frame; a nonpositive delay falls back to 5
+centiseconds. It computes duration as frame-count times that interval, eagerly
+renders each frame to `Format32bppPArgb` (`:240-261`), and fills a legacy
+`Cache`. `Close` clears that cache (`:109-112`). The image source is disposed
+after the cache is built (`:80-84`).
+Loop metadata, per-frame delays, disposal/compositing, palette and transparent
+pixel behavior were not executed or independently characterized here.
+
+The legacy SVG reader ([`VideoReaderSVG.cs`](../../Kinovea.Video.SVG/VideoReaderSVG.cs#L221)) reports fixed still-image timing metadata (25 fps and 250 timestamps; `:225-233`). Its generator ([`FrameGeneratorSVG.cs`](../../Kinovea.Video.SVG/FrameGeneratorSVG.cs#L129)) uses SharpVectors `GdiGraphicsRenderer` and a
+`GdiSvgWindow`, computes original dimensions from root width/height or
+percentage width plus viewBox, and rasterizes by aspect-fitting to the
+requested maximum size (`:171-179`). It has an initial 640x480 output size.
+Rendering,
+SVG feature coverage, viewBox corner cases and malformed-file categories were
+not executed here. These are source-inspected observations only, not a
+portable contract. Retain them as characterization targets before choosing a
+new renderer.
+
 ## Evidence categories and limits
 
 - `PASS`: local portable video unit scenarios and actual native app GUI actions
