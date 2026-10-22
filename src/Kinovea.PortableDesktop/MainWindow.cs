@@ -30,8 +30,16 @@ internal sealed class MainWindow : Window
     private Button? closeButton;
     private Button? fitButton;
     private Button? playPauseButton;
+
     private Button? browseButton;
     private Button? compareButton;
+
+    private Button? loopButton;
+    private Button? speedDownButton;
+    private Button? speedUpButton;
+    private Button? jumpBackButton;
+    private Button? jumpForwardButton;
+    private TextBlock? speedLabel;
     private readonly string? initialPath;
     private readonly string? initialVideoPath;
     private readonly string? smokeReportPath;
@@ -127,6 +135,12 @@ internal sealed class MainWindow : Window
         var zoomOut = new Button { Content = "−", Margin = new Thickness(4) };
         var zoomIn = new Button { Content = "+", Margin = new Thickness(4) };
         var zoomLabel = new TextBlock { Text = "Fit", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0) };
+        var decreaseSpeed = speedDownButton = new Button { Content = "− speed", Margin = new Thickness(4), IsEnabled = false };
+        var increaseSpeed = speedUpButton = new Button { Content = "+ speed", Margin = new Thickness(4), IsEnabled = false };
+        var speed = speedLabel = new TextBlock { Text = "100%", VerticalAlignment = VerticalAlignment.Center, MinWidth = 48, TextAlignment = TextAlignment.Center };
+        var loop = loopButton = new Button { Content = "Loop: On", Margin = new Thickness(4), IsEnabled = false };
+        var jumpBack = jumpBackButton = new Button { Content = "−0.5 s", Margin = new Thickness(4), IsEnabled = false };
+        var jumpForward = jumpForwardButton = new Button { Content = "+0.5 s", Margin = new Thickness(4), IsEnabled = false };
         viewport.ZoomChanged += zoom => zoomLabel.Text = zoom == 1 ? "Fit" : $"{zoom:P0}";
         var emptyHint = emptyHintText = new TextBlock
         {
@@ -142,6 +156,16 @@ internal sealed class MainWindow : Window
         compare.Click += (_, _) => new DualPlayerWindow().Show(this);
         close.Click += async (_, _) => await CloseActiveAsync();
         play.Click += (_, _) => TogglePlayback();
+        decreaseSpeed.Click += (_, _) => ChangePlaybackSpeed(large: true, increase: false);
+        increaseSpeed.Click += (_, _) => ChangePlaybackSpeed(large: true, increase: true);
+        loop.Click += (_, _) =>
+        {
+            loop.Tag = !IsLoopPlaybackEnabled;
+            loop.Content = IsLoopPlaybackEnabled ? "Loop: On" : "Loop: Off";
+            WriteSmokeReport();
+        };
+        jumpBack.Click += async (_, _) => await JumpBySecondsAsync(-0.5);
+        jumpForward.Click += async (_, _) => await JumpBySecondsAsync(0.5);
         fit.Click += (_, _) => { viewport.Fit(); zoomLabel.Text = "Fit"; };
         zoomOut.Click += (_, _) => { viewport.ChangeZoom(viewport.Zoom / 1.2); zoomLabel.Text = $"{viewport.Zoom:P0}"; };
         zoomIn.Click += (_, _) => { viewport.ChangeZoom(viewport.Zoom * 1.2); zoomLabel.Text = $"{viewport.Zoom:P0}"; };
@@ -178,6 +202,15 @@ internal sealed class MainWindow : Window
         toolbar.Children.Add(zoomIn);
         toolbar.Children.Add(zoomLabel);
 
+        var transport = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        transport.Children.Add(decreaseSpeed);
+        transport.Children.Add(speed);
+        transport.Children.Add(increaseSpeed);
+        transport.Children.Add(loop);
+        transport.Children.Add(new Separator { Margin = new Thickness(8, 4) });
+        transport.Children.Add(jumpBack);
+        transport.Children.Add(jumpForward);
+
         var header = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(12, 8) };
         header.Children.Add(name);
         header.Children.Add(metadata);
@@ -193,6 +226,7 @@ internal sealed class MainWindow : Window
         top.Children.Add(menu);
         var toolbarBorder = new Border { Background = Brush("#2b323b"), Child = toolbar, Padding = new Thickness(6) };
         top.Children.Add(toolbarBorder);
+        top.Children.Add(new Border { Background = Brush("#2b323b"), Child = transport, Padding = new Thickness(6, 0) });
         var headerBorder = new Border { Background = Brush("#252b33"), Child = header };
         top.Children.Add(headerBorder);
 
@@ -358,6 +392,12 @@ internal sealed class MainWindow : Window
                 playPauseButton.IsEnabled = videoLoaded;
                 playPauseButton.Content = videoSession.IsPlaying ? "Pause" : "Play";
             }
+            if (speedDownButton is not null) speedDownButton.IsEnabled = videoLoaded;
+            if (speedUpButton is not null) speedUpButton.IsEnabled = videoLoaded;
+            if (loopButton is not null) loopButton.IsEnabled = videoLoaded;
+            if (jumpBackButton is not null) jumpBackButton.IsEnabled = videoLoaded;
+            if (jumpForwardButton is not null) jumpForwardButton.IsEnabled = videoLoaded;
+            if (speedLabel is not null) speedLabel.Text = $"{videoSession.PlaybackRate:P0}";
             previous.IsEnabled = videoLoaded && videoSession.CanStepBackward;
             next.IsEnabled = videoLoaded && videoSession.CanStepForward;
             viewport.InvalidateVisual();
@@ -382,6 +422,11 @@ internal sealed class MainWindow : Window
             playPauseButton.IsEnabled = false;
             playPauseButton.Content = "Play";
         }
+        if (speedDownButton is not null) speedDownButton.IsEnabled = false;
+        if (speedUpButton is not null) speedUpButton.IsEnabled = false;
+        if (loopButton is not null) loopButton.IsEnabled = false;
+        if (jumpBackButton is not null) jumpBackButton.IsEnabled = false;
+        if (jumpForwardButton is not null) jumpForwardButton.IsEnabled = false;
         viewport.InvalidateVisual();
     }
 
@@ -393,14 +438,40 @@ internal sealed class MainWindow : Window
             _ = PickAndOpenAsync();
             e.Handled = true;
         }
+
         else if (control && e.Key == Key.OemComma)
         {
             _ = ShowPreferencesAsync();
             e.Handled = true;
         }
         else if ((control && e.Key == Key.W) || e.Key == Key.Escape)
+
+        else if (control && (e.Key == Key.W || e.Key == Key.F4))
         {
             _ = CloseActiveAsync();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            viewport.Fit();
+            e.Handled = true;
+        }
+        else if (activeVideo && (e.Key == Key.Up || e.Key == Key.Down))
+        {
+            ChangePlaybackSpeed(large: !e.KeyModifiers.HasFlag(KeyModifiers.Shift), increase: e.Key == Key.Up);
+            e.Handled = true;
+        }
+        else if (activeVideo && (e.Key == Key.PageUp || e.Key == Key.PageDown))
+        {
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+                _ = JumpBySecondsAsync(e.Key == Key.PageDown ? 0.5 : -0.5);
+            else
+                _ = JumpByTimelinePercentAsync(e.Key == Key.PageDown);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Left && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && activeVideo && videoSession.CurrentTimestamp <= videoSession.TimelineStart)
+        {
+            _ = videoSession.SeekAsync(videoSession.TimelineEnd);
             e.Handled = true;
         }
         else if (e.Key == Key.Right)
@@ -509,7 +580,7 @@ internal sealed class MainWindow : Window
         videoTickRunning = true;
         try
         {
-            await videoSession.PlaybackTickAsync();
+            await videoSession.PlaybackTickAsync(IsLoopPlaybackEnabled);
             if (!videoSession.IsPlaying)
                 videoTimer.Stop();
             Refresh();
@@ -525,6 +596,58 @@ internal sealed class MainWindow : Window
             videoTickRunning = false;
         }
     }
+
+    private bool IsLoopPlaybackEnabled => loopButton?.Tag is not bool enabled || enabled;
+
+    private void ChangePlaybackSpeed(bool large, bool increase)
+    {
+        if (!activeVideo || videoSession.Status != PortablePlayerStatus.Open) return;
+        videoSession.SetPlaybackRate(StepPlaybackRate(videoSession.PlaybackRate, large, increase));
+        WriteSmokeReport();
+    }
+
+    private static double StepPlaybackRate(double current, bool large, bool increase)
+    {
+        bool belowNormal = current < 1.0 || current == 1.0 && !increase;
+        double minimum = belowNormal ? 0.0 : 1.0;
+        double maximum = belowNormal ? 1.0 : 10.0;
+        double increment = belowNormal ? (large ? 0.1 : 0.01) : (large ? 1.0 : 0.1);
+        double index = (current - minimum) / increment;
+        double nearest = Math.Round(index);
+        if (Math.Abs(index - nearest) < 1e-3) index = nearest;
+        double next = increase ? Math.Floor(index) + 1 : Math.Ceiling(index) - 1;
+        next = Math.Clamp(next, 0, (maximum - minimum) / increment);
+        return Math.Max(0.01, Math.Round(minimum + next * increment, 3));
+    }
+
+    private async Task JumpBySecondsAsync(double seconds)
+    {
+        if (!activeVideo || videoSession.Metadata is not { } metadata) return;
+        long delta = (long)Math.Round(seconds * metadata.TimeBaseDenominator / metadata.TimeBaseNumerator);
+        long target = SaturatingAdd(videoSession.CurrentTimestamp, delta);
+        await videoSession.SeekAsync(Math.Clamp(target, videoSession.TimelineStart, videoSession.TimelineEnd));
+    }
+
+    private async Task JumpByTimelinePercentAsync(bool forward)
+    {
+        if (!activeVideo || videoSession.Metadata is not { } metadata) return;
+        decimal frameDuration = (decimal)metadata.TimeBaseDenominator /
+            metadata.TimeBaseNumerator / (decimal)Math.Max(metadata.AverageFrameRate, 1e-9);
+        decimal range = Math.Max(1, videoSession.TimelineEnd - videoSession.TimelineStart + frameDuration);
+        decimal step = range / 10m;
+        decimal index = (videoSession.CurrentTimestamp - videoSession.TimelineStart) / range * 10m;
+        decimal nearest = Math.Round(index);
+        decimal frameTolerance = frameDuration / range * 10m;
+        if (Math.Abs(index - nearest) < frameTolerance) index = nearest;
+        decimal next = forward ? decimal.Floor(index) + 1 : decimal.Ceiling(index) - 1;
+        next = Math.Clamp(next, 0m, 10m);
+        long target = (long)Math.Round(videoSession.TimelineStart + next * step);
+        await videoSession.SeekAsync(Math.Clamp(target, videoSession.TimelineStart, videoSession.TimelineEnd));
+    }
+
+    private static long SaturatingAdd(long left, long right) =>
+        right > 0 && left > long.MaxValue - right ? long.MaxValue :
+        right < 0 && left < long.MinValue - right ? long.MinValue : left + right;
 
     private static bool IsVideoPath(string path) => Path.GetExtension(path).ToLowerInvariant() is
         ".mp4" or ".mkv" or ".mov" or ".avi" or ".webm" or ".m4v" or ".gif";
@@ -627,6 +750,8 @@ internal sealed class MainWindow : Window
             readerState = videoSession.Status.ToString(),
             errorMessage = videoSession.ErrorMessage,
             isPlaying = videoSession.IsPlaying,
+            playbackRate = videoSession.PlaybackRate,
+            loopPlayback = IsLoopPlaybackEnabled,
             presentationCopyCount = videoSession.PresentationCopies,
             presentationBytesCopied = videoSession.PresentationBytesCopied,
             windowLogicalWidth = clientSize.Width,
@@ -639,6 +764,12 @@ internal sealed class MainWindow : Window
             zoom = viewport.Zoom,
             panX = viewport.Pan.X,
             panY = viewport.Pan.Y,
+            playPauseButton = ControlBounds(playPauseButton),
+            loopButton = ControlBounds(loopButton),
+            speedDownButton = ControlBounds(speedDownButton),
+            speedUpButton = ControlBounds(speedUpButton),
+            jumpBackButton = ControlBounds(jumpBackButton),
+            jumpForwardButton = ControlBounds(jumpForwardButton),
             processId = Environment.ProcessId
         };
         string fullPath = Path.GetFullPath(smokeReportPath);

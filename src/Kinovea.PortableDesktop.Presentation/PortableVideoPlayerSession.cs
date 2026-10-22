@@ -36,6 +36,7 @@ public sealed class PortableVideoPlayerSession : IAsyncDisposable
     public bool CanStepBackward => reader is not null && knownTimestamps.Any(timestamp => timestamp < currentTimestamp);
     public bool CanStepForward => reader is not null && Status == PortablePlayerStatus.Open;
     public bool IsPlaying => playbackClock?.IsPlaying == true;
+    public double PlaybackRate => playbackClock?.SpeedFactor ?? 1.0;
     public long PresentationCopies { get; private set; }
     public long PresentationBytesCopied { get; private set; }
 
@@ -151,6 +152,8 @@ public sealed class PortableVideoPlayerSession : IAsyncDisposable
                     throw new InvalidDataException("No video frame exists at or after the requested timestamp.");
             });
             Present(frame!);
+            if (playbackClock?.IsPlaying == true)
+                playbackClock.Play(currentTimestamp);
             return true;
         }
         finally { operationGate.Release(); }
@@ -170,8 +173,17 @@ public sealed class PortableVideoPlayerSession : IAsyncDisposable
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    public void SetPlaybackRate(double rate)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (playbackClock is null)
+            return;
+        playbackClock.SetSpeedFactor(rate);
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>Call periodically from the UI timer; decode work is asynchronous.</summary>
-    public async Task<bool> PlaybackTickAsync()
+    public async Task<bool> PlaybackTickAsync(bool loopAtEnd = true)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         if (playbackClock is not { IsPlaying: true }) return false;
@@ -185,6 +197,19 @@ public sealed class PortableVideoPlayerSession : IAsyncDisposable
                 bool read = await Task.Run(() => reader.ReadNext(out next) && next is not null);
                 if (!read)
                 {
+                    if (loopAtEnd)
+                    {
+                        PortableVideoFrame? first = null;
+                        await Task.Run(() =>
+                        {
+                            reader.Seek(TimelineStart);
+                            if (!reader.ReadNext(out first) || first is null)
+                                throw new InvalidDataException("Could not decode the first frame after looping.");
+                        });
+                        Present(first!);
+                        playbackClock.Play(currentTimestamp);
+                        return true;
+                    }
                     playbackClock.Pause();
                     Changed?.Invoke(this, EventArgs.Empty);
                     return false;

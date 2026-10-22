@@ -15,6 +15,10 @@
 5. **End-to-end:** open/play/seek/annotate/measure/save/reopen/export, on Linux and Windows.
 6. **Nonfunctional:** memory, seek latency, decode throughput, synchronization, leaks under repeat; report platform-specific baselines rather than inventing thresholds.
 
+### Native player GUI scenarios
+
+`tools/native-player/gui-interactions.py`, `viewport-gestures.py`, and `video-smoke.py` run only on a local graphical Linux session. Pass the exact `git rev-parse HEAD` value as `--source-sha`; each scenario rejects an incorrect SHA or modified app/smoke sources before launch. Xwayland screenshots target only the process-owned Kinovea window and retry transient drawable errors, recording the number of capture attempts. The Wayland portal picker remains visually uncaptured; selected fixture hashes and resulting player state are asserted. A successful native screenshot does not establish decoder pixel parity, Windows behavior, or legacy timing equivalence. No hosted workflow is triggered by these local scenarios.
+
 ### Static platform API inventory
 
 The static scan is a source map, not evidence that a component builds or executes. Record its source commit, project references, target frameworks, native import library/function names, package/native SDK references, and exact source locations. Treat `using System.Drawing` as a search hint rather than proof of GDI+ use because it also supplies geometry/color value types. Separate framework coupling, UI coupling, platform P/Invoke, and native vendor/codec dependencies. Dynamic/reflection-loaded components and indirect native calls remain explicit scan limitations. The 2026-10-22 API inventory is [documented here](evidence/epic01-api-inventory-v1.md); builds, tests, Windows, camera and native execution for that inventory are `NOT_RUN`.
