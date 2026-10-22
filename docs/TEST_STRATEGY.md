@@ -15,6 +15,16 @@
 5. **End-to-end:** open/play/seek/annotate/measure/save/reopen/export, on Linux and Windows.
 6. **Nonfunctional:** memory, seek latency, decode throughput, synchronization, leaks under repeat; report platform-specific baselines rather than inventing thresholds.
 
+### Epic 04 portable analysis contracts
+
+The isolated `Kinovea.PortableAnalysis` suite checks the contract introduced in ADR 0011: linear and perspective known-answer points, image/world inverse mapping, JSON save/reopen with vector field settings, invalid calibration inputs, timestamp ordering/exact lookup/linear interpolation/clamping/replacement, reversible state transitions and redo invalidation, and clipboard payload serialization. Run it with:
+
+```sh
+dotnet run --project tests/Kinovea.PortableAnalysis.Tests/Kinovea.PortableAnalysis.Tests.csproj --configuration Release
+```
+
+These authored fixtures test only the new contract. Before claiming legacy equivalence, add Windows or Wine characterization for `CalibratorPlane`/`ProjectiveMapper` and `CalibrationHelper` (including line axes, rounding and distortion), `DrawingTrack` timestamp selection and actual kinematics, keyframe mutation plus KVA save/reopen, `HistoryStack` memento effects/events/deduplication, and OS clipboard interaction. See [Epic 04 evidence](evidence/epic04-portable-analysis-contracts-v1.md); no legacy oracle is currently recorded.
+
 ### Native player GUI scenarios
 
 `tools/native-player/gui-interactions.py`, `viewport-gestures.py`, and `video-smoke.py` run only on a local graphical Linux session. Pass the exact `git rev-parse HEAD` value as `--source-sha`; each scenario rejects an incorrect SHA or modified app/smoke sources before launch. Xwayland screenshots target only the process-owned Kinovea window and retry transient drawable errors, recording the number of capture attempts. The Wayland portal picker remains visually uncaptured; selected fixture hashes and resulting player state are asserted. A successful native screenshot does not establish decoder pixel parity, Windows behavior, or legacy timing equivalence. No hosted workflow is triggered by these local scenarios.
@@ -82,6 +92,17 @@ dotnet run --project tests/Geometry.Characterization/Geometry.Characterization.c
 ```
 
 The suite uses exact comparisons where values are exactly representable and a documented `1e-6` absolute tolerance for float vectors/matrices. It covers arithmetic, tie rules, normalization including zero, construction/indexing, rotations, determinant/inverse, singular and near-singular inputs, transpose products, pseudo-inverse, and SVD reconstruction. It is Linux source characterization only; Windows parity remains `UNVERIFIED`.
+
+## Portable coordinate and viewport transform contract
+`Kinovea.PortableGeometry` is a BCL-only `net10.0` library. `tests/Kinovea.PortableGeometry.Tests` exercises image-edge and viewport-logical-pixel coordinates, aspect-fit and letterbox offsets, forward/inverse mappings, pan units, anchored zoom, and invalid extents/zoom/pan. Run:
+
+```sh
+dotnet run --project tests/Kinovea.PortableGeometry.Tests/Kinovea.PortableGeometry.Tests.csproj --configuration Release
+dotnet build tests/Kinovea.PortableDesktop.Tests/Kinovea.PortableDesktop.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false -p:RestoreIgnoreFailedSources=true -m:1
+dotnet run --no-build --project tests/Kinovea.PortableDesktop.Tests/Kinovea.PortableDesktop.Tests.csproj --configuration Release -- --viewport-only
+```
+
+The second command checks the presentation caller's existing viewport expectations without initializing Avalonia's display backend. These tests establish the new transform contract and its caller integration, not legacy ProjectiveMapper/calibration parity. Legacy arithmetic and ProjectiveMapper remain separately source-characterized below; Windows legacy comparison remains `NOT_RUN`.
 
 ## Projective mapping source characterization
 `tests/ProjectiveMapper.Characterization` links the exact `ProjectiveMapper.cs`, `Vector3.cs`, and `Ellipse.cs` sources under `net10.0`. The harness supplies a narrow `QuadrilateralF` substitute with the production vertex/indexer/constructor contract because production `QuadrilateralF` also depends on GDI+ drawing APIs, plus a no-op log4net surface because the mapper only constructs but does not call its logger during tested paths. Run:
@@ -256,3 +277,14 @@ Video playback requires a separate regression path from the still-image shell. A
 The dual-player timeline is tested without display initialization using `dotnet tests/Kinovea.PortableDesktop.Tests/bin/Release/net10.0/linux-x64/Kinovea.PortableDesktop.Tests.dll --timeline-only` (12 assertions for mixed rational timebases, common seconds, clamp behavior and slider mapping). The complete Avalonia presentation/player suite passes 127 assertions when run from the local Xwayland session. A local browser screenshot confirms directory contents and BMP/JPEG thumbnails after the window-open initialization path. Exact commands, source SHA, screenshot hash and GUI smoke results are in [Epic 03 evidence](evidence/epic03-browser-comparison-v1.md).
 
 The dual comparison window itself, two-pane media loading, drag gestures and linked playback timing still need direct GUI exercises. The timeline unit tests establish timestamp mapping only; they do not establish visual synchronization, legacy equivalence, or Windows behavior.
+
+### Epic 04 portable drawing domain
+
+`tests/PortableDrawing.Tests` exercises the standalone `Kinovea.PortableDrawing` `net10.0` domain. Its deterministic assertions cover line and angle measurements, mapped distance/angle calculations, signed and unsigned angle conventions, supplementary and clockwise options, line/angle handles and translation, time-segment fraction clamping and timestamp interpolation, minimum time-line length after endpoint edits, collection hit order, selection, manipulation, removal, and misses. Run:
+
+```sh
+dotnet build tests/PortableDrawing.Tests/PortableDrawing.Tests.csproj -c Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false -m:1
+dotnet tests/PortableDrawing.Tests/bin/Release/net10.0/PortableDrawing.Tests.dll
+```
+
+These are source-derived portable-domain checks, not an execution of the legacy .NET Framework drawing classes or a Wine/Windows visual comparison. `AbstractDrawing.Draw`, GDI+ hit regions, WinForms gesture handling, KVA persistence, fading, tracking, keyframes, and undo/redo remain separate. The initial result is recorded in [Epic 04 evidence](evidence/epic04-portable-drawing-v1.md); legacy parity remains `UNVERIFIED`.

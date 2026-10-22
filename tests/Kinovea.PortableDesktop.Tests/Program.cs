@@ -6,6 +6,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Kinovea.PortableFrameGenerator;
 using Kinovea.PortableDesktop.Presentation;
+using Kinovea.PortableGeometry;
 using Kinovea.PortableReaderShell;
 
 internal static class Program
@@ -16,6 +17,12 @@ internal static class Program
     {
         try
         {
+            if (args.Length == 1 && args[0] == "--viewport-only")
+            {
+                TestViewportTransform();
+                Console.WriteLine($"Portable desktop viewport integration tests: PASS ({assertions} assertions)");
+                return 0;
+            }
             if (args.Length == 1 && args[0] == "--capture-contract-only")
             {
                 TestApplicationStatePersistence();
@@ -132,33 +139,33 @@ internal static class Program
 
     private static void TestViewportTransform()
     {
-        var portrait = ViewportTransform.Create(276, 398, new Size(1000, 600));
+        var portrait = ViewportTransform.Create(276, 398, new Size2D(1000, 600));
         Near(600d / 398, portrait.Scale, 1e-12, "portrait fit scale");
         Near(1000, portrait.ImageRectangle.Width + (portrait.Offset.X * 2), 1e-9, "portrait centered horizontal offset");
-        Point center = portrait.ImageToViewport(new Point(138, 199));
+        Point2D center = portrait.ImageToViewport(new Point2D(138, 199));
         Near(500, center.X, 1e-9, "portrait center x");
         Near(300, center.Y, 1e-9, "portrait center y");
-        Point roundTrip = portrait.ViewportToImage(center);
+        Point2D roundTrip = portrait.ViewportToImage(center);
         Near(138, roundTrip.X, 1e-10, "image to viewport x round trip");
         Near(199, roundTrip.Y, 1e-10, "image to viewport y round trip");
 
-        var landscape = ViewportTransform.Create(1280, 720, new Size(900, 700));
+        var landscape = ViewportTransform.Create(1280, 720, new Size2D(900, 700));
         Near(900, landscape.ImageRectangle.Width, 1e-9, "landscape fits width");
         Near(506.25, landscape.ImageRectangle.Height, 1e-9, "landscape aspect ratio preserved");
-        var resized = ViewportTransform.Create(1280, 720, new Size(500, 800));
+        var resized = ViewportTransform.Create(1280, 720, new Size2D(500, 800));
         Near(500d / 1280, resized.Scale, 1e-12, "resized viewport fit scale");
 
-        Point anchor = new(311.5, 217.25);
-        Point imageAnchor = landscape.ViewportToImage(anchor);
-        Vector zoomPan = ViewportTransform.PanForZoomAt(anchor, imageAnchor, new Size(900, 700), 1280, 720, 2.25);
-        var zoomed = ViewportTransform.Create(1280, 720, new Size(900, 700), 2.25, zoomPan);
-        Point unchangedAnchor = zoomed.ImageToViewport(imageAnchor);
+        Point2D anchor = new(311.5, 217.25);
+        Point2D imageAnchor = landscape.ViewportToImage(anchor);
+        Vector2D zoomPan = ViewportTransform.PanForZoomAt(anchor, imageAnchor, new Size2D(900, 700), 1280, 720, 2.25);
+        var zoomed = ViewportTransform.Create(1280, 720, new Size2D(900, 700), 2.25, zoomPan);
+        Point2D unchangedAnchor = zoomed.ImageToViewport(imageAnchor);
         Near(anchor.X, unchangedAnchor.X, 1e-9, "zoom anchor x remains fixed");
         Near(anchor.Y, unchangedAnchor.Y, 1e-9, "zoom anchor y remains fixed");
 
-        Throws<ArgumentOutOfRangeException>(() => ViewportTransform.Create(0, 10, new Size(20, 20)), "invalid image dimensions rejected");
-        Throws<ArgumentOutOfRangeException>(() => ViewportTransform.Create(10, 10, new Size(0, 20)), "invalid viewport rejected");
-        Throws<ArgumentOutOfRangeException>(() => ViewportTransform.Create(10, 10, new Size(20, 20), 0), "invalid zoom rejected");
+        Throws<ArgumentOutOfRangeException>(() => ViewportTransform.Create(0, 10, new Size2D(20, 20)), "invalid image dimensions rejected");
+        Throws<ArgumentOutOfRangeException>(() => ViewportTransform.Create(10, 10, new Size2D(0, 20)), "invalid viewport rejected");
+        Throws<ArgumentOutOfRangeException>(() => ViewportTransform.Create(10, 10, new Size2D(20, 20), 0), "invalid zoom rejected");
     }
 
     private static void TestPixelAdapter()

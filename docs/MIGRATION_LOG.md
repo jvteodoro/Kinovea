@@ -1,6 +1,20 @@
 # Migration log
 
+## 2026-10-22 — Epic 04 portable analysis contract prototype
+- Baseline: isolated clone based on `origin/port/epic03-desktop` at `ae4c7d964db3024d704717ee0ebb33ad5e185a57`. Claimed Beads `Kinovea-gh43`, `Kinovea-gh44`, and `Kinovea-gh45`; their prerequisite issues #40/#42/#41 remain open. No legacy production code changed.
+- Change: add the standalone `Kinovea.PortableAnalysis` .NET 10 library for four-corner calibration mapping, timestamped vector series, state snapshot undo/redo, and portable drawing clipboard payloads; add JSON options and 34 contract assertions. Record design and limits in [ADR 0011](adr/0011-portable-analysis-contracts.md) and [Epic 04 evidence](evidence/epic04-portable-analysis-contracts-v1.md).
+- Verification: Gentoo Linux x86_64, .NET SDK 10.0.111/runtime 10.0.11; Release library build passed with 0 warnings/errors; `dotnet run --project tests/Kinovea.PortableAnalysis.Tests/Kinovea.PortableAnalysis.Tests.csproj --configuration Release` passed 34 assertions. Legacy execution, Windows/Wine, KVA persistence, hosted Actions and application integration are `NOT_RUN`.
+- Limitations: this is `BUILD_ONLY` contract work, not a port or equivalence result. Calibration rounding/tracking/distortion and mapping parity are unverified. The new vector interpolation rule clamps and interpolates while legacy DrawingTrack display selection is nearest-sample. Undo/redo omits executable mementos, events, and deduplication; clipboard OS/UI behavior is not implemented. See [component matrix](COMPONENT_MATRIX.md).
+
 Append chronological entries; do not erase unsuccessful experiments.
+
+## 2026-10-22 — Epic 04 portable coordinate transform contract
+- Baseline: `origin/port/epic03-desktop` at `ae4c7d964db3024d704717ee0ebb33ad5e185a57`; Gentoo Linux and .NET SDK 10.0.111. The existing desktop `ViewportTransform` was in the presentation assembly and accepted Avalonia geometry types. Existing linked legacy harnesses recorded `Vector3`/`Matrix3x3` (319 assertions) and `ProjectiveMapper` (40 assertions), including degenerate outcomes and the homogeneous backward-Y quirk.
+- Change: added the BCL-only `Kinovea.PortableGeometry` contract with double coordinate/extent/translation/rectangle values and moved the existing viewport fit/mapping/anchor-zoom calculations there without changing their formulas. Adapted the desktop caller at the Avalonia boundary and added an isolated 22-assertion executable suite. No legacy source was edited; no unit conversion, calibration, or ProjectiveMapper behavior was introduced.
+- Verification: see [Epic 04 geometry evidence](evidence/epic04-geometry-v1.md). Portable contract and caller focused tests passed on Linux; legacy source characterization passed. Windows .NET Framework comparison is `NOT_RUN`.
+- Regression evidence: viewport caller expectations are consistent with the pre-existing portable desktop tests; no approved ScreenManager or Windows legacy output is available. Legacy projective/arithmetic characterization is source-execution evidence, not runtime parity.
+- Known limitation: the full Avalonia desktop test entry point requires an X display and could not run in this headless environment. Focused viewport tests bypass display initialization. Coordinate units are explicit for image pixels and viewport logical pixels; physical measurement units and ScreenManager calibration remain outside this slice.
+- Follow-up: use the legacy projective mapper and existing unit/measurement callers in subsequent geometry issues, preserving the documented quirks until an approved Windows oracle exists.
 
 ## 2026-10-11 — initial Linux build investigation
 - Environment: Gentoo Linux; .NET SDK `10.0.111`.
@@ -66,6 +80,7 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Regression evidence: Linux execution of linked source only. No Windows .NET Framework oracle or calibration workflow output is available; parity remains `UNVERIFIED`.
 - Known limitation: production QuadrilateralF, GDI+ operations, real log4net assembly and calibration callers were not run. The characterization pins the parameterless constructor's uninitialized state, invalid-input behaviors, ellipse fixture output, and a suspicious `Backward(Vector3)` Y expression/result; these observations are not an endorsement of the results.
 - Follow-up: compare pinned behaviors against a Windows legacy build before changing/extracting ProjectiveMapper; test production QuadrilateralF and calibration integration when a suitable platform/runtime is available.
+
 
 ## 2026-10-11 — Windows Bitmap characterization infrastructure
 - Baseline: ADR 0002 is `PROPOSED`; `Kinovea.Video.Bitmap` targets net48 and uses the existing GDI+ reader. Linux lacks .NET Framework 4.8 reference assemblies.
@@ -312,3 +327,11 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Verification: Linux .NET 10 Release builds passed for the Avalonia app, PortableVideo tests and desktop presentation tests with 0 warnings/errors. PortableVideo passed 149 assertions, including rate changes while playing and paused; desktop presentation/player passed 115 assertions. Exact-source lifecycle and viewport GUI scenarios passed on Gentoo/KWin/Xwayland at `b3e3fdf3`; the video GUI scenario at `3aef5b26` passed rate shortcuts, loop toggles, play/pause/resume, frame step and loop wrap, then timed out on the later non-loop EOF focus traversal. That behavior is `NOT_ESTABLISHED`; the final focus-count-only harness correction at `312e0aaf` was not rerun. Full details and source-pinned artifacts are in [Epic 03 native player evidence](evidence/epic03-native-player-v1.md).
 - Limitations: speed changes use nominal media rate and legacy step sizes, without the legacy capture-framerate-aware `TimeMapper` or persisted preferences. The native loop control is process-local. Windows, Wine comparison, legacy timing parity and hosted Actions are `NOT_RUN`.
 - Follow-up: characterize non-loop EOF through the native GUI after establishing a stable focus path; compare transport timing against legacy output before claiming behavioral equivalence.
+
+## 2026-10-22 — Epic 04 portable drawing domain — implementation commit recorded in evidence
+- Baseline: isolated checkout from `origin/port/epic03-desktop` at `ae4c7d964db3024d704717ee0ebb33ad5e185a57`. Inspected `AbstractDrawing`, `DrawingLine`, `DrawingAngle`, `DrawingTimeSegment`, `HitTester`, `Metadata.DrawingsHitTest`, `GeometryHelper`, `AngleHelper`, `CalibrationHelper.GetLengthText`, and `Metadata.GetFractionTime`.
+- Change: added an opt-in BCL-only `net10.0` project for basic image-space line, angle, and time-segment overlays, collection selection/manipulation, point calibration, and numeric measurements. Legacy projects and sources were not changed. Added ADR 0011, matrix and strategy entries, and exact local evidence. No hosted Actions workflow was added or run.
+- Verification: on Gentoo Linux 2.18 x64 with .NET SDK `10.0.111` / runtime `10.0.11`, `dotnet build tests/PortableDrawing.Tests/PortableDrawing.Tests.csproj -c Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false -m:1` succeeded with zero warnings/errors; the console suite passed 36 assertions. `git diff --check` passed. Windows and Wine legacy comparison are `NOT_RUN`.
+- Regression evidence: none. The checks are source-derived portable contract assertions; behavior remains `UNVERIFIED` against the running legacy application.
+- Known limitations: no rendering or desktop integration; explicit image-space Euclidean hit tolerance differs from legacy viewport-scaled square handles and GDI+ path regions; angle sweep-region selection, KVA persistence, fading, tracking/distortion, keyframes, calibration UI, and undo/redo are not included. See `docs/evidence/epic04-portable-drawing-v1.md` and ADR 0011.
+- Follow-up: capture the legacy line/angle/time-segment hit and measurement outputs on a supported Windows/Wine setup, then adapt UI rendering/gestures behind a portable presentation boundary.
