@@ -2,6 +2,14 @@
 
 Append chronological entries; do not erase unsuccessful experiments.
 
+## 2026-10-22 — Epic 04 portable coordinate transform contract
+- Baseline: `origin/port/epic03-desktop` at `ae4c7d964db3024d704717ee0ebb33ad5e185a57`; Gentoo Linux and .NET SDK 10.0.111. The existing desktop `ViewportTransform` was in the presentation assembly and accepted Avalonia geometry types. Existing linked legacy harnesses recorded `Vector3`/`Matrix3x3` (319 assertions) and `ProjectiveMapper` (40 assertions), including degenerate outcomes and the homogeneous backward-Y quirk.
+- Change: added the BCL-only `Kinovea.PortableGeometry` contract with double coordinate/extent/translation/rectangle values and moved the existing viewport fit/mapping/anchor-zoom calculations there without changing their formulas. Adapted the desktop caller at the Avalonia boundary and added an isolated 22-assertion executable suite. No legacy source was edited; no unit conversion, calibration, or ProjectiveMapper behavior was introduced.
+- Verification: see [Epic 04 geometry evidence](evidence/epic04-geometry-v1.md). Portable contract and caller focused tests passed on Linux; legacy source characterization passed. Windows .NET Framework comparison is `NOT_RUN`.
+- Regression evidence: viewport caller expectations are consistent with the pre-existing portable desktop tests; no approved ScreenManager or Windows legacy output is available. Legacy projective/arithmetic characterization is source-execution evidence, not runtime parity.
+- Known limitation: the full Avalonia desktop test entry point requires an X display and could not run in this headless environment. Focused viewport tests bypass display initialization. Coordinate units are explicit for image pixels and viewport logical pixels; physical measurement units and ScreenManager calibration remain outside this slice.
+- Follow-up: use the legacy projective mapper and existing unit/measurement callers in subsequent geometry issues, preserving the documented quirks until an approved Windows oracle exists.
+
 ## 2026-10-11 — initial Linux build investigation
 - Environment: Gentoo Linux; .NET SDK `10.0.111`.
 - Initial build of `Kinovea.VS2019.sln`: missing `Kinovea.Video.GIF/Kinovea.Video.GIF.csproj` (`MSB3202`) owing to casing mismatch with `Kinovea.Video.Gif` directory and project file.

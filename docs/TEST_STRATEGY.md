@@ -83,6 +83,17 @@ dotnet run --project tests/Geometry.Characterization/Geometry.Characterization.c
 
 The suite uses exact comparisons where values are exactly representable and a documented `1e-6` absolute tolerance for float vectors/matrices. It covers arithmetic, tie rules, normalization including zero, construction/indexing, rotations, determinant/inverse, singular and near-singular inputs, transpose products, pseudo-inverse, and SVD reconstruction. It is Linux source characterization only; Windows parity remains `UNVERIFIED`.
 
+## Portable coordinate and viewport transform contract
+`Kinovea.PortableGeometry` is a BCL-only `net10.0` library. `tests/Kinovea.PortableGeometry.Tests` exercises image-edge and viewport-logical-pixel coordinates, aspect-fit and letterbox offsets, forward/inverse mappings, pan units, anchored zoom, and invalid extents/zoom/pan. Run:
+
+```sh
+dotnet run --project tests/Kinovea.PortableGeometry.Tests/Kinovea.PortableGeometry.Tests.csproj --configuration Release
+dotnet build tests/Kinovea.PortableDesktop.Tests/Kinovea.PortableDesktop.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false -p:RestoreIgnoreFailedSources=true -m:1
+dotnet run --no-build --project tests/Kinovea.PortableDesktop.Tests/Kinovea.PortableDesktop.Tests.csproj --configuration Release -- --viewport-only
+```
+
+The second command checks the presentation caller's existing viewport expectations without initializing Avalonia's display backend. These tests establish the new transform contract and its caller integration, not legacy ProjectiveMapper/calibration parity. Legacy arithmetic and ProjectiveMapper remain separately source-characterized below; Windows legacy comparison remains `NOT_RUN`.
+
 ## Projective mapping source characterization
 `tests/ProjectiveMapper.Characterization` links the exact `ProjectiveMapper.cs`, `Vector3.cs`, and `Ellipse.cs` sources under `net10.0`. The harness supplies a narrow `QuadrilateralF` substitute with the production vertex/indexer/constructor contract because production `QuadrilateralF` also depends on GDI+ drawing APIs, plus a no-op log4net surface because the mapper only constructs but does not call its logger during tested paths. Run:
 
