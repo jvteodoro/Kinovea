@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Kinovea.PortableDesktop.Presentation;
 using Kinovea.PortableReaderShell;
@@ -40,15 +41,19 @@ internal sealed class MainWindow : Window
     private bool activeVideo;
     private bool videoTickRunning;
     private readonly DispatcherTimer videoTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private readonly PortableApplicationState appState;
+    private readonly PortableApplicationStateStore stateStore;
 
-    public MainWindow(string[] args)
+    public MainWindow(string[] args, PortableApplicationState appState, PortableApplicationStateStore stateStore)
     {
+        this.appState = appState;
+        this.stateStore = stateStore;
         Title = "Kinovea Native Player";
-        Width = 1120;
-        Height = 760;
+        Width = appState.WindowWidth;
+        Height = appState.WindowHeight;
         MinWidth = 720;
         MinHeight = 480;
-        Background = Brush("#20252c");
+        Background = Brush(appState.Theme == "Light" ? "#eef1f5" : "#20252c");
         initialPath = Argument(args, "--open");
         initialVideoPath = Argument(args, "--open-video");
         smokeReportPath = Argument(args, "--smoke-report");
@@ -81,6 +86,12 @@ internal sealed class MainWindow : Window
         KeyDown += WindowKeyDown;
         Closed += (_, _) => session.Dispose();
         Closed += async (_, _) => await videoSession.DisposeAsync();
+        Closed += (_, _) => SaveApplicationState();
+        SizeChanged += (_, _) =>
+        {
+            appState.WindowWidth = Math.Clamp(Width, 720, 16384);
+            appState.WindowHeight = Math.Clamp(Height, 480, 16384);
+        };
         Refresh();
     }
 
@@ -146,6 +157,13 @@ internal sealed class MainWindow : Window
         header.Children.Add(status);
 
         var top = new StackPanel { Orientation = Orientation.Vertical };
+        var menu = new PortableDesktopMenu(appState);
+        menu.OpenImageRequested += async (_, _) => await PickAndOpenAsync();
+        menu.CloseMediaRequested += async (_, _) => await CloseActiveAsync();
+        menu.PreferencesRequested += async (_, _) => await ShowPreferencesAsync();
+        menu.CaptureRequested += (_, layout) => new CaptureWorkspaceWindow(layout, appState.SyntheticCaptureIntervalMilliseconds, appState.UiCulture).Show(this);
+        menu.SaveWorkspaceRequested += (_, _) => SaveApplicationState();
+        top.Children.Add(menu);
         var toolbarBorder = new Border { Background = Brush("#2b323b"), Child = toolbar, Padding = new Thickness(6) };
         top.Children.Add(toolbarBorder);
         var headerBorder = new Border { Background = Brush("#252b33"), Child = header };
@@ -223,7 +241,12 @@ internal sealed class MainWindow : Window
         }
         lastOpenResult = opened ? "Opened" : "Rejected";
         if (opened)
+        {
+            appState.LastOpenPath = Path.GetFullPath(path);
+            appState.LastOpenDirectory = Path.GetDirectoryName(appState.LastOpenPath);
             visibleFrameRendered = false;
+            SaveApplicationState();
+        }
         if (!opened)
             WriteSmokeReport();
         Refresh();
@@ -322,9 +345,14 @@ internal sealed class MainWindow : Window
     private void WindowKeyDown(object? sender, KeyEventArgs e)
     {
         bool control = e.KeyModifiers.HasFlag(KeyModifiers.Control);
-        if (control && e.Key == Key.O)
+        if (control && e.Key == Key.O && e.KeyModifiers.HasFlag(KeyModifiers.Shift) == (appState.OpenShortcut == "Ctrl+Shift+O"))
         {
             _ = PickAndOpenAsync();
+            e.Handled = true;
+        }
+        else if (control && e.Key == Key.OemComma)
+        {
+            _ = ShowPreferencesAsync();
             e.Handled = true;
         }
         else if ((control && e.Key == Key.W) || e.Key == Key.Escape)
@@ -359,6 +387,23 @@ internal sealed class MainWindow : Window
             TogglePlayback();
             e.Handled = true;
         }
+    }
+
+    private async Task ShowPreferencesAsync()
+    {
+        var dialog = new PreferencesWindow(appState);
+        bool? saved = await dialog.ShowDialog<bool?>(this);
+        if (saved != true) return;
+        Application.Current!.RequestedThemeVariant = appState.Theme == "Light" ? ThemeVariant.Light : ThemeVariant.Dark;
+        Background = Brush(appState.Theme == "Light" ? "#eef1f5" : "#20252c");
+        SaveApplicationState();
+    }
+
+    private void SaveApplicationState()
+    {
+        try { stateStore.Save(appState); }
+        catch (IOException exception) { status.Text = $"Could not save preferences ({exception.GetType().Name})."; }
+        catch (UnauthorizedAccessException) { status.Text = "Could not save preferences (access denied)."; }
     }
 
     private async Task StepForwardAsync()
