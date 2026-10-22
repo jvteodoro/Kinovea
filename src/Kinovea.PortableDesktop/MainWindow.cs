@@ -141,7 +141,11 @@ internal sealed class MainWindow : Window
         var loop = loopButton = new Button { Content = "Loop: On", Margin = new Thickness(4), IsEnabled = false };
         var jumpBack = jumpBackButton = new Button { Content = "−0.5 s", Margin = new Thickness(4), IsEnabled = false };
         var jumpForward = jumpForwardButton = new Button { Content = "+0.5 s", Margin = new Thickness(4), IsEnabled = false };
-        viewport.ZoomChanged += zoom => zoomLabel.Text = zoom == 1 ? "Fit" : $"{zoom:P0}";
+        viewport.ZoomChanged += zoom =>
+        {
+            zoomLabel.Text = zoom == 1 ? "Fit" : $"{zoom:P0}";
+            WriteSmokeReport();
+        };
         var emptyHint = emptyHintText = new TextBlock
         {
             Text = "Open a BMP, PNG, JPEG, GIF, or video file",
