@@ -1,4 +1,4 @@
-# ADR 0008: Portable media browser and dual-player prototype
+# ADR 0009: Portable media browser and dual-player prototype
 
 - **Status:** PROPOSED
 - **Date:** 2026-10-22
