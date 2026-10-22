@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "mediaType": "video",
+  "status": "EMPTY",
+  "sourceSha": "3aef5b2604477adf351ec9cbd72cdd0364dc5345",
+  "fileName": null,
+  "inputSha256": null,
+  "width": null,
+  "height": null,
+  "framesPerSecond": null,
+  "timestamp": 0,
+  "timestampTimeBaseNumerator": null,
+  "timestampTimeBaseDenominator": null,
+  "previousTimestampSemantics": "last decoded frame in current read sequence; reset on seek",
+  "workingZoneStart": 0,
+  "workingZoneEnd": 0,
+  "codec": null,
+  "nativeFfmpegVersions": {
+    "AvFormat": "62.12.102",
+    "AvCodec": "62.28.102",
+    "AvUtil": "60.26.102",
+    "SwScale": "9.5.102"
+  },
+  "readerState": "Empty",
+  "errorMessage": null,
+  "isPlaying": false,
+  "playbackRate": 2,
+  "loopPlayback": true,
+  "presentationCopyCount": 10,
+  "presentationBytesCopied": 92160,
+  "windowLogicalWidth": 1120,
+  "windowLogicalHeight": 646,
+  "renderScaling": 1,
+  "viewportLogicalX": 0,
+  "viewportLogicalY": 171.33333333333334,
+  "viewportLogicalWidth": 1120,
+  "viewportLogicalHeight": 474.6666666666667,
+  "zoom": 1,
+  "panX": 0,
+  "panY": 0,
+  "playPauseButton": {
+    "x": 190,
+    "y": 15.333333333333334,
+    "width": 46,
+    "height": 30.666666666666668
+  },
+  "loopButton": {
+    "x": 212.66666666666666,
+    "y": 66,
+    "width": 76.66666666666667,
+    "height": 30.666666666666668
+  },
+  "speedDownButton": {
+    "x": 10,
+    "y": 66,
+    "width": 69.33333333333333,
+    "height": 30.666666666666668
+  },
+  "speedUpButton": {
+    "x": 135.33333333333334,
+    "y": 66,
+    "width": 69.33333333333333,
+    "height": 30.666666666666668
+  },
+  "jumpBackButton": {
+    "x": 329.3333333333333,
+    "y": 66,
+    "width": 57.333333333333336,
+    "height": 30.666666666666668
+  },
+  "jumpForwardButton": {
+    "x": 394.6666666666667,
+    "y": 66,
+    "width": 57.333333333333336,
+    "height": 30.666666666666668
+  },
+  "processId": 1565418
+}

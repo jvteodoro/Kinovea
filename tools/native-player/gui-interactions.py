@@ -24,6 +24,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools" / "wine-oracle"))
 import oracle
+import xwayland_capture
 
 
 def sha256(path: Path) -> str:
@@ -273,14 +274,14 @@ def wait_for(path: Path, predicate, description: str, timeout: float = 12) -> di
 
 def capture(window: dict, output: Path) -> dict:
     output.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "x11grab", "-window_id", window["id"], "-i", os.environ["DISPLAY"], "-frames:v", "1", "-y", str(output)], check=True)
+    captured = xwayland_capture.capture(window, output)
     stats = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(output), "-vf", "signalstats,metadata=print", "-frames:v", "1", "-f", "null", "-"], check=True, capture_output=True, text=True).stderr
     import re
     match = re.search(r"lavfi\.signalstats\.YAVG=([0-9.]+)", stats)
     y_average = float(match.group(1)) if match else None
     if y_average is None or y_average <= 20:
         raise RuntimeError(f"process-owned window screenshot is blank or occluded (YAVG={y_average})")
-    return {"file": output.name, "sha256": sha256(output), "method": "ffmpeg x11grab -window_id", "size": window_geometry(window["id"]), "lumaAverage": y_average}
+    return {"file": output.name, "sha256": sha256(output), "method": captured["captureMethod"], "captureAttempts": captured["captureAttempts"], "size": window_geometry(window["id"]), "lumaAverage": y_average}
 
 
 def process_resources(pid: int) -> dict:
@@ -419,6 +420,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--source-sha", required=True)
     args = parser.parse_args()
+    xwayland_capture.verify_source_sha(REPO, args.source_sha)
     assembly = args.assembly.resolve(); output = args.output.resolve()
     fixtures = {"png": args.png.resolve(), "bmp": args.bmp.resolve(), "corrupt": args.corrupt.resolve(), "alpha": args.alpha.resolve()}
     for name, path in fixtures.items():

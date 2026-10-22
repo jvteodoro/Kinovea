@@ -2,6 +2,12 @@
 
 These scripts exercise the actual `Kinovea.PortableDesktop` Avalonia process on a local Linux graphical session. They are local diagnostics; they do not use GitHub Actions or modify the legacy application.
 
+## Video player controls
+
+The native prototype exposes Play/Pause, frame stepping, a timestamp seekbar, 0.5-second jumps, snapped 10% jumps, playback speed and a loop toggle. Defaults follow the source-inspected legacy hotkeys: Space toggles playback, Up/Down changes speed by a large step, Shift+Up/Down uses a small step, Page Up/Down jumps by 10%, and Shift+Page Up/Down jumps by 0.5 seconds. Playback loops at EOF by default; the in-window button toggles this for the current process. This prototype does not yet read persisted player preferences or the legacy capture-framerate-aware speed mapping.
+
+`video-smoke.py` checks the visible video session, speed keyboard steps, loop toggle and wrap, enabled/disabled EOF behavior, Home/Page jumps, frame stepping, Play/Pause/Resume and close. The tool requires `--source-sha` to equal the current commit and requires app/smoke source files to be committed at that SHA.
+
 ## Requirements
 
 - Gentoo Linux x86_64 with .NET SDK 10, KWin, Wayland plus Xwayland.
@@ -11,6 +17,8 @@ These scripts exercise the actual `Kinovea.PortableDesktop` Avalonia process on 
 - The deterministic fixtures referenced in `scenarios/gui-interactions-v1.json`.
 
 The scripts raise only the process-owned Kinovea window through KWin before sending keys or pointer input. The native file chooser is a Wayland portal surface, not an X11 client. Its controls cannot be captured with the same window-scoped Xwayland capture method without stealing activation; the scripts report that picker screenshot as `NOT_CAPTURED`. They still verify the selected fixture hash and the resulting visible player state. A failed or blank process-window capture fails the scenario.
+
+Process-window capture retries transient Xwayland drawable/permission errors up to eight times, validates each result with `ffprobe`, and records the successful attempt number. The screenshot remains scoped to the target window.
 
 ## Build and execute
 

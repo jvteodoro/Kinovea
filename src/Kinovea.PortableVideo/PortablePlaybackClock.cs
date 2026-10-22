@@ -20,14 +20,15 @@ public sealed class PortablePlaybackClock
     }
 
     public bool IsPlaying { get; private set; }
+    public double SpeedFactor { get; private set; } = 1.0;
 
     public long TargetTimestamp
     {
         get
         {
             if (!IsPlaying)
-                return SaturatingAdd(mediaAnchor, ToMediaTicks(pausedElapsed));
-            return SaturatingAdd(mediaAnchor, ToMediaTicks(pausedElapsed + timeProvider.GetElapsedTime(wallAnchor)));
+                return SaturatingAdd(mediaAnchor, ToMediaTicks(pausedElapsed, SpeedFactor));
+            return SaturatingAdd(mediaAnchor, ToMediaTicks(pausedElapsed + timeProvider.GetElapsedTime(wallAnchor), SpeedFactor));
         }
     }
 
@@ -68,9 +69,22 @@ public sealed class PortablePlaybackClock
         pausedElapsed = TimeSpan.Zero;
     }
 
-    private long ToMediaTicks(TimeSpan elapsed)
+    /// <summary>Changes playback rate without moving the current media position.</summary>
+    public void SetSpeedFactor(double speedFactor)
     {
-        decimal mediaTicks = (decimal)elapsed.Ticks * timeBaseDenominator /
+        if (!double.IsFinite(speedFactor) || speedFactor < 0.002 || speedFactor > 10.0)
+            throw new ArgumentOutOfRangeException(nameof(speedFactor), "Playback speed must be between 0.002x and 10x.");
+
+        long currentTimestamp = TargetTimestamp;
+        mediaAnchor = currentTimestamp;
+        pausedElapsed = TimeSpan.Zero;
+        wallAnchor = timeProvider.GetTimestamp();
+        SpeedFactor = speedFactor;
+    }
+
+    private long ToMediaTicks(TimeSpan elapsed, double speedFactor)
+    {
+        decimal mediaTicks = (decimal)elapsed.Ticks * timeBaseDenominator * (decimal)speedFactor /
             (TimeSpan.TicksPerSecond * (decimal)timeBaseNumerator);
         if (mediaTicks >= long.MaxValue) return long.MaxValue;
         return (long)decimal.Floor(mediaTicks);

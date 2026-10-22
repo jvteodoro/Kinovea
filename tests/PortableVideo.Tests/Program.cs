@@ -37,6 +37,18 @@ Equal(102L, clock.TargetTimestamp, "paused playback clock remains stopped");
 clock.Resume();
 clockTime.Advance(TimeSpan.FromMilliseconds(250));
 Equal(103L, clock.TargetTimestamp, "resumed playback clock continues");
+clock.SetSpeedFactor(2.0);
+Equal(103L, clock.TargetTimestamp, "changing speed preserves current media timestamp");
+clockTime.Advance(TimeSpan.FromMilliseconds(500));
+Equal(107L, clock.TargetTimestamp, "2x playback advances eight media ticks per wall second at 4 ticks per second");
+clock.Pause();
+clock.SetSpeedFactor(0.5);
+clockTime.Advance(TimeSpan.FromSeconds(1));
+Equal(107L, clock.TargetTimestamp, "speed changes while paused do not move media time");
+clock.Resume();
+clockTime.Advance(TimeSpan.FromSeconds(2));
+Equal(111L, clock.TargetTimestamp, "0.5x playback advances two media ticks per wall second at 4 ticks per second");
+Throws<ArgumentOutOfRangeException>(() => clock.SetSpeedFactor(0), "invalid playback rate rejected");
 clock.Stop(42);
 Equal(42L, clock.TargetTimestamp, "stopped clock resets to supplied timestamp");
 
