@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Kinovea.PortableDesktop.Presentation;
+using Kinovea.PortableGeometry;
 
 namespace Kinovea.PortableDesktop;
 
@@ -25,7 +26,8 @@ internal sealed class ImageViewport : Control
 
     public ViewportTransform? Transform => Bitmap is null || Bounds.Width <= 0 || Bounds.Height <= 0
         ? null
-        : ViewportTransform.Create(Bitmap.PixelSize.Width, Bitmap.PixelSize.Height, Bounds.Size, Zoom, Pan);
+        : ViewportTransform.Create(Bitmap.PixelSize.Width, Bitmap.PixelSize.Height,
+            new Size2D(Bounds.Width, Bounds.Height), Zoom, new Vector2D(Pan.X, Pan.Y));
 
     public void SetBitmap(WriteableBitmap? bitmap)
     {
@@ -56,7 +58,9 @@ internal sealed class ImageViewport : Control
         if (Bitmap is null || Transform is not { } transform)
             return;
 
-        context.DrawImage(Bitmap, new Rect(0, 0, Bitmap.PixelSize.Width, Bitmap.PixelSize.Height), transform.ImageRectangle);
+        Rect2D imageRect = transform.ImageRectangle;
+        context.DrawImage(Bitmap, new Rect(0, 0, Bitmap.PixelSize.Width, Bitmap.PixelSize.Height),
+            new Rect(imageRect.X, imageRect.Y, imageRect.Width, imageRect.Height));
         ImageRendered?.Invoke();
     }
 
@@ -116,8 +120,12 @@ internal sealed class ImageViewport : Control
         if (Bitmap is null || Bounds.Width <= 0 || Bounds.Height <= 0)
             return;
         double next = Math.Clamp(zoom, 0.1, 16);
-        Point imagePoint = ViewportTransform.Create(Bitmap.PixelSize.Width, Bitmap.PixelSize.Height, Bounds.Size, Zoom, Pan).ViewportToImage(anchor);
-        Pan = ViewportTransform.PanForZoomAt(anchor, imagePoint, Bounds.Size, Bitmap.PixelSize.Width, Bitmap.PixelSize.Height, next);
+        var viewportSize = new Size2D(Bounds.Width, Bounds.Height);
+        var imagePoint = ViewportTransform.Create(Bitmap.PixelSize.Width, Bitmap.PixelSize.Height, viewportSize, Zoom,
+            new Vector2D(Pan.X, Pan.Y)).ViewportToImage(new Point2D(anchor.X, anchor.Y));
+        Vector2D pan = ViewportTransform.PanForZoomAt(new Point2D(anchor.X, anchor.Y), imagePoint, viewportSize,
+            Bitmap.PixelSize.Width, Bitmap.PixelSize.Height, next);
+        Pan = new Vector(pan.X, pan.Y);
         Zoom = next;
         ZoomChanged?.Invoke(Zoom);
         InvalidateVisual();
