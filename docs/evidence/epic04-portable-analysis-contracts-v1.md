@@ -4,6 +4,8 @@
 
 Addresses the portable-contract implementation slice requested for Beads `Kinovea-gh43` (calibration), `Kinovea-gh44` (timestamped values), and `Kinovea-gh45` (undo/redo and drawing clipboard data). Isolated clone branch `port/epic04-calibration-history`, based on `origin/port/epic03-desktop` SHA `ae4c7d964db3024d704717ee0ebb33ad5e185a57`. The checkout's original projects remain net48. No legacy production source, UI, project references, serialization path, or clipboard integration was changed.
 
+Implementation commit: `312e515d35a247eb5dc86c5c802ebcac0dcaa638`.
+
 Source inspection:
 
 - `Kinovea.ScreenManager/Measurement/Calibration/CalibratorPlane.cs`: maps a world rectangle to an image quadrilateral using `ProjectiveMapper`; default origin aligns to quadrilateral D; grid Y is down and world Y is up; supports line calibration by synthesizing a square; XML stores dimensions, corners, origin, and offset.
