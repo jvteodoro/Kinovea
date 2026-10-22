@@ -209,3 +209,7 @@ DISPLAY=:1 WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 python3 tool
 ```
 
 No hosted workflow ran. The reader package was aligned from SkiaSharp 4.153.1 to Avalonia's 3.119.4 backend because the managed/native ABI versions cannot coexist in this process. Linux reader tests passed after the change; Windows remains `NOT_RUN`. The draft PR HEAD uses `[skip ci]` to keep hosted Actions idle. See [native player v1 evidence](evidence/native-still-image-player-v1.md).
+
+### Isolated FFmpeg native decoder probe
+
+`tests/FFmpegDecoderProbe` is a local-only `net10.0` diagnostic around FFmpeg.AutoGen 8.1.0 and an explicitly selected FFmpeg 8.1 native library directory. Run `dotnet build tests/FFmpegDecoderProbe/FFmpegDecoderProbe.csproj -c Release -m:1`, then `python3 tests/FFmpegDecoderProbe/run_local_checks.py --output-dir /tmp/kinovea-ffmpeg-fixture --library-dir /usr/lib64`. It authors a lossless synthetic 4x2, five-frame FFV1 clip and independent RGBA expectations, verifies full pixel payloads and rational timestamps, repeats three open/decode/cleanup cycles in one process, and asserts corrupt input fails. Local Linux execution passed; Windows and the actual legacy C++/CLI reader comparison are `NOT_RUN`. The local FFmpeg binary is GPL-enabled, so this test does not establish an acceptable deployment configuration. This is diagnostic evidence only, not production backend selection or reader parity; see [FFmpeg probe evidence](evidence/native-ffmpeg-decoder-probe-v1.md).
