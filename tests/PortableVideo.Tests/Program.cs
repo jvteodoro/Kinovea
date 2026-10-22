@@ -92,7 +92,27 @@ reader.Close();
 Near(255, cached.GetRowSpan(cached.Height / 2)[cachedCenter], "cache remains valid after decoder close");
 cache.Clear();
 Equal(0, cache.Count, "cache Clear releases entries");
+Throws<ObjectDisposedException>(() => cached.GetRowSpan(0), "cache Clear invalidates detached entry");
 reader.Dispose();
+
+using (var cacheStressReader = new PortableVideoReader())
+using (var stressCache = new PortableVideoFrameCache(3))
+{
+    // Synchronous bounded-cache stress; this is not a concurrency or native-cache test.
+    for (int iteration = 0; iteration < 25; iteration++)
+    {
+        cacheStressReader.Open(fixture);
+        while (cacheStressReader.ReadNext(out var frame))
+            stressCache.Add(frame!);
+        cacheStressReader.Close();
+        True(stressCache.Count <= stressCache.Capacity, "bounded cache remains within capacity during stress");
+    }
+    True(stressCache.TryGetClosest(frames[^1].Timestamp, out var stressFrame), "stress cache retrieves final detached frame");
+    Equal(frames[^1].Timestamp, stressFrame!.Timestamp, "stress cache retains final timestamp");
+    stressCache.Dispose();
+    stressCache.Dispose();
+    Throws<ObjectDisposedException>(() => stressCache.TryGetClosest(0, out _), "disposed cache rejects lookup");
+}
 
 using (var vfrReader = new PortableVideoReader())
 {
@@ -154,6 +174,14 @@ using (var gifReader = new PortableVideoReader())
     Equal(32, gifMetadata.Width, "GIF width");
     Equal(24, gifMetadata.Height, "GIF height");
     Equal("gif", gifMetadata.CodecName, "GIF codec");
+    gifReader.Seek(40);
+    True(gifReader.ReadNext(out var gifSeek), "GIF exact seek returns frame");
+    Equal(40L, gifSeek!.Timestamp, "GIF exact seek timestamp");
+    gifReader.Seek(0);
+    True(gifReader.ReadNext(out var gifBackwardSeek), "GIF backward seek returns frame");
+    Equal(0L, gifBackwardSeek!.Timestamp, "GIF backward seek timestamp");
+    gifReader.Close();
+    gifReader.Open(gifFixture);
     var gifTimestamps = new List<long>();
     while (gifReader.ReadNext(out var frame))
     {
