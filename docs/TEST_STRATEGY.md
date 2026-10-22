@@ -15,6 +15,16 @@
 5. **End-to-end:** open/play/seek/annotate/measure/save/reopen/export, on Linux and Windows.
 6. **Nonfunctional:** memory, seek latency, decode throughput, synchronization, leaks under repeat; report platform-specific baselines rather than inventing thresholds.
 
+### Static platform API inventory
+
+The static scan is a source map, not evidence that a component builds or executes. Record its source commit, project references, target frameworks, native import library/function names, package/native SDK references, and exact source locations. Treat `using System.Drawing` as a search hint rather than proof of GDI+ use because it also supplies geometry/color value types. Separate framework coupling, UI coupling, platform P/Invoke, and native vendor/codec dependencies. Dynamic/reflection-loaded components and indirect native calls remain explicit scan limitations. The 2026-10-22 API inventory is [documented here](evidence/epic01-api-inventory-v1.md); builds, tests, Windows, camera and native execution for that inventory are `NOT_RUN`.
+
+### Portable frame-source and reader selection contracts
+
+`IPortableFrameSource` exposes synchronous `Open`, timestamp-based `Generate`, `Close`, dimensions and `IsOpen`. It deliberately has no frame-rate or timestamp-unit property; sources return their actual `Timestamp` and `PreviousTimestamp` on `PortableImageFrame`. The default `PortableReaderRegistry` maps `.bmp` and `.png` to the existing image generator. Added registrations select by case-insensitive extension, duplicate registrations fail, and factory instances must be fresh. `PortableReaderShell` continues to provide the characterized still-image profile (25 fps, 40 ms interval, `[0,249]` window); it is not a VFR video navigator. The shell contract suite passed 96 Linux assertions, including source-selected timestamp preservation and replacement/close lifetime. Windows and an executable legacy trace file are `NOT_RUN` in this branch.
+
+`src/Kinovea.PortableServices` links the exact legacy timecode implementation files into a separate `net10.0` assembly. `tests/Timecode.Characterization` references that assembly, preserving the existing 50 source-characterization assertions. This proves the linked code executes on the tested .NET 10/Linux runtime; it does not prove Windows globalization parity or integrate the full net48 Services assembly. Preference storage, logging, WMI, WinForms hotkeys and native helpers remain excluded. See [Epic 01 boundary evidence](evidence/epic01-portable-boundaries-v1.md) for commands and ownership limits.
+
 ## Golden master and oracle policy
 - Prefer legacy test or saved output from a verified Windows baseline. Record legacy version, OS, runtime and command.
 - If legacy execution cannot be performed, construct expectations from specs/invariants/independent tools and label `REFERENCE_VALIDATED`, not `REGRESSION_VERIFIED`.
@@ -209,6 +219,18 @@ DISPLAY=:1 WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 python3 tool
 ```
 
 No hosted workflow ran. The reader package was aligned from SkiaSharp 4.153.1 to Avalonia's 3.119.4 backend because the managed/native ABI versions cannot coexist in this process. Linux reader tests passed after the change; Windows remains `NOT_RUN`. The draft PR HEAD uses `[skip ci]` to keep hosted Actions idle. See [native player v1 evidence](evidence/native-still-image-player-v1.md).
+
+
+### Portable video decoder and playback prototype
+
+`tests/PortableVideo.Tests` creates deterministic CFR, VFR and nonzero-start H.264 MP4 fixtures using the installed FFmpeg CLI. It compares decoded `best_effort_timestamp` values against an ffprobe trace, then checks RGB24 layout, dimensions, authored color probes, B-frame presentation ordering, stream start timestamp, previous timestamps, exact/gap/backward seek, invalid-open recovery, close/reopen, borrowed buffer lifetime and a rational playback clock. Its result is portable decoder/clock conformance only, not legacy parity.
+
+The actual Avalonia app also has a local Gentoo GUI smoke path, `tools/native-player/video-smoke.py`, which opens a synthetic video in the application process, verifies that the input-hash-matched frame is reported visible, sends Play/Pause/Resume/Next/Ctrl+W, and captures the app window. This tests Linux prototype presentation and controls. It does not establish exact real-time pacing, decoded screenshot pixel equality, legacy cache behavior, or the original Windows C++/CLI reader.
+
+The decoder's source frame is borrowed until its next read/seek/close/dispose. The desktop session copies each displayed frame to a separately owned Avalonia bitmap before decode advances. No portable or legacy video cache is integrated. Do not retain borrowed frames or infer native-resource safety beyond this synchronous path.
+
+Current evidence: local Gentoo Linux .NET SDK 10.0.111/runtime 10.0.11 with FFmpeg 8.1.2 native ABI 62/62/60/9. The decoder suite passed 144 assertions, including bounded detached-cache stress plus animated-GIF forward/backward seek; the portable image reader suite passed 1,637 assertions including the preserved Windows candidate JPEG at a declared ±8 channel tolerance; the actual desktop presentation suite passed 115 assertions; the GUI smoke passed play, pause, resume, step and close. Windows and hosted CI are `NOT_RUN`; actual legacy video comparison is `NOT_RUN`; legacy cache policy, GIF transparency/loop timing, SVG feature parity, multiple streams, rotation/aspect, color range/matrix, HDR and hardware decode are `NOT_ESTABLISHED`. The local FFmpeg build was GPL-enabled with libx264 and is not a redistribution package. See the [timestamp/format matrix](evidence/epic02-timestamp-and-format-matrix-v1.md), [playback/cache/GIF/SVG evidence](evidence/epic02-playback-cache-gif-svg-v1.md), [Epic 02 video playback v1 evidence](evidence/epic02-video-playback-v1.md), [ADR 0007](adr/0007-portable-video-backend.md), and the earlier [video playback boundary assessment](evidence/native-video-playback-boundary-v1.md), which records the pre-implementation state.
+
 
 Video playback requires a separate regression path from the still-image shell. A decoder probe must compare timestamps from decoded frames (including `best_effort_timestamp` and stream timebase), dimensions, logical pixel values/channel order, row orientation, corrupt-input result and resource release against the actual Windows `VideoReaderFFMpeg` on the same synthetic fixture. Test the decoder first as a synchronous console boundary; it does not establish playback pacing, pause/seek, asynchronous prebuffering, cache ownership or UI-thread publication. Those require separate tests and ownership review before connecting a frame producer to Avalonia. The 2026-10-22 local assessment found no video file fixture in the checkout and ran no native Kinovea video decode; see [video playback boundary assessment](evidence/native-video-playback-boundary-v1.md).
 

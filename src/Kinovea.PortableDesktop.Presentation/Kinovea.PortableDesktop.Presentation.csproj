@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Kinovea.PortableReaderShell/Kinovea.PortableReaderShell.csproj" />
+    <ProjectReference Include="../Kinovea.PortableVideo/Kinovea.PortableVideo.csproj" />
     <PackageReference Include="Avalonia" Version="12.1.4" />
   </ItemGroup>
 </Project>

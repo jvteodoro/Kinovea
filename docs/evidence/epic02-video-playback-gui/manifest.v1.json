@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "5860f7f0",
+  "processId": 1438607,
+  "fixture": {
+    "path": "synthetic-h264.mp4",
+    "sha256": "af04755f612b5eff43791fe1665ee50d34b8888fdbe3eb3f300a94f8e84ca282"
+  },
+  "initialReport": {
+    "schemaVersion": 1,
+    "mediaType": "video",
+    "status": "VISIBLE_FRAME_RENDERED",
+    "sourceSha": "5860f7f0",
+    "fileName": "synthetic-h264.mp4",
+    "inputSha256": "af04755f612b5eff43791fe1665ee50d34b8888fdbe3eb3f300a94f8e84ca282",
+    "width": 64,
+    "height": 48,
+    "framesPerSecond": 4,
+    "timestamp": 0,
+    "timestampTimeBaseNumerator": 1,
+    "timestampTimeBaseDenominator": 16384,
+    "previousTimestampSemantics": "last decoded frame in current read sequence; reset on seek",
+    "workingZoneStart": 0,
+    "workingZoneEnd": 32768,
+    "codec": "h264",
+    "nativeFfmpegVersions": {
+      "AvFormat": "62.12.102",
+      "AvCodec": "62.28.102",
+      "AvUtil": "60.26.102",
+      "SwScale": "9.5.102"
+    },
+    "readerState": "Open",
+    "errorMessage": null,
+    "isPlaying": false,
+    "presentationCopyCount": 1,
+    "presentationBytesCopied": 9216,
+    "windowLogicalWidth": 1120,
+    "windowLogicalHeight": 646,
+    "renderScaling": 1.5,
+    "viewportLogicalX": 0,
+    "viewportLogicalY": 132.66666666666666,
+    "viewportLogicalWidth": 1120,
+    "viewportLogicalHeight": 513.3333333333334,
+    "zoom": 1,
+    "panX": 0,
+    "panY": 0,
+    "processId": 1438607
+  },
+  "finalReport": {
+    "schemaVersion": 1,
+    "mediaType": "video",
+    "status": "EMPTY",
+    "sourceSha": "5860f7f0",
+    "fileName": null,
+    "inputSha256": null,
+    "width": null,
+    "height": null,
+    "framesPerSecond": null,
+    "timestamp": 12288,
+    "timestampTimeBaseNumerator": null,
+    "timestampTimeBaseDenominator": null,
+    "previousTimestampSemantics": "last decoded frame in current read sequence; reset on seek",
+    "workingZoneStart": 0,
+    "workingZoneEnd": 12288,
+    "codec": null,
+    "nativeFfmpegVersions": {
+      "AvFormat": "62.12.102",
+      "AvCodec": "62.28.102",
+      "AvUtil": "60.26.102",
+      "SwScale": "9.5.102"
+    },
+    "readerState": "Empty",
+    "errorMessage": null,
+    "isPlaying": false,
+    "presentationCopyCount": 4,
+    "presentationBytesCopied": 36864,
+    "windowLogicalWidth": 1120,
+    "windowLogicalHeight": 646,
+    "renderScaling": 1.5,
+    "viewportLogicalX": 0,
+    "viewportLogicalY": 132.66666666666666,
+    "viewportLogicalWidth": 1120,
+    "viewportLogicalHeight": 513.3333333333334,
+    "zoom": 1,
+    "panX": 0,
+    "panY": 0,
+    "processId": 1438607
+  },
+  "actions": [
+    {
+      "action": "open-visible-video",
+      "result": "PASS",
+      "timestamp": 0
+    },
+    {
+      "action": "play",
+      "result": "PASS",
+      "timestamp": 0
+    },
+    {
+      "action": "pause",
+      "result": "PASS",
+      "timestamp": 4096
+    },
+    {
+      "action": "resume",
+      "result": "PASS",
+      "timestamp": 4096
+    },
+    {
+      "action": "resume-advance",
+      "result": "PASS",
+      "from": 4096,
+      "to": 8192
+    },
+    {
+      "action": "pause-after-resume",
+      "result": "PASS",
+      "timestamp": 8192
+    },
+    {
+      "action": "step-forward",
+      "result": "PASS",
+      "from": 8192,
+      "to": 12288
+    },
+    {
+      "action": "close-current",
+      "result": "PASS",
+      "state": "Empty"
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "video-open.png",
+      "sha256": "05cb75f84adefdcbdfdcb7e2c6b42ea1a85260840a9c191a3a03bb604ca3d014"
+    },
+    {
+      "path": "video-stepped.png",
+      "sha256": "26857e9b699fa5a6e7eac5860df339765c8b2be76744068b362f0f65f7449cd9"
+    }
+  ],
+  "nativeFfmpegVersions": {
+    "AvFormat": "62.12.102",
+    "AvCodec": "62.28.102",
+    "AvUtil": "60.26.102",
+    "SwScale": "9.5.102"
+  },
+  "limitations": [
+    "Wine and Windows parity were not tested by this local scenario.",
+    "The synthetic H.264 fixture does not characterize color range, VFR, rotation, or audio."
+  ]
+}

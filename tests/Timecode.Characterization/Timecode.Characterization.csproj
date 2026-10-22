@@ -6,9 +6,6 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../Kinovea.Services/TimeHelper.cs" Link="Source/TimeHelper.cs" />
-    <Compile Include="../../Kinovea.Services/Types/TimeCodeFormat.cs" Link="Source/TimeCodeFormat.cs" />
-    <Compile Include="../../Kinovea.Services/Types/TimeCodeType.cs" Link="Source/TimeCodeType.cs" />
-    <Compile Include="../../Kinovea.Services/Infrastructure/TimestampMapper.cs" Link="Source/TimestampMapper.cs" />
+    <ProjectReference Include="../../src/Kinovea.PortableServices/Kinovea.PortableServices.csproj" />
   </ItemGroup>
 </Project>

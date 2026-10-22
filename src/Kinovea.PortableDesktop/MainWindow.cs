@@ -9,31 +9,37 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Kinovea.PortableDesktop.Presentation;
 using Kinovea.PortableReaderShell;
+using Kinovea.PortableVideo;
 
 namespace Kinovea.PortableDesktop;
 
 internal sealed class MainWindow : Window
 {
     private readonly PortablePlayerSession session = new();
+    private readonly PortableVideoPlayerSession videoSession = new();
     private readonly ImageViewport viewport = new();
     private readonly TextBlock name = new() { FontSize = 18, FontWeight = FontWeight.SemiBold };
     private readonly TextBlock metadata = new();
     private readonly TextBlock status = new() { Text = "Open a BMP or PNG image to begin." };
+    private TextBlock? emptyHintText;
     private readonly Slider timeline = new() { Minimum = 0, Maximum = 249, SmallChange = 1, LargeChange = 10, Width = 240, IsEnabled = false };
     private readonly Button previous = new() { Content = "◀" };
     private readonly Button next = new() { Content = "▶" };
     private Button? openButton;
     private Button? closeButton;
     private Button? fitButton;
+    private Button? playPauseButton;
     private readonly string? initialPath;
+    private readonly string? initialVideoPath;
     private readonly string? smokeReportPath;
     private bool updatingTimeline;
     private bool visibleFrameRendered;
     private string? lastPickerResult;
     private string? lastOpenResult;
     private string? lastAttemptedFileName;
-    private string? hashedInputPath;
-    private string? hashedInputSha256;
+    private bool activeVideo;
+    private bool videoTickRunning;
+    private readonly DispatcherTimer videoTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
 
     public MainWindow(string[] args)
     {
@@ -44,10 +50,13 @@ internal sealed class MainWindow : Window
         MinHeight = 480;
         Background = Brush("#20252c");
         initialPath = Argument(args, "--open");
+        initialVideoPath = Argument(args, "--open-video");
         smokeReportPath = Argument(args, "--smoke-report");
         Content = BuildLayout();
 
         session.Changed += SessionChanged;
+        videoSession.Changed += VideoSessionChanged;
+        videoTimer.Tick += VideoTimerTick;
         viewport.ImageRendered += () =>
         {
             visibleFrameRendered = true;
@@ -61,11 +70,17 @@ internal sealed class MainWindow : Window
                 lastPickerResult = "CommandLine";
                 await OpenPathAsync(initialPath);
             }
+            else if (!string.IsNullOrWhiteSpace(initialVideoPath))
+            {
+                lastPickerResult = "CommandLine";
+                await OpenPathAsync(initialVideoPath);
+            }
             else
                 WriteSmokeReport();
         };
         KeyDown += WindowKeyDown;
         Closed += (_, _) => session.Dispose();
+        Closed += async (_, _) => await videoSession.DisposeAsync();
         Refresh();
     }
 
@@ -73,14 +88,15 @@ internal sealed class MainWindow : Window
     {
         var open = openButton = new Button { Content = "Open image…", Margin = new Thickness(4) };
         var close = closeButton = new Button { Content = "Close", Margin = new Thickness(4), IsEnabled = false };
+        var play = playPauseButton = new Button { Content = "Play", Margin = new Thickness(4), IsEnabled = false };
         var fit = fitButton = new Button { Content = "Fit", Margin = new Thickness(4) };
         var zoomOut = new Button { Content = "−", Margin = new Thickness(4) };
         var zoomIn = new Button { Content = "+", Margin = new Thickness(4) };
         var zoomLabel = new TextBlock { Text = "Fit", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0) };
         viewport.ZoomChanged += zoom => zoomLabel.Text = zoom == 1 ? "Fit" : $"{zoom:P0}";
-        var emptyHint = new TextBlock
+        var emptyHint = emptyHintText = new TextBlock
         {
-            Text = "Open a BMP or PNG image",
+            Text = "Open a BMP, PNG, JPEG, GIF, SVG, or video file",
             Foreground = Brush("#9aa4b2"),
             FontSize = 20,
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -88,19 +104,24 @@ internal sealed class MainWindow : Window
         };
 
         open.Click += async (_, _) => await PickAndOpenAsync();
-        close.Click += (_, _) => session.Close();
+        close.Click += async (_, _) => await CloseActiveAsync();
+        play.Click += (_, _) => TogglePlayback();
         fit.Click += (_, _) => { viewport.Fit(); zoomLabel.Text = "Fit"; };
         zoomOut.Click += (_, _) => { viewport.ChangeZoom(viewport.Zoom / 1.2); zoomLabel.Text = $"{viewport.Zoom:P0}"; };
         zoomIn.Click += (_, _) => { viewport.ChangeZoom(viewport.Zoom * 1.2); zoomLabel.Text = $"{viewport.Zoom:P0}"; };
-        previous.Click += (_, _) => session.StepBackward();
-        next.Click += (_, _) => session.StepForward();
+        previous.Click += async (_, _) => await StepBackwardAsync();
+        next.Click += async (_, _) => await StepForwardAsync();
         timeline.ValueChanged += (_, _) =>
         {
-            if (!updatingTimeline && session.Status == PortablePlayerStatus.Open)
+            if (updatingTimeline) return;
+            if (activeVideo && videoSession.Status == PortablePlayerStatus.Open)
+                _ = videoSession.SeekAsync((long)Math.Round(timeline.Value));
+            else if (session.Status == PortablePlayerStatus.Open)
                 session.Seek((long)Math.Round(timeline.Value));
         };
         session.Changed += (_, _) =>
         {
+            if (activeVideo) return;
             close.IsEnabled = session.Status == PortablePlayerStatus.Open;
             previous.IsEnabled = session.CanStepBackward;
             next.IsEnabled = session.CanStepForward;
@@ -109,6 +130,7 @@ internal sealed class MainWindow : Window
         var toolbar = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         toolbar.Children.Add(open);
         toolbar.Children.Add(close);
+        toolbar.Children.Add(play);
         toolbar.Children.Add(new Separator { Margin = new Thickness(8, 4) });
         toolbar.Children.Add(previous);
         toolbar.Children.Add(next);
@@ -146,11 +168,11 @@ internal sealed class MainWindow : Window
         WriteSmokeReport();
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Open still image",
+            Title = "Open image or video",
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("BMP and PNG images") { Patterns = ["*.bmp", "*.png"] },
+                new FilePickerFileType("Images and video") { Patterns = ["*.bmp", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.svg", "*.mp4", "*.mkv", "*.mov", "*.avi", "*.webm", "*.m4v"] },
                 FilePickerFileTypes.All
             ]
         });
@@ -172,21 +194,46 @@ internal sealed class MainWindow : Window
         }
     }
 
-    private Task OpenPathAsync(string path)
+    private async Task OpenPathAsync(string path)
     {
         lastAttemptedFileName = Path.GetFileName(path);
-        bool opened = session.Open(path);
+        bool opened;
+        if (IsVideoPath(path))
+        {
+            opened = await videoSession.OpenAsync(path);
+            if (opened)
+            {
+                if (session.Status == PortablePlayerStatus.Open)
+                    session.Close();
+                activeVideo = true;
+                if (emptyHintText is not null) emptyHintText.IsVisible = false;
+                viewport.SetBitmap(videoSession.PresentationBitmap);
+            }
+        }
+        else
+        {
+            opened = session.Open(path);
+            if (opened)
+            {
+                if (activeVideo)
+                    await videoSession.CloseAsync();
+                activeVideo = false;
+                viewport.SetBitmap(session.PresentationBitmap);
+            }
+        }
         lastOpenResult = opened ? "Opened" : "Rejected";
-        if (!opened || session.Status != PortablePlayerStatus.Open)
+        if (opened)
+            visibleFrameRendered = false;
+        if (!opened)
             WriteSmokeReport();
         Refresh();
-        return Task.CompletedTask;
     }
 
     private void SessionChanged(object? sender, EventArgs e)
     {
         void Update()
         {
+            if (activeVideo) return;
             if (!ReferenceEquals(viewport.Bitmap, session.PresentationBitmap))
             {
                 visibleFrameRendered = false;
@@ -201,21 +248,74 @@ internal sealed class MainWindow : Window
         else Dispatcher.UIThread.Post(Update);
     }
 
+    private void VideoSessionChanged(object? sender, EventArgs e)
+    {
+        void Update()
+        {
+            if (!activeVideo) return;
+            if (!ReferenceEquals(viewport.Bitmap, videoSession.PresentationBitmap))
+            {
+                visibleFrameRendered = false;
+                viewport.SetBitmap(videoSession.PresentationBitmap);
+            }
+            if (emptyHintText is not null)
+                emptyHintText.IsVisible = videoSession.Status != PortablePlayerStatus.Open;
+            Refresh();
+            if (videoSession.Status != PortablePlayerStatus.Open)
+                WriteSmokeReport();
+        }
+
+        if (Dispatcher.UIThread.CheckAccess()) Update();
+        else Dispatcher.UIThread.Post(Update);
+    }
+
     private void Refresh()
     {
+        if (activeVideo)
+        {
+            PortableVideoMetadata? video = videoSession.Metadata;
+            bool videoLoaded = videoSession.Status == PortablePlayerStatus.Open && video is not null;
+            name.Text = videoLoaded ? Path.GetFileNameWithoutExtension(videoSession.CurrentPath) : "Kinovea";
+            metadata.Text = videoLoaded
+                ? $"{video!.Width} × {video.Height} px    {video.AverageFrameRate:0.00} fps    PTS {videoSession.CurrentTimestamp} / {videoSession.TimelineEnd}"
+                : string.Empty;
+            status.Text = videoSession.ErrorMessage ?? (videoLoaded ? (videoSession.IsPlaying ? "Video · playing" : "Video · paused") : "Open a supported image or video file to begin.");
+            timeline.Minimum = videoSession.TimelineStart;
+            timeline.Maximum = Math.Max(videoSession.TimelineStart, videoSession.TimelineEnd);
+            timeline.IsEnabled = videoLoaded;
+            updatingTimeline = true;
+            timeline.Value = videoLoaded ? Math.Clamp(videoSession.CurrentTimestamp, timeline.Minimum, timeline.Maximum) : 0;
+            updatingTimeline = false;
+            if (closeButton is not null) closeButton.IsEnabled = videoLoaded;
+            if (playPauseButton is not null)
+            {
+                playPauseButton.IsEnabled = videoLoaded;
+                playPauseButton.Content = videoSession.IsPlaying ? "Pause" : "Play";
+            }
+            previous.IsEnabled = videoLoaded && videoSession.CanStepBackward;
+            next.IsEnabled = videoLoaded && videoSession.CanStepForward;
+            viewport.InvalidateVisual();
+            return;
+        }
+
         PortableReaderMetadata? info = session.Metadata;
         bool loaded = session.Status == PortablePlayerStatus.Open && info is not null;
         name.Text = loaded ? Path.GetFileNameWithoutExtension(session.CurrentPath) : "Kinovea";
         metadata.Text = loaded
             ? $"{info!.Width} × {info.Height} px    {info.FramesPerSecond:0.00} fps    Frame {session.Current.Timestamp} / {session.TimelineEnd}    Previous {session.Current.PreviousTimestamp}"
             : string.Empty;
-        status.Text = session.ErrorMessage ?? (loaded ? "Still image · paused" : "Open a BMP or PNG image to begin.");
+        status.Text = session.ErrorMessage ?? (loaded ? "Still image · paused" : "Open a BMP, PNG, or JPEG image to begin.");
         timeline.Minimum = session.TimelineStart;
         timeline.Maximum = Math.Max(session.TimelineStart, session.TimelineEnd);
         timeline.IsEnabled = loaded;
         updatingTimeline = true;
         timeline.Value = loaded ? Math.Clamp(session.Current.Timestamp, session.TimelineStart, session.TimelineEnd) : 0;
         updatingTimeline = false;
+        if (playPauseButton is not null)
+        {
+            playPauseButton.IsEnabled = false;
+            playPauseButton.Content = "Play";
+        }
         viewport.InvalidateVisual();
     }
 
@@ -229,33 +329,125 @@ internal sealed class MainWindow : Window
         }
         else if ((control && e.Key == Key.W) || e.Key == Key.Escape)
         {
-            session.Close();
+            _ = CloseActiveAsync();
             e.Handled = true;
         }
         else if (e.Key == Key.Right)
         {
-            session.StepForward();
+            _ = StepForwardAsync();
             e.Handled = true;
         }
         else if (e.Key == Key.Left)
         {
-            session.StepBackward();
+            _ = StepBackwardAsync();
             e.Handled = true;
         }
-        else if (e.Key == Key.Home && session.Status == PortablePlayerStatus.Open)
+        else if (e.Key == Key.Home && (activeVideo ? videoSession.Status : session.Status) == PortablePlayerStatus.Open)
         {
-            session.Seek(session.TimelineStart);
+            if (activeVideo) _ = videoSession.SeekAsync(videoSession.TimelineStart);
+            else session.Seek(session.TimelineStart);
             e.Handled = true;
         }
-        else if (e.Key == Key.End && session.Status == PortablePlayerStatus.Open)
+        else if (e.Key == Key.End && (activeVideo ? videoSession.Status : session.Status) == PortablePlayerStatus.Open)
         {
-            session.Seek(session.TimelineEnd);
+            if (activeVideo) _ = videoSession.SeekAsync(videoSession.TimelineEnd);
+            else session.Seek(session.TimelineEnd);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Space && activeVideo)
+        {
+            TogglePlayback();
             e.Handled = true;
         }
     }
 
+    private async Task StepForwardAsync()
+    {
+        if (activeVideo)
+        {
+            videoSession.Pause();
+            videoTimer.Stop();
+            await videoSession.StepForwardAsync();
+        }
+        else
+            session.StepForward();
+    }
+
+    private async Task StepBackwardAsync()
+    {
+        if (activeVideo)
+        {
+            videoSession.Pause();
+            videoTimer.Stop();
+            await videoSession.StepBackwardAsync();
+        }
+        else
+            session.StepBackward();
+    }
+
+    private async Task CloseActiveAsync()
+    {
+        videoTimer.Stop();
+        if (activeVideo)
+        {
+            await videoSession.CloseAsync();
+            activeVideo = false;
+            viewport.SetBitmap(session.PresentationBitmap);
+        }
+        else
+            session.Close();
+        Refresh();
+    }
+
+    private void TogglePlayback()
+    {
+        if (!activeVideo) return;
+        if (videoSession.IsPlaying)
+        {
+            videoSession.Pause();
+            videoTimer.Stop();
+        }
+        else
+        {
+            videoSession.Play();
+            videoTimer.Start();
+        }
+        Refresh();
+    }
+
+    private async void VideoTimerTick(object? sender, EventArgs e)
+    {
+        if (!activeVideo || videoTickRunning) return;
+        videoTickRunning = true;
+        try
+        {
+            await videoSession.PlaybackTickAsync();
+            if (!videoSession.IsPlaying)
+                videoTimer.Stop();
+            Refresh();
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            videoSession.Pause();
+            videoTimer.Stop();
+            status.Text = $"Playback stopped ({exception.GetType().Name}).";
+        }
+        finally
+        {
+            videoTickRunning = false;
+        }
+    }
+
+    private static bool IsVideoPath(string path) => Path.GetExtension(path).ToLowerInvariant() is
+        ".mp4" or ".mkv" or ".mov" or ".avi" or ".webm" or ".m4v" or ".gif" or ".svg";
+
     private void WriteSmokeReport()
     {
+        if (activeVideo)
+        {
+            WriteVideoSmokeReport();
+            return;
+        }
         if (smokeReportPath is null || session.Status == PortablePlayerStatus.Open && session.Current.Image is null)
             return;
         var info = session.Metadata;
@@ -317,6 +509,53 @@ internal sealed class MainWindow : Window
         File.WriteAllText(fullPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
     }
 
+    private void WriteVideoSmokeReport()
+    {
+        if (smokeReportPath is null) return;
+        PortableVideoMetadata? info = videoSession.Metadata;
+        Point? viewportOrigin = viewport.TranslatePoint(new Point(0, 0), this);
+        Size clientSize = ClientSize;
+        var report = new
+        {
+            schemaVersion = 1,
+            mediaType = "video",
+            status = visibleFrameRendered && videoSession.Status == PortablePlayerStatus.Open ? "VISIBLE_FRAME_RENDERED" : videoSession.Status.ToString().ToUpperInvariant(),
+            sourceSha = Environment.GetEnvironmentVariable("KINOVEA_SOURCE_SHA") ?? "LOCAL_UNRECORDED",
+            fileName = videoSession.CurrentPath is null ? null : Path.GetFileName(videoSession.CurrentPath),
+            inputSha256 = HashFile(videoSession.CurrentPath),
+            width = info?.Width,
+            height = info?.Height,
+            framesPerSecond = info?.AverageFrameRate,
+            timestamp = videoSession.CurrentTimestamp,
+            timestampTimeBaseNumerator = info?.TimeBaseNumerator,
+            timestampTimeBaseDenominator = info?.TimeBaseDenominator,
+            previousTimestampSemantics = "last decoded frame in current read sequence; reset on seek",
+            workingZoneStart = videoSession.TimelineStart,
+            workingZoneEnd = videoSession.TimelineEnd,
+            codec = info?.CodecName,
+            nativeFfmpegVersions = PortableFfmpegRuntime.Initialize(),
+            readerState = videoSession.Status.ToString(),
+            errorMessage = videoSession.ErrorMessage,
+            isPlaying = videoSession.IsPlaying,
+            presentationCopyCount = videoSession.PresentationCopies,
+            presentationBytesCopied = videoSession.PresentationBytesCopied,
+            windowLogicalWidth = clientSize.Width,
+            windowLogicalHeight = clientSize.Height,
+            renderScaling = RenderScaling,
+            viewportLogicalX = viewportOrigin?.X,
+            viewportLogicalY = viewportOrigin?.Y,
+            viewportLogicalWidth = viewport.Bounds.Width,
+            viewportLogicalHeight = viewport.Bounds.Height,
+            zoom = viewport.Zoom,
+            panX = viewport.Pan.X,
+            panY = viewport.Pan.Y,
+            processId = Environment.ProcessId
+        };
+        string fullPath = Path.GetFullPath(smokeReportPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+        File.WriteAllText(fullPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
     private object? ControlBounds(Control? control)
     {
         if (control is null) return null;
@@ -333,15 +572,15 @@ internal sealed class MainWindow : Window
     private string? GetCurrentInputHash()
     {
         string? path = session.CurrentPath;
+        return HashFile(path);
+    }
+
+    private static string? HashFile(string? path)
+    {
         if (path is null || !File.Exists(path))
             return null;
-        if (!string.Equals(path, hashedInputPath, StringComparison.Ordinal))
-        {
-            using FileStream stream = File.OpenRead(path);
-            hashedInputSha256 = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
-            hashedInputPath = path;
-        }
-        return hashedInputSha256;
+        using FileStream stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
     }
 
     private static string? Argument(string[] args, string key)

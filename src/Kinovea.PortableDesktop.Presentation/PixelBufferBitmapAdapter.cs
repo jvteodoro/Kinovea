@@ -3,6 +3,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Kinovea.PortableFrameGenerator;
 using Kinovea.PortablePixels;
+using Kinovea.PortableVideo;
 
 namespace Kinovea.PortableDesktop.Presentation;
 
@@ -13,6 +14,40 @@ namespace Kinovea.PortableDesktop.Presentation;
 /// </remarks>
 public static class PixelBufferBitmapAdapter
 {
+    public static unsafe PixelBitmapResult Create(PortableVideoFrame frame)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        if (frame.Format != Kinovea.PortablePixels.PixelFormat.Rgb24 || frame.AlphaMode != AlphaMode.None)
+            throw new NotSupportedException($"Video presentation requires opaque RGB24; got {frame.Format}/{frame.AlphaMode}.");
+
+        int rowBytes = checked(frame.Width * 3);
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var bitmap = new WriteableBitmap(new PixelSize(frame.Width, frame.Height), new Vector(96, 96), PixelFormats.Rgb24, AlphaFormat.Opaque);
+        try
+        {
+            using ILockedFramebuffer destination = bitmap.Lock();
+            if (destination.Size.Width != frame.Width || destination.Size.Height != frame.Height || destination.RowBytes < rowBytes)
+                throw new InvalidOperationException("Avalonia returned an incompatible writeable framebuffer.");
+            for (int y = 0; y < frame.Height; y++)
+            {
+                ReadOnlySpan<byte> sourceRow = frame.GetRowSpan(y);
+                if (sourceRow.Length != rowBytes)
+                    throw new InvalidOperationException($"Video row {y} has {sourceRow.Length} bytes; expected {rowBytes}.");
+                byte* destinationRow = (byte*)destination.Address + checked(y * destination.RowBytes);
+                fixed (byte* source = sourceRow)
+                    Buffer.MemoryCopy(source, destinationRow, destination.RowBytes, rowBytes);
+            }
+        }
+        catch
+        {
+            bitmap.Dispose();
+            throw;
+        }
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        return new PixelBitmapResult(bitmap, frame.Width, frame.Height, rowBytes, 1, checked((long)rowBytes * frame.Height), allocated);
+    }
+
     public static unsafe PixelBitmapResult Create(PortableImageFrame frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
