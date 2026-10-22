@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import json
 import os
 import subprocess
@@ -17,11 +16,6 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools" / "wine-oracle"))
 import oracle
 import xwayland_capture
-
-gui_spec = importlib.util.spec_from_file_location("native_gui", Path(__file__).with_name("gui-interactions.py"))
-gui = importlib.util.module_from_spec(gui_spec)
-assert gui_spec.loader is not None
-gui_spec.loader.exec_module(gui)
 
 
 def sha256(path: Path) -> str:
@@ -47,16 +41,13 @@ def wait_for(path: Path, predicate, description: str, timeout: float = 10) -> di
     raise RuntimeError(f"timed out waiting for {description}; last report: {last}")
 
 
-def click_control(window: dict, state: dict, control_name: str) -> dict:
-    bounds = state.get(control_name)
-    if not bounds:
-        raise RuntimeError(f"player did not report {control_name} bounds")
-    geometry = gui.window_geometry(window["id"])
-    scale_x = geometry["width"] / float(state["windowLogicalWidth"])
-    scale_y = geometry["height"] / float(state["windowLogicalHeight"])
-    x = round((float(bounds["x"]) + float(bounds["width"]) / 2) * scale_x)
-    y = round((float(bounds["y"]) + float(bounds["height"]) / 2) * scale_y)
-    return gui.point_in_window(window["id"], x, y, [1])
+def toggle_loop_with_keyboard(window_id: str, focus: bool = False) -> None:
+    if focus:
+        # The native toolbar order is Open, Close, Play, Previous, Next, Timeline,
+        # Fit, Zoom out, Zoom in, Speed down, Speed up, Loop.
+        for _ in range(11):
+            oracle.send_key("Tab", window_id)
+    oracle.send_key("Return", window_id)
 
 
 def main() -> int:
@@ -129,9 +120,9 @@ def main() -> int:
                 {"action": "speed-Down", "result": "PASS", "rate": normal.get("playbackRate")},
             ])
 
-            click_control(window, initial, "loopButton")
+            toggle_loop_with_keyboard(window["id"], focus=True)
             loop_off = wait_for(report_path, lambda item: item.get("loopPlayback") is False, "loop disabled")
-            click_control(window, loop_off, "loopButton")
+            toggle_loop_with_keyboard(window["id"])
             loop_on = wait_for(report_path, lambda item: item.get("loopPlayback") is True, "loop enabled")
             actions.extend([
                 {"action": "toggle-loop-off", "result": "PASS", "enabled": loop_off.get("loopPlayback")},
@@ -175,7 +166,7 @@ def main() -> int:
                             "to": wrapped.get("timestamp")})
             oracle.send_key("space", window["id"])
             wait_for(report_path, lambda item: item.get("isPlaying") is False, "pause after loop")
-            click_control(window, loop_on, "loopButton")
+            toggle_loop_with_keyboard(window["id"])
             loop_off = wait_for(report_path, lambda item: item.get("loopPlayback") is False, "loop disabled for EOF check")
             oracle.send_key("Home", window["id"])
             at_start = wait_for(report_path, lambda item: item.get("timestamp") == item.get("workingZoneStart"), "Home seeks to timeline start")
