@@ -125,7 +125,7 @@ def main() -> int:
             loop_on = wait_for(report_path, lambda item: item.get("loopPlayback") is True, "loop enabled")
             # Move keyboard focus off Loop so Space starts playback instead of
             # also activating the focused button.
-            for _ in range(8):
+            for _ in range(7):
                 oracle.send_key("Tab", window["id"])
             actions.extend([
                 {"action": "toggle-loop-off", "result": "PASS", "enabled": loop_off.get("loopPlayback")},
@@ -169,7 +169,7 @@ def main() -> int:
                             "to": wrapped.get("timestamp")})
             oracle.send_key("space", window["id"])
             wait_for(report_path, lambda item: item.get("isPlaying") is False, "pause after loop")
-            toggle_loop_with_keyboard(window["id"], tabs_to_loop=6)
+            toggle_loop_with_keyboard(window["id"], tabs_to_loop=5)
             loop_off = wait_for(report_path, lambda item: item.get("loopPlayback") is False, "loop disabled for EOF check")
             oracle.send_key("Home", window["id"])
             at_start = wait_for(report_path, lambda item: item.get("timestamp") == item.get("workingZoneStart"), "Home seeks to timeline start")
