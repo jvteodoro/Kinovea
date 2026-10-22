@@ -96,7 +96,7 @@ internal sealed class MainWindow : Window
         viewport.ZoomChanged += zoom => zoomLabel.Text = zoom == 1 ? "Fit" : $"{zoom:P0}";
         var emptyHint = emptyHintText = new TextBlock
         {
-            Text = "Open a BMP, PNG, or video file",
+            Text = "Open a BMP, PNG, JPEG, GIF, SVG, or video file",
             Foreground = Brush("#9aa4b2"),
             FontSize = 20,
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -172,7 +172,7 @@ internal sealed class MainWindow : Window
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("BMP, PNG, and video") { Patterns = ["*.bmp", "*.png", "*.mp4", "*.mkv", "*.mov", "*.avi", "*.webm", "*.m4v"] },
+                new FilePickerFileType("Images and video") { Patterns = ["*.bmp", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.svg", "*.mp4", "*.mkv", "*.mov", "*.avi", "*.webm", "*.m4v"] },
                 FilePickerFileTypes.All
             ]
         });
@@ -279,7 +279,7 @@ internal sealed class MainWindow : Window
             metadata.Text = videoLoaded
                 ? $"{video!.Width} × {video.Height} px    {video.AverageFrameRate:0.00} fps    PTS {videoSession.CurrentTimestamp} / {videoSession.TimelineEnd}"
                 : string.Empty;
-            status.Text = videoSession.ErrorMessage ?? (videoLoaded ? (videoSession.IsPlaying ? "Video · playing" : "Video · paused") : "Open a BMP, PNG, or video file to begin.");
+            status.Text = videoSession.ErrorMessage ?? (videoLoaded ? (videoSession.IsPlaying ? "Video · playing" : "Video · paused") : "Open a supported image or video file to begin.");
             timeline.Minimum = videoSession.TimelineStart;
             timeline.Maximum = Math.Max(videoSession.TimelineStart, videoSession.TimelineEnd);
             timeline.IsEnabled = videoLoaded;
@@ -304,7 +304,7 @@ internal sealed class MainWindow : Window
         metadata.Text = loaded
             ? $"{info!.Width} × {info.Height} px    {info.FramesPerSecond:0.00} fps    Frame {session.Current.Timestamp} / {session.TimelineEnd}    Previous {session.Current.PreviousTimestamp}"
             : string.Empty;
-        status.Text = session.ErrorMessage ?? (loaded ? "Still image · paused" : "Open a BMP or PNG image to begin.");
+        status.Text = session.ErrorMessage ?? (loaded ? "Still image · paused" : "Open a BMP, PNG, or JPEG image to begin.");
         timeline.Minimum = session.TimelineStart;
         timeline.Maximum = Math.Max(session.TimelineStart, session.TimelineEnd);
         timeline.IsEnabled = loaded;
@@ -439,7 +439,7 @@ internal sealed class MainWindow : Window
     }
 
     private static bool IsVideoPath(string path) => Path.GetExtension(path).ToLowerInvariant() is
-        ".mp4" or ".mkv" or ".mov" or ".avi" or ".webm" or ".m4v";
+        ".mp4" or ".mkv" or ".mov" or ".avi" or ".webm" or ".m4v" or ".gif" or ".svg";
 
     private void WriteSmokeReport()
     {

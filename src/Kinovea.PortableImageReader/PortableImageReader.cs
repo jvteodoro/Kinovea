@@ -6,11 +6,11 @@ using SkiaSharp;
 
 namespace Kinovea.PortableImageReader;
 
-/// <summary>Reads single-frame BMP and PNG files into independently owned portable pixels.</summary>
+/// <summary>Reads single-frame BMP, PNG, and JPEG files into independently owned portable pixels.</summary>
 public sealed class PortableImageReader
 {
     /// <summary>
-    /// Decodes a BMP or PNG file into RGB24 or straight-alpha RGBA32 storage.
+    /// Decodes a BMP, PNG, or JPEG file into RGB24 or straight-alpha RGBA32 storage.
     /// The file and native decoder resources are released before this method returns.
     /// </summary>
     /// <exception cref="NotSupportedException">The path extension or encoded image format is unsupported.</exception>
@@ -21,7 +21,9 @@ public sealed class PortableImageReader
 
         string extension = Path.GetExtension(path);
         if (!extension.Equals(".bmp", StringComparison.OrdinalIgnoreCase) &&
-            !extension.Equals(".png", StringComparison.OrdinalIgnoreCase))
+            !extension.Equals(".png", StringComparison.OrdinalIgnoreCase) &&
+            !extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) &&
+            !extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase))
         {
             throw new NotSupportedException($"Portable image reader does not support the '{extension}' extension.");
         }
@@ -30,7 +32,7 @@ public sealed class PortableImageReader
         if (codec is null)
             throw new InvalidDataException($"Could not decode '{path}' as a BMP or PNG image.");
 
-        if (codec.EncodedFormat is not (SKEncodedImageFormat.Bmp or SKEncodedImageFormat.Png))
+        if (codec.EncodedFormat is not (SKEncodedImageFormat.Bmp or SKEncodedImageFormat.Png or SKEncodedImageFormat.Jpeg))
         {
             throw new NotSupportedException(
                 $"Portable image reader does not support encoded format '{codec.EncodedFormat}'.");

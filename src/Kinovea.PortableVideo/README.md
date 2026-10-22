@@ -37,9 +37,16 @@ binding's MIT license.
   timestamps. It is a local prototype and does not reproduce legacy prebuffer
   or cache policies.
 
+The local FFmpeg build also decoded the deterministic animated-GIF and SVG
+fixtures used by `PortableVideo.Tests`. GIF/SVG are routed through this
+opt-in decoder in the desktop prototype; they do not yet claim legacy GIF
+timing/cache or SharpVectors rendering parity.
+
 No audio, frame-rate conversion, hardware decode, rotation/display-matrix
 handling, color-management guarantees, HDR, alpha, multiple-stream selection,
-or cache retention is implemented. See the versioned evidence record in
+or production cache retention is implemented. `PortableVideoFrameCache` is a
+bounded, detached-copy cache for the prototype; it is intentionally not a
+replacement for legacy `PreBuffer2`. See the versioned evidence record in
 `docs/evidence/epic02-video-playback-v1.md`.
 
 ## Local verification

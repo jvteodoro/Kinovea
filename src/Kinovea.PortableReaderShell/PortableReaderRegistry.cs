@@ -36,7 +36,9 @@ public sealed class PortableReaderRegistry
 
     public static PortableReaderRegistry CreateDefault() => new PortableReaderRegistry()
         .Register(".bmp", static () => new PortableImageFrameGenerator())
-        .Register(".png", static () => new PortableImageFrameGenerator());
+        .Register(".png", static () => new PortableImageFrameGenerator())
+        .Register(".jpg", static () => new PortableImageFrameGenerator())
+        .Register(".jpeg", static () => new PortableImageFrameGenerator());
 
     private static string NormalizeExtension(string extension)
     {

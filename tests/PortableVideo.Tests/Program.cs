@@ -9,6 +9,10 @@ string fixture = Path.Combine(directory, "synthetic-h264.mp4");
 GenerateFixture(fixture);
 string vfrFixture = Path.Combine(directory, "synthetic-vfr-h264.mp4");
 GenerateVfrFixture(vfrFixture);
+string gifFixture = Path.Combine(directory, "synthetic-animated.gif");
+GenerateGifFixture(gifFixture);
+string svgFixture = Path.Combine(directory, "synthetic-vector.svg");
+GenerateSvgFixture(svgFixture);
 PortableFfmpegVersions nativeVersions = PortableFfmpegRuntime.Initialize();
 
 int assertions = 0;
@@ -35,6 +39,7 @@ clock.Stop(42);
 Equal(42L, clock.TargetTimestamp, "stopped clock resets to supplied timestamp");
 
 var frames = new List<(long Timestamp, long Previous, byte R, byte G, byte B)>();
+using var cache = new PortableVideoFrameCache(3);
 PortableVideoFrame? firstFrame = null;
 while (reader.ReadNext(out var frame))
 {
@@ -46,6 +51,7 @@ while (reader.ReadNext(out var frame))
     ReadOnlySpan<byte> row = frame.GetRowSpan(frame.Height / 2);
     int center = (frame.Width / 2) * 3;
     frames.Add((frame.Timestamp, frame.PreviousTimestamp, row[center], row[center + 1], row[center + 2]));
+    cache.Add(frame);
 }
 Equal(8, frames.Count, "decoded frame count including B-frame reorder");
 Throws<ObjectDisposedException>(() => firstFrame!.GetRowSpan(0), "reader invalidates borrowed frame after next read");
@@ -57,6 +63,12 @@ ColorNear(frames[0], 255, 0, 0, "first red frame");
 ColorNear(frames[2], 0, 128, 0, "green frame");
 ColorNear(frames[4], 0, 0, 255, "blue frame");
 ColorNear(frames[6], 255, 255, 0, "yellow frame");
+Equal(3, cache.Count, "bounded cache evicts oldest entries");
+True(cache.TryGetClosest(frames[6].Timestamp, out var cached), "cache retrieves detached frame");
+Equal(frames[6].Timestamp, cached!.Timestamp, "cache closest timestamp");
+ReadOnlySpan<byte> cachedRow = cached.GetRowSpan(cached.Height / 2);
+int cachedCenter = (cached.Width / 2) * 3;
+Near(255, cachedRow[cachedCenter], "cached frame remains valid after decoder advanced");
 
 reader.Seek(frames[4].Timestamp);
 True(reader.ReadNext(out var sought), "seek returns a frame");
@@ -75,6 +87,9 @@ True(reader.ReadNext(out var reopened), "reopen decodes first frame");
 Equal(frames[0].Timestamp, reopened!.Timestamp, "reopened stream starts at first timestamp");
 reader.Close();
 reader.Close();
+Near(255, cached.GetRowSpan(cached.Height / 2)[cachedCenter], "cache remains valid after decoder close");
+cache.Clear();
+Equal(0, cache.Count, "cache Clear releases entries");
 reader.Dispose();
 
 using (var vfrReader = new PortableVideoReader())
@@ -103,6 +118,40 @@ using (var failedOpenReader = new PortableVideoReader())
     True(!failedOpenReader.IsOpen, "failed open leaves reader closed");
     failedOpenReader.Open(fixture);
     True(failedOpenReader.ReadNext(out _), "reader recovers after failed open");
+}
+
+using (var gifReader = new PortableVideoReader())
+{
+    gifReader.Open(gifFixture);
+    PortableVideoMetadata gifMetadata = gifReader.Metadata ?? throw new Exception("GIF metadata missing after open.");
+    Equal(32, gifMetadata.Width, "GIF width");
+    Equal(24, gifMetadata.Height, "GIF height");
+    Equal("gif", gifMetadata.CodecName, "GIF codec");
+    var gifTimestamps = new List<long>();
+    while (gifReader.ReadNext(out var frame))
+    {
+        Equal(PixelFormat.Rgb24, frame!.Format, "GIF RGB24 output");
+        gifTimestamps.Add(frame.Timestamp);
+    }
+    Equal(5, gifTimestamps.Count, "GIF frame count");
+    True(gifTimestamps.SequenceEqual([0L, 20L, 40L, 60L, 80L]), "GIF timestamps preserve FFmpeg centisecond timebase");
+}
+
+using (var svgReader = new PortableVideoReader())
+{
+    svgReader.Open(svgFixture);
+    PortableVideoMetadata svgMetadata = svgReader.Metadata ?? throw new Exception("SVG metadata missing after open.");
+    Equal(32, svgMetadata.Width, "SVG width");
+    Equal(24, svgMetadata.Height, "SVG height");
+    Equal("librsvg", svgMetadata.CodecName, "SVG decoder selected by local FFmpeg build");
+    True(svgReader.ReadNext(out var svgFrame), "SVG rasterizes one frame through the selected FFmpeg backend");
+    ReadOnlySpan<byte> svgRow = svgFrame!.GetRowSpan(svgFrame.Height / 2);
+    Near(255, svgRow[0], "SVG left rectangle red");
+    Near(0, svgRow[1], "SVG left rectangle green");
+    int right = (svgFrame.Width - 1) * 3;
+    Near(0, svgRow[right], "SVG right rectangle red");
+    Near(255, svgRow[right + 1], "SVG right rectangle green");
+    True(!svgReader.ReadNext(out _), "SVG has one decoded frame");
 }
 
 var decoderMeasurements = MeasureDecoder(fixture);
@@ -183,6 +232,27 @@ static void GenerateVfrFixture(string path)
     process.WaitForExit();
     if (process.ExitCode != 0)
         throw new Exception($"Could not generate VFR fixture: {error}");
+}
+
+static void GenerateGifFixture(string path)
+{
+    var start = new ProcessStartInfo("ffmpeg") { RedirectStandardError = true, UseShellExecute = false };
+    string[] args = [
+        "-hide_banner", "-loglevel", "error", "-y",
+        "-f", "lavfi", "-i", "testsrc2=s=32x24:r=5:d=1",
+        "-loop", "0", path
+    ];
+    foreach (string arg in args) start.ArgumentList.Add(arg);
+    using Process process = Process.Start(start) ?? throw new Exception("Could not start ffmpeg to create the GIF fixture.");
+    string error = process.StandardError.ReadToEnd();
+    process.WaitForExit();
+    if (process.ExitCode != 0)
+        throw new Exception($"Could not generate GIF fixture: {error}");
+}
+
+static void GenerateSvgFixture(string path)
+{
+    File.WriteAllText(path, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"32\" height=\"24\" viewBox=\"0 0 32 24\"><rect width=\"32\" height=\"24\" fill=\"#ff0000\"/><rect x=\"16\" width=\"16\" height=\"24\" fill=\"#00ff00\"/></svg>");
 }
 
 static long[] ProbeTimestamps(string path)
