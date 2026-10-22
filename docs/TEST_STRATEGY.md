@@ -267,3 +267,14 @@ Video playback requires a separate regression path from the still-image shell. A
 The dual-player timeline is tested without display initialization using `dotnet tests/Kinovea.PortableDesktop.Tests/bin/Release/net10.0/linux-x64/Kinovea.PortableDesktop.Tests.dll --timeline-only` (12 assertions for mixed rational timebases, common seconds, clamp behavior and slider mapping). The complete Avalonia presentation/player suite passes 127 assertions when run from the local Xwayland session. A local browser screenshot confirms directory contents and BMP/JPEG thumbnails after the window-open initialization path. Exact commands, source SHA, screenshot hash and GUI smoke results are in [Epic 03 evidence](evidence/epic03-browser-comparison-v1.md).
 
 The dual comparison window itself, two-pane media loading, drag gestures and linked playback timing still need direct GUI exercises. The timeline unit tests establish timestamp mapping only; they do not establish visual synchronization, legacy equivalence, or Windows behavior.
+
+### Epic 04 portable drawing domain
+
+`tests/PortableDrawing.Tests` exercises the standalone `Kinovea.PortableDrawing` `net10.0` domain. Its deterministic assertions cover line and angle measurements, mapped distance/angle calculations, signed and unsigned angle conventions, supplementary and clockwise options, line/angle handles and translation, time-segment fraction clamping and timestamp interpolation, minimum time-line length after endpoint edits, collection hit order, selection, manipulation, removal, and misses. Run:
+
+```sh
+dotnet build tests/PortableDrawing.Tests/PortableDrawing.Tests.csproj -c Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false -m:1
+dotnet tests/PortableDrawing.Tests/bin/Release/net10.0/PortableDrawing.Tests.dll
+```
+
+These are source-derived portable-domain checks, not an execution of the legacy .NET Framework drawing classes or a Wine/Windows visual comparison. `AbstractDrawing.Draw`, GDI+ hit regions, WinForms gesture handling, KVA persistence, fading, tracking, keyframes, and undo/redo remain separate. The initial result is recorded in [Epic 04 evidence](evidence/epic04-portable-drawing-v1.md); legacy parity remains `UNVERIFIED`.
