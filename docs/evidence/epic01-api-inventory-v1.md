@@ -1,10 +1,10 @@
 # Evidence: Epic 01 Windows API and Assembly Inventory v1
 
-**Beads:** `Kinovea-gh23` / GitHub #23 (`E01-T01`)  
-**Source branch:** `port/net10-linux`  
-**Source commit:** `78dad5ad3897b12596cdebdb7821454b009b4fe8`  
-**Source tree:** `49e02814bc83d287c5fdf1a108bd9d0633c995b8`  
-**Review date:** 2026-10-22  
+**Beads:** `Kinovea-gh23` / GitHub #23 (`E01-T01`)
+**Source branch:** `port/net10-linux`
+**Source commit:** `78dad5ad3897b12596cdebdb7821454b009b4fe8`
+**Source tree:** `49e02814bc83d287c5fdf1a108bd9d0633c995b8`
+**Review date:** 2026-10-22
 **Evidence type:** static project and source inspection; no runtime claim
 
 ## Scope and method

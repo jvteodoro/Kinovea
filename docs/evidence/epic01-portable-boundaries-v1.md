@@ -1,12 +1,12 @@
 # Evidence: Epic 01 portable contracts and ownership v1
 
-**Beads:** `Kinovea-gh14`, `Kinovea-gh24`–`Kinovea-gh27`  
-**Branch:** `port/epic01-api-inventory`  
-**Base source:** `78dad5ad3897b12596cdebdb7821454b009b4fe8`  
-**Inventory commit:** `8da04385`  
-**Implementation source commit:** `6dd0dc2be81f5619ee6d58b3460a315840ed969e`  
-**Host:** Gentoo Linux x86_64, kernel `6.18.50`  
-**SDK/runtime:** .NET SDK `10.0.111`, MSBuild `18.0.11`, runtime `10.0.11`  
+**Beads:** `Kinovea-gh14`, `Kinovea-gh24`–`Kinovea-gh27`
+**Branch:** `port/epic01-api-inventory`
+**Base source:** `78dad5ad3897b12596cdebdb7821454b009b4fe8`
+**Inventory commit:** `8da04385`
+**Implementation source commit:** `6dd0dc2be81f5619ee6d58b3460a315840ed969e`
+**Host:** Gentoo Linux x86_64, kernel `6.18.50`
+**SDK/runtime:** .NET SDK `10.0.111`, MSBuild `18.0.11`, runtime `10.0.11`
 **Execution date:** 2026-10-22
 
 ## Scope and selected boundaries
