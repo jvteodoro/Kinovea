@@ -15,6 +15,16 @@
 5. **End-to-end:** open/play/seek/annotate/measure/save/reopen/export, on Linux and Windows.
 6. **Nonfunctional:** memory, seek latency, decode throughput, synchronization, leaks under repeat; report platform-specific baselines rather than inventing thresholds.
 
+### Epic 04 portable analysis contracts
+
+The isolated `Kinovea.PortableAnalysis` suite checks the contract introduced in ADR 0010: linear and perspective known-answer points, image/world inverse mapping, JSON save/reopen with vector field settings, invalid calibration inputs, timestamp ordering/exact lookup/linear interpolation/clamping/replacement, reversible state transitions and redo invalidation, and clipboard payload serialization. Run it with:
+
+```sh
+dotnet run --project tests/Kinovea.PortableAnalysis.Tests/Kinovea.PortableAnalysis.Tests.csproj --configuration Release
+```
+
+These authored fixtures test only the new contract. Before claiming legacy equivalence, add Windows or Wine characterization for `CalibratorPlane`/`ProjectiveMapper` and `CalibrationHelper` (including line axes, rounding and distortion), `DrawingTrack` timestamp selection and actual kinematics, keyframe mutation plus KVA save/reopen, `HistoryStack` memento effects/events/deduplication, and OS clipboard interaction. See [Epic 04 evidence](evidence/epic04-portable-analysis-contracts-v1.md); no legacy oracle is currently recorded.
+
 ### Native player GUI scenarios
 
 `tools/native-player/gui-interactions.py`, `viewport-gestures.py`, and `video-smoke.py` run only on a local graphical Linux session. Pass the exact `git rev-parse HEAD` value as `--source-sha`; each scenario rejects an incorrect SHA or modified app/smoke sources before launch. Xwayland screenshots target only the process-owned Kinovea window and retry transient drawable errors, recording the number of capture attempts. The Wayland portal picker remains visually uncaptured; selected fixture hashes and resulting player state are asserted. A successful native screenshot does not establish decoder pixel parity, Windows behavior, or legacy timing equivalence. No hosted workflow is triggered by these local scenarios.

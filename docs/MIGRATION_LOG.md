@@ -1,5 +1,11 @@
 # Migration log
 
+## 2026-10-22 — Epic 04 portable analysis contract prototype
+- Baseline: isolated clone based on `origin/port/epic03-desktop` at `ae4c7d964db3024d704717ee0ebb33ad5e185a57`. Claimed Beads `Kinovea-gh43`, `Kinovea-gh44`, and `Kinovea-gh45`; their prerequisite issues #40/#42/#41 remain open. No legacy production code changed.
+- Change: add the standalone `Kinovea.PortableAnalysis` .NET 10 library for four-corner calibration mapping, timestamped vector series, state snapshot undo/redo, and portable drawing clipboard payloads; add JSON options and 34 contract assertions. Record design and limits in [ADR 0010](adr/0010-portable-analysis-contracts.md) and [Epic 04 evidence](evidence/epic04-portable-analysis-contracts-v1.md).
+- Verification: Gentoo Linux x86_64, .NET SDK 10.0.111/runtime 10.0.11; Release library build passed with 0 warnings/errors; `dotnet run --project tests/Kinovea.PortableAnalysis.Tests/Kinovea.PortableAnalysis.Tests.csproj --configuration Release` passed 34 assertions. Legacy execution, Windows/Wine, KVA persistence, hosted Actions and application integration are `NOT_RUN`.
+- Limitations: this is `BUILD_ONLY` contract work, not a port or equivalence result. Calibration rounding/tracking/distortion and mapping parity are unverified. The new vector interpolation rule clamps and interpolates while legacy DrawingTrack display selection is nearest-sample. Undo/redo omits executable mementos, events, and deduplication; clipboard OS/UI behavior is not implemented. See [component matrix](COMPONENT_MATRIX.md).
+
 Append chronological entries; do not erase unsuccessful experiments.
 
 ## 2026-10-22 — Epic 04 portable coordinate transform contract
