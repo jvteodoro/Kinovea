@@ -3,6 +3,7 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
@@ -112,7 +113,7 @@ internal sealed class MainWindow : Window
             else
                 WriteSmokeReport();
         };
-        KeyDown += WindowKeyDown;
+        AddHandler(KeyDownEvent, WindowKeyDown, RoutingStrategies.Tunnel);
         Closed += (_, _) => session.Dispose();
         Closed += async (_, _) => await videoSession.DisposeAsync();
         Closed += (_, _) => SaveApplicationState();
