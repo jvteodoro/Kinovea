@@ -288,3 +288,20 @@ dotnet tests/PortableDrawing.Tests/bin/Release/net10.0/PortableDrawing.Tests.dll
 ```
 
 These are source-derived portable-domain checks, not an execution of the legacy .NET Framework drawing classes or a Wine/Windows visual comparison. `AbstractDrawing.Draw`, GDI+ hit regions, WinForms gesture handling, KVA persistence, fading, tracking, keyframes, and undo/redo remain separate. The initial result is recorded in [Epic 04 evidence](evidence/epic04-portable-drawing-v1.md); legacy parity remains `UNVERIFIED`.
+
+### Epic 04 source-level drawing regression comparison
+
+`tests/PortableDrawing.LegacyComparison.Tests` links the unchanged legacy
+`GeometryHelper` arithmetic source and compares it directly to the portable drawing
+measurement boundary. It currently covers image-space distance, signed and reversed-leg
+angles, mapped endpoint distance/angle, and the unsigned `2π` wrapping rule. Run:
+
+```sh
+dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false
+```
+
+This is a `CROSS_SOURCE_MATCH` test, not Windows/.NET Framework runtime or GUI evidence.
+It does not cover `DrawingLine`/`DrawingAngle` rendering, GDI+ hit paths,
+`DrawingTimeSegment`, calibration/distortion, keyframes, KVA, history events, or the
+clipboard. The complete command results and evidence categories are in
+[Epic 04 comparison evidence](evidence/epic04-legacy-regression-comparison-v1.md).
