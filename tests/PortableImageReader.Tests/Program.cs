@@ -24,6 +24,7 @@ internal static class Program
                 width: 7, height: 5, transparent: false);
             RunCandidateFixture(candidateRoot, "png-alpha-13x9", PixelFormat.Rgba32, AlphaMode.Straight,
                 width: 13, height: 9, transparent: true);
+            VerifyJpegCandidate(candidateRoot);
             VerifyBmpPaddingAndOrientation();
             VerifyPngExifOrientations();
 
@@ -129,6 +130,36 @@ internal static class Program
         finally
         {
             File.Delete(path);
+        }
+    }
+
+    private static void VerifyJpegCandidate(string candidateRoot)
+    {
+        const string id = "jpeg-rgb-11x7";
+        string fixturePath = Path.Combine(candidateRoot, "fixtures", id + ".jpg");
+        string expectedPath = Path.Combine(candidateRoot, "pixels", id + ".rgba");
+        Equal(GetFixtureSha256(candidateRoot, id), Sha256(fixturePath), "JPEG candidate fixture SHA-256");
+        using PixelBuffer frame = new PortableImageReader().Read(fixturePath);
+        Equal(11, frame.Width, "JPEG candidate width");
+        Equal(7, frame.Height, "JPEG candidate height");
+        Equal(PixelFormat.Rgb24, frame.Format, "JPEG candidate format");
+        Equal(AlphaMode.None, frame.AlphaMode, "JPEG candidate alpha mode");
+        Equal(33, frame.StrideBytes, "JPEG candidate packed stride");
+
+        byte[] expectedRgba = File.ReadAllBytes(expectedPath);
+        Equal(11 * 7 * 4, expectedRgba.Length, "JPEG legacy candidate RGBA size");
+        int index = 0;
+        for (int y = 0; y < frame.Height; y++)
+        {
+            ReadOnlySpan<byte> row = frame.GetRowSpan(y);
+            for (int x = 0; x < frame.Width; x++)
+            {
+                int offset = x * 3;
+                Near(expectedRgba[index++], row[offset], 8, $"JPEG candidate ({x},{y}) red");
+                Near(expectedRgba[index++], row[offset + 1], 8, $"JPEG candidate ({x},{y}) green");
+                Near(expectedRgba[index++], row[offset + 2], 8, $"JPEG candidate ({x},{y}) blue");
+                Equal((byte)255, expectedRgba[index++], $"JPEG candidate ({x},{y}) legacy alpha");
+            }
         }
     }
 
@@ -497,6 +528,13 @@ internal static class Program
         checks++;
         if (!EqualityComparer<T>.Default.Equals(expected, actual))
             throw new InvalidOperationException($"{message}: expected '{expected}', got '{actual}'.");
+    }
+
+    private static void Near(byte expected, byte actual, int tolerance, string message)
+    {
+        checks++;
+        if (Math.Abs(expected - actual) > tolerance)
+            throw new InvalidOperationException($"{message}: expected {expected} +/- {tolerance}, got {actual}.");
     }
 
     private static void Throws<TException>(Action action, string message) where TException : Exception

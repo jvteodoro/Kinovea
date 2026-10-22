@@ -9,6 +9,8 @@ string fixture = Path.Combine(directory, "synthetic-h264.mp4");
 GenerateFixture(fixture);
 string vfrFixture = Path.Combine(directory, "synthetic-vfr-h264.mp4");
 GenerateVfrFixture(vfrFixture);
+string nonzeroStartFixture = Path.Combine(directory, "synthetic-nonzero-start-h264.mp4");
+GenerateNonzeroStartFixture(nonzeroStartFixture);
 string gifFixture = Path.Combine(directory, "synthetic-animated.gif");
 GenerateGifFixture(gifFixture);
 string svgFixture = Path.Combine(directory, "synthetic-vector.svg");
@@ -112,6 +114,31 @@ using (var vfrReader = new PortableVideoReader())
     Equal(36864L, gapSeek!.Timestamp, "VFR seek selects first frame at or after target gap");
 }
 
+using (var nonzeroStartReader = new PortableVideoReader())
+{
+    nonzeroStartReader.Open(nonzeroStartFixture);
+    PortableVideoMetadata nonzeroMetadata = nonzeroStartReader.Metadata
+        ?? throw new Exception("Nonzero-start metadata missing after open.");
+    Equal(32768L, nonzeroMetadata.StartTimestamp, "nonzero-start stream start timestamp");
+    long[] nonzeroProbeTimestamps = ProbeTimestamps(nonzeroStartFixture);
+    var nonzeroFrames = new List<(long Timestamp, long Previous)>();
+    while (nonzeroStartReader.ReadNext(out var frame))
+        nonzeroFrames.Add((frame!.Timestamp, frame.PreviousTimestamp));
+    True(nonzeroFrames.Select(frame => frame.Timestamp).SequenceEqual(nonzeroProbeTimestamps),
+        "nonzero-start decoded timestamps match ffprobe trace");
+    Equal(32768L, nonzeroFrames[0].Timestamp, "nonzero-start first presentation timestamp");
+    Equal(long.MinValue, nonzeroFrames[0].Previous, "nonzero-start first previous timestamp");
+    nonzeroStartReader.Seek(36864);
+    True(nonzeroStartReader.ReadNext(out var exactNonzeroSeek), "nonzero-start exact seek returns frame");
+    Equal(36864L, exactNonzeroSeek!.Timestamp, "nonzero-start exact seek timestamp");
+    nonzeroStartReader.Seek(35000);
+    True(nonzeroStartReader.ReadNext(out var gapNonzeroSeek), "nonzero-start gap seek returns frame");
+    Equal(36864L, gapNonzeroSeek!.Timestamp, "nonzero-start gap seek selects first frame at or after target");
+    nonzeroStartReader.Seek(32768);
+    True(nonzeroStartReader.ReadNext(out var backwardNonzeroSeek), "nonzero-start backward seek returns frame");
+    Equal(32768L, backwardNonzeroSeek!.Timestamp, "nonzero-start backward seek timestamp");
+}
+
 using (var failedOpenReader = new PortableVideoReader())
 {
     Throws<InvalidDataException>(() => failedOpenReader.Open(Path.Combine(directory, "missing.mp4")), "missing input failure category");
@@ -157,7 +184,8 @@ using (var svgReader = new PortableVideoReader())
 var decoderMeasurements = MeasureDecoder(fixture);
 string fixtureSha = Hash(fixture);
 string vfrFixtureSha = Hash(vfrFixture);
-Console.WriteLine($"PASS: {assertions} assertions; FFmpeg native={nativeVersions}; CFR sha256={fixtureSha}; VFR sha256={vfrFixtureSha}; frames={frames.Count}; timestamps={string.Join(',', frames.Select(frame => frame.Timestamp))}; VFR timestamps={string.Join(',', ProbeTimestamps(vfrFixture))}");
+string nonzeroStartFixtureSha = Hash(nonzeroStartFixture);
+Console.WriteLine($"PASS: {assertions} assertions; FFmpeg native={nativeVersions}; CFR sha256={fixtureSha}; VFR sha256={vfrFixtureSha}; nonzero-start sha256={nonzeroStartFixtureSha}; frames={frames.Count}; timestamps={string.Join(',', frames.Select(frame => frame.Timestamp))}; VFR timestamps={string.Join(',', ProbeTimestamps(vfrFixture))}; nonzero-start timestamps={string.Join(',', ProbeTimestamps(nonzeroStartFixture))}");
 Console.WriteLine($"Decoder descriptive measurements (1 warmup + 5 samples): median={decoderMeasurements.MedianMilliseconds:0.###} ms per 8-frame decode; managed allocated={decoderMeasurements.ManagedBytesPerFrame:0.##} bytes/frame. Native allocations are not included.");
 
 void Equal<T>(T expected, T actual, string label)
@@ -232,6 +260,24 @@ static void GenerateVfrFixture(string path)
     process.WaitForExit();
     if (process.ExitCode != 0)
         throw new Exception($"Could not generate VFR fixture: {error}");
+}
+
+static void GenerateNonzeroStartFixture(string path)
+{
+    var start = new ProcessStartInfo("ffmpeg") { RedirectStandardError = true, UseShellExecute = false };
+    string[] args = [
+        "-hide_banner", "-loglevel", "error", "-y",
+        "-f", "lavfi", "-i", "testsrc2=s=64x48:r=4:d=1",
+        "-vf", "setpts=PTS+2/TB",
+        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "0", "-g", "4", "-bf", "2",
+        "-copyts", "-avoid_negative_ts", "disabled", "-map_metadata", "-1", "-fflags", "+bitexact", "-flags:v", "+bitexact", path
+    ];
+    foreach (string arg in args) start.ArgumentList.Add(arg);
+    using Process process = Process.Start(start) ?? throw new Exception("Could not start ffmpeg to create the nonzero-start fixture.");
+    string error = process.StandardError.ReadToEnd();
+    process.WaitForExit();
+    if (process.ExitCode != 0)
+        throw new Exception($"Could not generate nonzero-start fixture: {error}");
 }
 
 static void GenerateGifFixture(string path)
