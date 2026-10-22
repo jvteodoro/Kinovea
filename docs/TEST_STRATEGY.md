@@ -17,7 +17,7 @@
 
 ### Epic 04 portable analysis contracts
 
-The isolated `Kinovea.PortableAnalysis` suite checks the contract introduced in ADR 0010: linear and perspective known-answer points, image/world inverse mapping, JSON save/reopen with vector field settings, invalid calibration inputs, timestamp ordering/exact lookup/linear interpolation/clamping/replacement, reversible state transitions and redo invalidation, and clipboard payload serialization. Run it with:
+The isolated `Kinovea.PortableAnalysis` suite checks the contract introduced in ADR 0011: linear and perspective known-answer points, image/world inverse mapping, JSON save/reopen with vector field settings, invalid calibration inputs, timestamp ordering/exact lookup/linear interpolation/clamping/replacement, reversible state transitions and redo invalidation, and clipboard payload serialization. Run it with:
 
 ```sh
 dotnet run --project tests/Kinovea.PortableAnalysis.Tests/Kinovea.PortableAnalysis.Tests.csproj --configuration Release

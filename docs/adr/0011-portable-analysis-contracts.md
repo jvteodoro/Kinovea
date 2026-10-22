@@ -1,4 +1,4 @@
-# ADR 0010: Portable analysis contract prototypes
+# ADR 0011: Portable analysis contract prototypes
 
 - **Status:** PROPOSED
 - **Date:** 2026-10-22
