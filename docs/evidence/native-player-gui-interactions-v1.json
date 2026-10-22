@@ -1,0 +1,470 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "native-player-gui-interactions-v1",
+  "base": {
+    "branch": "port/net10-linux",
+    "sha": "61850e7931456d57bba09c69a15d746b2773bf39",
+    "pr12": "merged"
+  },
+  "testedSource": {
+    "commit": "210e25b1b8229fedf34340feee5577fa1d577d42",
+    "commits": [
+      "b3d43737",
+      "210e25b1"
+    ],
+    "legacyProductionChanged": false,
+    "portableReaderDecoderSourceChanged": false
+  },
+  "provenanceNote": "The successful lifecycle and viewport runs were executed from the worktree before commit. Their generated reports recorded the caller-supplied KINOVEA_SOURCE_SHA as the base SHA 61850e7931456d57bba09c69a15d746b2773bf39, although the changed application files were later committed unchanged as 210e25b1b8229fedf34340feee5577fa1d577d42. The final exact-SHA lifecycle rerun was blocked at startup screenshot capture by Xwayland BadDrawable/Permission denied before any interaction. Treat the application source attribution as verified against the committed source contents, but retain this runner-metadata discrepancy as a traceability limitation.",
+  "environment": {
+    "os": "Gentoo Linux 2.18",
+    "kernel": "6.18.50-gentoo-dist-bin",
+    "architecture": "x86_64",
+    "dotnetSdk": "10.0.111",
+    "dotnetRuntime": "10.0.11",
+    "msbuild": "18.0.11+e2f47b011",
+    "desktop": "KWin 6.7.5 on Wayland/Xwayland",
+    "waylandDisplay": "wayland-0",
+    "xDisplay": ":1",
+    "xwaylandResolution": "1920x1080",
+    "renderScaling": 1.5,
+    "avalonia": "12.1.4",
+    "skiasharp": "3.119.4",
+    "workflow": "NOT_RUN",
+    "windowsGui": "NOT_RUN"
+  },
+  "fixtures": {
+    "png1280x720": {
+      "fileName": "synthetic-rgb-1280x720.png",
+      "sha256": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f",
+      "dimensions": [
+        1280,
+        720
+      ]
+    },
+    "bmp640x480": {
+      "fileName": "native-player-rgb-640x480.bmp",
+      "sha256": "3f7f8b5907ddeef41c6478d79c8b42414f222b0233f99778337e97117670a314",
+      "dimensions": [
+        640,
+        480
+      ]
+    },
+    "corruptCandidate": {
+      "fileName": "corrupt-image.png",
+      "sha256": "9f2b222cc66ffcc47742bb2f7dabd3f5f8be0ded008fb37297cc6b8f2ae4b36a"
+    },
+    "alphaCandidate": {
+      "fileName": "png-alpha-13x9.png",
+      "sha256": "e0759d696bfef305e0a2c1c8fc7b7673e9e46390ef15beb541679c6766041dcd",
+      "dimensions": [
+        13,
+        9
+      ],
+      "alphaMode": "Straight",
+      "baselineStatus": "CANDIDATE_NOT_APPROVED"
+    }
+  },
+  "lifecycle": {
+    "result": "PASS",
+    "steps": [
+      {
+        "action": "startup empty state",
+        "result": "PASS"
+      },
+      {
+        "action": "real Avalonia storage provider selection",
+        "result": "PASS"
+      },
+      {
+        "action": "PNG legacy metadata",
+        "result": "PASS"
+      },
+      {
+        "action": "Next button keyboard activation",
+        "result": "PASS"
+      },
+      {
+        "action": "Escape cancels real file picker",
+        "result": "PASS"
+      },
+      {
+        "action": "real Avalonia storage provider selection",
+        "result": "PASS"
+      },
+      {
+        "action": "Ctrl+W closes PNG",
+        "result": "PASS"
+      },
+      {
+        "action": "real Avalonia storage provider selection",
+        "result": "PASS"
+      },
+      {
+        "action": "BMP legacy metadata",
+        "result": "PASS"
+      },
+      {
+        "action": "BMP next and previous frame controls",
+        "result": "PASS"
+      },
+      {
+        "action": "Ctrl+W closes BMP",
+        "result": "PASS"
+      },
+      {
+        "action": "reopen PNG after PNG and BMP close",
+        "result": "PASS"
+      },
+      {
+        "action": "exit application",
+        "result": "PASS"
+      }
+    ],
+    "pngMetadata": {
+      "dimensions": [
+        1280,
+        720
+      ],
+      "fps": 25,
+      "timestamp": 0,
+      "previousTimestamp": -1
+    },
+    "bmpMetadata": {
+      "dimensions": [
+        640,
+        480
+      ],
+      "fps": 25,
+      "timestamp": 0,
+      "previousTimestamp": -1
+    },
+    "navigation": {
+      "next": [
+        1,
+        0
+      ],
+      "previous": [
+        0,
+        -1
+      ],
+      "presentationCopiesUnchangedDuringNavigation": true
+    },
+    "cancelPicker": "PASS; current PNG hash and reader state unchanged",
+    "corruptReplacement": "PASS; rejected candidate retained old current input hash, state, presentation-copy count and visible image",
+    "sameProcess": "PASS; PNG close, BMP open/step/close, PNG reopen; presentation copies 1 -> 2 -> 3 on successful opens only",
+    "cleanExitCode": 0,
+    "pickerScreenshot": "NOT_CAPTURED (Wayland portal is not an X11 surface)"
+  },
+  "viewport": {
+    "result": "PASS",
+    "wheelZoom": {
+      "from": 1,
+      "to": 1.2,
+      "anchorPreserved": "PASS using Avalonia-reported pointer point",
+      "coordinateCaveat": "Requested Xwayland pointer and Avalonia-reported point differed; actual event point is recorded and used for anchor calculation."
+    },
+    "pan": {
+      "inputXwaylandDelta": [
+        54,
+        33
+      ],
+      "renderScale": 1.5,
+      "expectedLogicalDelta": [
+        36,
+        22
+      ],
+      "observedLogicalDelta": [
+        36,
+        22
+      ]
+    },
+    "fit": "PASS",
+    "resize": {
+      "beforeLogical": [
+        1120,
+        646
+      ],
+      "afterLogical": [
+        960,
+        646
+      ],
+      "imageAspect": 1.3333333333333333
+    },
+    "openAfterGestures": {
+      "result": "PASS",
+      "dimensions": [
+        1280,
+        720
+      ],
+      "timestamp": [
+        0,
+        -1
+      ],
+      "zoom": 1,
+      "pan": [
+        0,
+        0
+      ]
+    },
+    "renderSamples": {
+      "red": [
+        235,
+        40,
+        35
+      ],
+      "diagonal": [
+        250,
+        250,
+        250
+      ],
+      "blue": [
+        30,
+        55,
+        220
+      ],
+      "exactMatch": true
+    },
+    "alphaSamples": {
+      "transparentExpectedAndObserved": [
+        17,
+        21,
+        27
+      ],
+      "partialExpected": [
+        26,
+        27,
+        54
+      ],
+      "partialObserved": [
+        27,
+        28,
+        55
+      ],
+      "tolerance": 30
+    }
+  },
+  "ownership": {
+    "presentationCopiesPerSuccessfulOpen": 1,
+    "copiesOnFrameNavigation": 0,
+    "failedReplacementRetainsSameFrameAndPresentation": "PASS in 115-assertion desktop suite",
+    "successfulReplacementDisposesOldReaderPixelsAndAvaloniaBitmap": "PASS in 115-assertion desktop suite",
+    "fdSamples": [
+      147,
+      147,
+      147
+    ],
+    "rssKiBSamples": [
+      182944,
+      188300,
+      198136
+    ],
+    "interpretation": "RSS rose across three small image sessions; this measurement alone neither proves a leak nor proves leak-free disposal. No retained native pointer is used by presentation."
+  },
+  "packageResolution": {
+    "resolvedAvalonia": "12.1.4",
+    "resolvedSkiaSharp": "3.119.4",
+    "inProcessMappedLibraries": [
+      "libSkiaSharp.so",
+      "libHarfBuzzSharp.so"
+    ],
+    "lddObserved": [
+      "libfontconfig.so.1",
+      "libfreetype.so.6",
+      "libpng16.so.16",
+      "libexpat.so.1",
+      "libz.so.1",
+      "libbz2.so.1",
+      "glibc runtime"
+    ],
+    "alignmentChanged": "No; version alignment was introduced in PR #12 and reviewed without modification in this task. Windows native resolution remains NOT_RUN."
+  },
+  "localTests": [
+    {
+      "suite": "PortablePixels.Tests",
+      "result": "PASS",
+      "count": "10 checks"
+    },
+    {
+      "suite": "PortableImageReader.Tests",
+      "result": "PASS",
+      "count": "1322 assertions"
+    },
+    {
+      "suite": "PortableFrameGenerator.Tests",
+      "result": "PASS",
+      "count": "617 assertions",
+      "legacyComparison": "NOT_RUN (no legacy capture supplied)"
+    },
+    {
+      "suite": "PortableReaderShell.Tests",
+      "result": "PASS",
+      "count": "65 assertions",
+      "legacyTraceComparison": "NOT_RUN"
+    },
+    {
+      "suite": "PortableStillImageHost.Tests",
+      "result": "PASS",
+      "count": "43 assertions"
+    },
+    {
+      "suite": "Kinovea.PortableDesktop.Tests",
+      "result": "PASS",
+      "count": "115 assertions"
+    },
+    {
+      "suite": "app and six portable test project builds",
+      "result": "PASS",
+      "warnings": 0,
+      "errors": 0
+    }
+  ],
+  "screenshots": [
+    {
+      "scenario": "lifecycle",
+      "checkpoint": "startup-empty",
+      "path": "docs/evidence/native-player-gui-interactions-v1/lifecycle/01-startup-empty.png",
+      "sha256": "65503165aba605db5352bed7eb4676eccfd0acd7ece3ed0c4783e9e394c7ad05",
+      "bytes": 31123,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "lifecycle",
+      "checkpoint": "navigation-next",
+      "path": "docs/evidence/native-player-gui-interactions-v1/lifecycle/02-navigation-next.png",
+      "sha256": "7cb3aec2d81c5e240829bec0f8dbbb998ff2aea86ad69f7d18b889b26f1ac3a9",
+      "bytes": 58785,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "lifecycle",
+      "checkpoint": "cancelled-picker-player",
+      "path": "docs/evidence/native-player-gui-interactions-v1/lifecycle/03-cancel-picker.png",
+      "sha256": "d32a57ad031fa354935fc33db146dfa9070624f23ee4eeea5ca34a5aef96efb1",
+      "bytes": 58493,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "lifecycle",
+      "checkpoint": "png-closed-empty",
+      "path": "docs/evidence/native-player-gui-interactions-v1/lifecycle/04-png-closed.png",
+      "sha256": "3c0e2f2524c30bf84e266081e9fcb95439bb3be846b4ee75a3616828d90bcf22",
+      "bytes": 31119,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "lifecycle",
+      "checkpoint": "bmp-navigation",
+      "path": "docs/evidence/native-player-gui-interactions-v1/lifecycle/05-bmp-navigation.png",
+      "sha256": "ee7c2a65175fdaaf90d414b0b7ed76f42ec0536dea05421c525ae8a7ce2d8b09",
+      "bytes": 55989,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "lifecycle",
+      "checkpoint": "bmp-closed-empty",
+      "path": "docs/evidence/native-player-gui-interactions-v1/lifecycle/06-bmp-closed.png",
+      "sha256": "3c0e2f2524c30bf84e266081e9fcb95439bb3be846b4ee75a3616828d90bcf22",
+      "bytes": 31119,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "lifecycle",
+      "checkpoint": "bmp-first-visible",
+      "path": "docs/evidence/native-player-gui-interactions-v1/lifecycle/bmp-visible.png",
+      "sha256": "ee7c2a65175fdaaf90d414b0b7ed76f42ec0536dea05421c525ae8a7ce2d8b09",
+      "bytes": 55989,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "lifecycle",
+      "checkpoint": "corrupt-replacement-keeps-prior-image",
+      "path": "docs/evidence/native-player-gui-interactions-v1/lifecycle/corrupt-visible.png",
+      "sha256": "32f5a50fe127c8894810c56e08375ce6524d0d07f04e0955b5669a695f39b8a7",
+      "bytes": 64877,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "lifecycle",
+      "checkpoint": "png-first-visible",
+      "path": "docs/evidence/native-player-gui-interactions-v1/lifecycle/png-visible.png",
+      "sha256": "d32a57ad031fa354935fc33db146dfa9070624f23ee4eeea5ca34a5aef96efb1",
+      "bytes": 58493,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "lifecycle",
+      "checkpoint": "png-reopened",
+      "path": "docs/evidence/native-player-gui-interactions-v1/lifecycle/reopen-png-visible.png",
+      "sha256": "d32a57ad031fa354935fc33db146dfa9070624f23ee4eeea5ca34a5aef96efb1",
+      "bytes": 58493,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "viewport",
+      "checkpoint": "png-opened-after-viewport-gestures",
+      "path": "docs/evidence/native-player-gui-interactions-v1/viewport/png-after-gestures-visible.png",
+      "sha256": "66068b13a3e448449641ad74788489c21179676ab93289aaae2950c862de1d60",
+      "bytes": 57565,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "viewport",
+      "checkpoint": "straight-alpha-render",
+      "path": "docs/evidence/native-player-gui-interactions-v1/viewport/viewport-alpha.png",
+      "sha256": "0a4dd2bfa7d40e073bfe9e6b000060619c288b5bb94ec590d7b25e14bed888bc",
+      "bytes": 204554,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "viewport",
+      "checkpoint": "bmp-fit-color-orientation",
+      "path": "docs/evidence/native-player-gui-interactions-v1/viewport/viewport-bmp-fit.png",
+      "sha256": "c69a6614cc2d47b5eeac0b8ef063c00b1d0df82403fed49e37855b031cd74e72",
+      "bytes": 56075,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "viewport",
+      "checkpoint": "bmp-initial-fit",
+      "path": "docs/evidence/native-player-gui-interactions-v1/viewport/viewport-bmp-initial.png",
+      "sha256": "ee7c2a65175fdaaf90d414b0b7ed76f42ec0536dea05421c525ae8a7ce2d8b09",
+      "bytes": 55989,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "viewport",
+      "checkpoint": "bmp-wheel-pan",
+      "path": "docs/evidence/native-player-gui-interactions-v1/viewport/viewport-bmp-pan.png",
+      "sha256": "be68ab8d7269ec6428df3858408a2616dcc11e19f097a4a46f189d970c026d14",
+      "bytes": 60987,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "viewport",
+      "checkpoint": "bmp-window-resized",
+      "path": "docs/evidence/native-player-gui-interactions-v1/viewport/viewport-bmp-resized.png",
+      "sha256": "ddec38b5bdcc6170c1d6f98c6393c35982c80a974987e32d056904be0901e3c4",
+      "bytes": 55391,
+      "method": "ffmpeg x11grab -window_id"
+    },
+    {
+      "scenario": "viewport",
+      "checkpoint": "bmp-wheel-zoom",
+      "path": "docs/evidence/native-player-gui-interactions-v1/viewport/viewport-bmp-zoom.png",
+      "sha256": "973605e03f18e594a7cd1f948850070a6a8bb810b34e0d1e2af35fd6a621c1cc",
+      "bytes": 61072,
+      "method": "ffmpeg x11grab -window_id"
+    }
+  ],
+  "limitations": [
+    "Windows app/runtime and Windows native-library resolution are NOT_RUN.",
+    "GitHub Actions were intentionally NOT_RUN.",
+    "The lifecycle report environment field contained the base SHA; the committed-source mapping and failed exact-SHA rerun are documented above.",
+    "The first exact-SHA lifecycle retry failed at Xwayland screenshot capture before interactions; the prior full lifecycle run passed.",
+    "Screenshot rendering is not decoded-pixel parity or cross-renderer visual equivalence.",
+    "The candidate Windows Bitmap golden directory remains unapproved.",
+    "Resource samples are descriptive and do not establish leak freedom.",
+    "The native app remains an isolated still-image prototype; no legacy cache, UI, FFmpeg, video or production playback integration is claimed."
+  ]
+}

@@ -22,10 +22,18 @@ internal sealed class MainWindow : Window
     private readonly Slider timeline = new() { Minimum = 0, Maximum = 249, SmallChange = 1, LargeChange = 10, Width = 240, IsEnabled = false };
     private readonly Button previous = new() { Content = "◀" };
     private readonly Button next = new() { Content = "▶" };
+    private Button? openButton;
+    private Button? closeButton;
+    private Button? fitButton;
     private readonly string? initialPath;
     private readonly string? smokeReportPath;
     private bool updatingTimeline;
     private bool visibleFrameRendered;
+    private string? lastPickerResult;
+    private string? lastOpenResult;
+    private string? lastAttemptedFileName;
+    private string? hashedInputPath;
+    private string? hashedInputSha256;
 
     public MainWindow(string[] args)
     {
@@ -45,10 +53,16 @@ internal sealed class MainWindow : Window
             visibleFrameRendered = true;
             WriteSmokeReport();
         };
+        viewport.InteractionObserved += WriteSmokeReport;
         Opened += async (_, _) =>
         {
             if (!string.IsNullOrWhiteSpace(initialPath))
+            {
+                lastPickerResult = "CommandLine";
                 await OpenPathAsync(initialPath);
+            }
+            else
+                WriteSmokeReport();
         };
         KeyDown += WindowKeyDown;
         Closed += (_, _) => session.Dispose();
@@ -57,9 +71,9 @@ internal sealed class MainWindow : Window
 
     private Control BuildLayout()
     {
-        var open = new Button { Content = "Open image…", Margin = new Thickness(4) };
-        var close = new Button { Content = "Close", Margin = new Thickness(4), IsEnabled = false };
-        var fit = new Button { Content = "Fit", Margin = new Thickness(4) };
+        var open = openButton = new Button { Content = "Open image…", Margin = new Thickness(4) };
+        var close = closeButton = new Button { Content = "Close", Margin = new Thickness(4), IsEnabled = false };
+        var fit = fitButton = new Button { Content = "Fit", Margin = new Thickness(4) };
         var zoomOut = new Button { Content = "−", Margin = new Thickness(4) };
         var zoomIn = new Button { Content = "+", Margin = new Thickness(4) };
         var zoomLabel = new TextBlock { Text = "Fit", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0) };
@@ -127,6 +141,9 @@ internal sealed class MainWindow : Window
 
     private async Task PickAndOpenAsync()
     {
+        lastPickerResult = "Opening";
+        lastOpenResult = null;
+        WriteSmokeReport();
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open still image",
@@ -137,14 +154,30 @@ internal sealed class MainWindow : Window
                 FilePickerFileTypes.All
             ]
         });
-        if (files.Count == 1 && files[0].TryGetLocalPath() is { } path)
+        if (files.Count != 1)
+        {
+            lastPickerResult = "Cancelled";
+            WriteSmokeReport();
+            return;
+        }
+
+        lastPickerResult = "Selected";
+        if (files[0].TryGetLocalPath() is { } path)
             await OpenPathAsync(path);
+        else
+        {
+            lastOpenResult = "SelectedFileHasNoLocalPath";
+            lastAttemptedFileName = files[0].Name;
+            WriteSmokeReport();
+        }
     }
 
     private Task OpenPathAsync(string path)
     {
+        lastAttemptedFileName = Path.GetFileName(path);
         bool opened = session.Open(path);
-        if (!opened)
+        lastOpenResult = opened ? "Opened" : "Rejected";
+        if (!opened || session.Status != PortablePlayerStatus.Open)
             WriteSmokeReport();
         Refresh();
         return Task.CompletedTask;
@@ -226,9 +259,10 @@ internal sealed class MainWindow : Window
         if (smokeReportPath is null || session.Status == PortablePlayerStatus.Open && session.Current.Image is null)
             return;
         var info = session.Metadata;
-        string? inputHash = session.CurrentPath is not null && File.Exists(session.CurrentPath)
-            ? Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(session.CurrentPath))).ToLowerInvariant()
-            : null;
+        string? inputHash = GetCurrentInputHash();
+        Point? viewportOrigin = viewport.TranslatePoint(new Point(0, 0), this);
+        var transform = viewport.Transform;
+        Size clientSize = ClientSize;
         var report = new
         {
             schemaVersion = 1,
@@ -246,13 +280,68 @@ internal sealed class MainWindow : Window
             pixelFormat = session.Current.Image?.Format.ToString(),
             alphaMode = session.Current.Image?.AlphaMode.ToString(),
             readerState = session.Status.ToString(),
+            errorMessage = session.ErrorMessage,
+            lastPickerResult,
+            lastOpenResult,
+            lastAttemptedFileName,
             presentationCopyCount = session.PresentationCopies,
             presentationBytesCopied = session.PresentationBytesCopied,
+            windowLogicalWidth = clientSize.Width,
+            windowLogicalHeight = clientSize.Height,
+            renderScaling = RenderScaling,
+            viewportLogicalX = viewportOrigin?.X,
+            viewportLogicalY = viewportOrigin?.Y,
+            viewportLogicalWidth = viewport.Bounds.Width,
+            viewportLogicalHeight = viewport.Bounds.Height,
+            zoom = viewport.Zoom,
+            panX = viewport.Pan.X,
+            panY = viewport.Pan.Y,
+            wheelEventCount = viewport.WheelEventCount,
+            pointerPressCount = viewport.PointerPressCount,
+            pointerMoveCount = viewport.PointerMoveCount,
+            lastWheelViewportX = viewport.LastWheelPosition.X,
+            lastWheelViewportY = viewport.LastWheelPosition.Y,
+            imageRectX = transform?.ImageRectangle.X,
+            imageRectY = transform?.ImageRectangle.Y,
+            imageRectWidth = transform?.ImageRectangle.Width,
+            imageRectHeight = transform?.ImageRectangle.Height,
+            openButton = ControlBounds(openButton),
+            closeButton = ControlBounds(closeButton),
+            fitButton = ControlBounds(fitButton),
+            previousButton = ControlBounds(previous),
+            nextButton = ControlBounds(next),
             processId = Environment.ProcessId
         };
         string fullPath = Path.GetFullPath(smokeReportPath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
         File.WriteAllText(fullPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private object? ControlBounds(Control? control)
+    {
+        if (control is null) return null;
+        Point? origin = control.TranslatePoint(new Point(0, 0), this);
+        return new
+        {
+            x = origin?.X,
+            y = origin?.Y,
+            width = control.Bounds.Width,
+            height = control.Bounds.Height
+        };
+    }
+
+    private string? GetCurrentInputHash()
+    {
+        string? path = session.CurrentPath;
+        if (path is null || !File.Exists(path))
+            return null;
+        if (!string.Equals(path, hashedInputPath, StringComparison.Ordinal))
+        {
+            using FileStream stream = File.OpenRead(path);
+            hashedInputSha256 = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+            hashedInputPath = path;
+        }
+        return hashedInputSha256;
     }
 
     private static string? Argument(string[] args, string key)

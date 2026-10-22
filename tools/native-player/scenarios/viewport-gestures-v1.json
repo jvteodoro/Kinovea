@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "native-player-viewport-gestures-v1",
+  "application": "Kinovea.PortableDesktop (.NET 10 / Avalonia)",
+  "hostRequirement": "Local Gentoo Linux graphical session with KWin/Xwayland",
+  "fixtures": {
+    "bmp": {
+      "fileName": "native-player-rgb-640x480.bmp",
+      "sha256": "3f7f8b5907ddeef41c6478d79c8b42414f222b0233f99778337e97117670a314",
+      "expectedDimensions": [640, 480]
+    },
+    "alphaPng": {
+      "fileName": "png-alpha-13x9.png",
+      "sha256": "e0759d696bfef305e0a2c1c8fc7b7673e9e46390ef15beb541679c6766041dcd",
+      "expectedAlphaMode": "Straight"
+    },
+    "pngAfterGestures": {
+      "fileName": "synthetic-rgb-1280x720.png",
+      "sha256": "9ca619d8c6d186cdc83a90deb10279fe6b097c75ce87ffc0e576ed4328d1d34f",
+      "expectedDimensions": [1280, 720]
+    }
+  },
+  "actions": [
+    "Launch the actual process with the authored BMP and verify visible metadata.",
+    "Send a real wheel event, record requested and Avalonia-reported pointer positions, and verify image-space anchor preservation.",
+    "Drag the pointer within the player window and verify the reported pan delta.",
+    "Activate Fit through reported control bounds and sample known red, blue and asymmetric diagonal pixels from a window screenshot.",
+    "Resize the actual Xwayland application window and verify viewport changes without image aspect distortion.",
+    "Use the actual storage provider to open PNG after zoom, pan, Fit and resize; verify new image metadata and reset zoom/pan.",
+    "Launch a second actual app process on the alpha candidate fixture and sample transparent and partially transparent compositing."
+  ],
+  "expected": {
+    "initialZoom": 1,
+    "wheelZoom": 1.2,
+    "panFrom54x33XwaylandPixelsAtScale1_5": [36, 22],
+    "bmpAspectRatio": 1.3333333333,
+    "newImageInitialTimestampPair": [0, -1],
+    "newImageResetsZoomAndPan": true,
+    "rgbSampleTolerance": 24,
+    "alphaCompositeTolerance": 30
+  },
+  "evidenceClasses": ["PASS", "FAIL", "NOT_RUN", "NOT_ESTABLISHED"],
+  "limits": [
+    "The screenshot comparison is fixture-scoped rendering evidence, not cross-renderer screenshot parity.",
+    "The reported Avalonia pointer location is used for zoom-anchor math because Xwayland and Wayland scaling changed the observed location in runs.",
+    "Windows GUI and hosted CI are not part of this local scenario."
+  ]
+}
