@@ -30,6 +30,8 @@ internal sealed class MainWindow : Window
     private Button? closeButton;
     private Button? fitButton;
     private Button? playPauseButton;
+    private Button? browseButton;
+    private Button? compareButton;
     private readonly string? initialPath;
     private readonly string? initialVideoPath;
     private readonly string? smokeReportPath;
@@ -58,6 +60,25 @@ internal sealed class MainWindow : Window
         initialVideoPath = Argument(args, "--open-video");
         smokeReportPath = Argument(args, "--smoke-report");
         Content = BuildLayout();
+        DragDrop.SetAllowDrop(this, true);
+        DragDrop.AddDragOverHandler(this, (_, e) =>
+        {
+            if (e.DataTransfer.TryGetFiles()?.Length > 0)
+                e.DragEffects = DragDropEffects.Copy;
+        });
+        DragDrop.AddDropHandler(this, (_, e) =>
+        {
+            IStorageItem? item = e.DataTransfer.TryGetFiles()?.FirstOrDefault();
+            string? path = (item as IStorageFile)?.TryGetLocalPath();
+            if (path is null) return;
+            e.Handled = true;
+            if (Directory.Exists(path))
+            {
+                _ = BrowseAtPathAsync(path);
+                return;
+            }
+            _ = OpenPathAsync(path);
+        });
 
         session.Changed += SessionChanged;
         videoSession.Changed += VideoSessionChanged;
@@ -98,6 +119,8 @@ internal sealed class MainWindow : Window
     private Control BuildLayout()
     {
         var open = openButton = new Button { Content = "Open image…", Margin = new Thickness(4) };
+        var browse = browseButton = new Button { Content = "Browse media…", Margin = new Thickness(4) };
+        var compare = compareButton = new Button { Content = "Compare two…", Margin = new Thickness(4) };
         var close = closeButton = new Button { Content = "Close", Margin = new Thickness(4), IsEnabled = false };
         var play = playPauseButton = new Button { Content = "Play", Margin = new Thickness(4), IsEnabled = false };
         var fit = fitButton = new Button { Content = "Fit", Margin = new Thickness(4) };
@@ -107,7 +130,7 @@ internal sealed class MainWindow : Window
         viewport.ZoomChanged += zoom => zoomLabel.Text = zoom == 1 ? "Fit" : $"{zoom:P0}";
         var emptyHint = emptyHintText = new TextBlock
         {
-            Text = "Open a BMP, PNG, JPEG, GIF, SVG, or video file",
+            Text = "Open a BMP, PNG, JPEG, GIF, or video file",
             Foreground = Brush("#9aa4b2"),
             FontSize = 20,
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -115,6 +138,8 @@ internal sealed class MainWindow : Window
         };
 
         open.Click += async (_, _) => await PickAndOpenAsync();
+        browse.Click += async (_, _) => await BrowseAndOpenAsync();
+        compare.Click += (_, _) => new DualPlayerWindow().Show(this);
         close.Click += async (_, _) => await CloseActiveAsync();
         play.Click += (_, _) => TogglePlayback();
         fit.Click += (_, _) => { viewport.Fit(); zoomLabel.Text = "Fit"; };
@@ -145,6 +170,8 @@ internal sealed class MainWindow : Window
         toolbar.Children.Add(new Separator { Margin = new Thickness(8, 4) });
         toolbar.Children.Add(previous);
         toolbar.Children.Add(next);
+        toolbar.Children.Add(browse);
+        toolbar.Children.Add(compare);
         toolbar.Children.Add(timeline);
         toolbar.Children.Add(fit);
         toolbar.Children.Add(zoomOut);
@@ -190,7 +217,7 @@ internal sealed class MainWindow : Window
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("Images and video") { Patterns = ["*.bmp", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.svg", "*.mp4", "*.mkv", "*.mov", "*.avi", "*.webm", "*.m4v"] },
+                new FilePickerFileType("Images and video") { Patterns = ["*.bmp", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.mp4", "*.mkv", "*.mov", "*.avi", "*.webm", "*.m4v"] },
                 FilePickerFileTypes.All
             ]
         });
@@ -210,6 +237,22 @@ internal sealed class MainWindow : Window
             lastAttemptedFileName = files[0].Name;
             WriteSmokeReport();
         }
+    }
+
+    private async Task BrowseAndOpenAsync()
+    {
+        string? initialDirectory = session.CurrentPath is { } path
+            ? Path.GetDirectoryName(path)
+            : null;
+        await BrowseAtPathAsync(initialDirectory);
+    }
+
+    private async Task BrowseAtPathAsync(string? initialDirectory)
+    {
+        var browser = new FileBrowserWindow(initialDirectory);
+        string? selectedPath = await browser.ShowDialog<string?>(this);
+        if (!string.IsNullOrWhiteSpace(selectedPath))
+            await OpenPathAsync(selectedPath);
     }
 
     private async Task OpenPathAsync(string path)
@@ -484,7 +527,7 @@ internal sealed class MainWindow : Window
     }
 
     private static bool IsVideoPath(string path) => Path.GetExtension(path).ToLowerInvariant() is
-        ".mp4" or ".mkv" or ".mov" or ".avi" or ".webm" or ".m4v" or ".gif" or ".svg";
+        ".mp4" or ".mkv" or ".mov" or ".avi" or ".webm" or ".m4v" or ".gif";
 
     private void WriteSmokeReport()
     {
@@ -547,6 +590,8 @@ internal sealed class MainWindow : Window
             fitButton = ControlBounds(fitButton),
             previousButton = ControlBounds(previous),
             nextButton = ControlBounds(next),
+            browseButton = ControlBounds(browseButton),
+            compareButton = ControlBounds(compareButton),
             processId = Environment.ProcessId
         };
         string fullPath = Path.GetFullPath(smokeReportPath);

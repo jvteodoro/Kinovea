@@ -23,6 +23,12 @@ internal static class Program
                 Console.WriteLine($"Portable desktop state/capture contract tests: PASS ({assertions} assertions)");
                 return 0;
             }
+            if (args.Length == 1 && args[0] == "--timeline-only")
+            {
+                TestDualPlayerTimeline();
+                Console.WriteLine($"Dual player timeline tests: PASS ({assertions} assertions)");
+                return 0;
+            }
 
             AppBuilder.Configure<TestApp>().UsePlatformDetect().SetupWithoutStarting();
             if (args.Length == 2 && args[0] == "--measure")
@@ -103,6 +109,25 @@ internal static class Program
         await Task.WhenAll(left.StopAsync().AsTask(), right.StopAsync().AsTask());
         True(!left.IsRunning && !right.IsRunning, "single and dual source stop closes acquisition");
         await ThrowsAsync<InvalidOperationException>(async () => await left.ReadFrameAsync(), "read after stop rejected");
+    }
+
+    private static void TestDualPlayerTimeline()
+    {
+        var timeline = new DualPlayerTimeline(
+            new MediaClock(0, 50, 1, 25),
+            new MediaClock(90_000, 180_000, 1, 90_000));
+        Near(0, timeline.StartSeconds, 1e-12, "dual timeline earliest start");
+        Near(2, timeline.EndSeconds, 1e-12, "dual timeline latest end");
+        Near(1, timeline.ToCommonSeconds(0, 25), 1e-12, "left frame maps to seconds");
+        Near(1, timeline.ToCommonSeconds(1, 90_000), 1e-12, "right video timebase maps to same seconds");
+        Equal(25L, timeline.ToLocalTimestamp(0, 1), "common second maps to still frame timestamp");
+        Equal(135_000L, timeline.ToLocalTimestamp(1, 1.5), "common seconds map through video timebase");
+        Equal(0L, timeline.ToLocalTimestamp(0, -4), "out of range seek clamps to first player start");
+        Equal(180_000L, timeline.ToLocalTimestamp(1, 20), "out of range seek clamps to second player end");
+        Near(.5, timeline.ToFraction(1), 1e-12, "common time maps to normalized slider value");
+        Near(1, timeline.FromFraction(.5), 1e-12, "normalized slider value maps to common time");
+        Throws<ArgumentOutOfRangeException>(() => timeline.ToCommonSeconds(2, 1), "unknown player index rejected");
+        Throws<ArgumentOutOfRangeException>(() => _ = new DualPlayerTimeline(new MediaClock(0, 1, 0, 1), new MediaClock(0, 1, 1, 1)), "invalid timebase rejected");
     }
 
     private static void TestViewportTransform()
