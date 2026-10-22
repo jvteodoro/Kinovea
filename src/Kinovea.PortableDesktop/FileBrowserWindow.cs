@@ -195,7 +195,7 @@ internal sealed class FileBrowserWindow : Window
 
     private void LoadItems()
     {
-        if (!IsLoaded || string.IsNullOrWhiteSpace(location.Text)) return;
+        if (string.IsNullOrWhiteSpace(location.Text)) return;
         DisposeThumbnails();
         tiles.Children.Clear();
         selectedPath = null;
