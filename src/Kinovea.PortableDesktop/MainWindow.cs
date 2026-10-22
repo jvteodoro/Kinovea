@@ -449,8 +449,6 @@ internal sealed class MainWindow : Window
             _ = ShowPreferencesAsync();
             e.Handled = true;
         }
-        else if ((control && e.Key == Key.W) || e.Key == Key.Escape)
-
         else if (control && (e.Key == Key.W || e.Key == Key.F4))
         {
             _ = CloseActiveAsync();
