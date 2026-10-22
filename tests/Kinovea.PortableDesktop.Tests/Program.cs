@@ -167,6 +167,46 @@ internal static class Program
         True(session.PresentationBitmap is null, "corrupt file has no presentation bitmap");
         session.Close();
         Equal(PortablePlayerStatus.Empty, session.Status, "close clears failure state");
+
+        True(session.Open(Fixture("bmp-rgb-7x5.bmp")), "open image before failed replacement");
+        PortableReaderFrame previousFrame = session.Current;
+        WriteableBitmap previousPresentation = session.PresentationBitmap!;
+        string previousPath = session.CurrentPath!;
+        byte firstPixel = previousFrame.Image!.GetRowSpan(0)[0];
+        True(!session.Open(Fixture("corrupt-image.png")), "corrupt replacement is rejected");
+        Equal(PortablePlayerStatus.Open, session.Status, "failed replacement preserves open session");
+        Same(previousFrame, session.Current, "failed replacement preserves current frame wrapper");
+        Same(previousPresentation, session.PresentationBitmap, "failed replacement preserves presentation bitmap");
+        Equal(previousPath, session.CurrentPath, "failed replacement preserves current path");
+        Equal(firstPixel, session.Current.Image!.GetRowSpan(0)[0], "failed replacement preserves readable pixels");
+        True(session.ErrorMessage is not null, "failed replacement reports an error without discarding the current image");
+        using (ILockedFramebuffer _ = previousPresentation.Lock()) { }
+        True(!session.Open(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".png")), "missing replacement is rejected");
+        Equal(PortablePlayerStatus.Open, session.Status, "missing replacement preserves open session");
+        Same(previousFrame, session.Current, "missing replacement preserves current frame wrapper");
+        session.Close();
+        Throws<ObjectDisposedException>(() => _ = previousFrame.Image!.Memory.Length, "close after failed replacement releases old pixels");
+        Throws<ObjectDisposedException>(() => previousPresentation.Lock(), "close after failed replacement disposes old presentation bitmap");
+
+        True(session.Open(Fixture("bmp-rgb-7x5.bmp")), "open source before successful replacement");
+        PortableReaderFrame replacedFrame = session.Current;
+        WriteableBitmap replacedBitmap = session.PresentationBitmap!;
+        bool changeObservedNewSession = false;
+        EventHandler handler = (_, _) =>
+        {
+            if (session.Status == PortablePlayerStatus.Open && session.CurrentPath == Fixture("png-alpha-13x9.png"))
+            {
+                using ILockedFramebuffer _ = session.PresentationBitmap!.Lock();
+                using ILockedFramebuffer __ = replacedBitmap.Lock();
+                changeObservedNewSession = true;
+            }
+        };
+        session.Changed += handler;
+        True(session.Open(Fixture("png-alpha-13x9.png")), "successful replacement opens new image");
+        session.Changed -= handler;
+        True(changeObservedNewSession, "replacement event exposes new presentation before previous disposal");
+        Throws<ObjectDisposedException>(() => _ = replacedFrame.Image!.Memory.Length, "successful replacement releases prior reader pixels");
+        Throws<ObjectDisposedException>(() => replacedBitmap.Lock(), "successful replacement disposes prior presentation bitmap");
     }
 
     private static int Measure(string path)

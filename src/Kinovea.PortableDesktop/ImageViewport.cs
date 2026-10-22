@@ -15,8 +15,13 @@ internal sealed class ImageViewport : Control
     public WriteableBitmap? Bitmap { get; set; }
     public double Zoom { get; private set; } = 1;
     public Vector Pan { get; private set; }
+    public int WheelEventCount { get; private set; }
+    public int PointerPressCount { get; private set; }
+    public int PointerMoveCount { get; private set; }
+    public Point LastWheelPosition { get; private set; }
     public event Action? ImageRendered;
     public event Action<double>? ZoomChanged;
+    public event Action? InteractionObserved;
 
     public ViewportTransform? Transform => Bitmap is null || Bounds.Width <= 0 || Bounds.Height <= 0
         ? null
@@ -57,6 +62,9 @@ internal sealed class ImageViewport : Control
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
+        WheelEventCount++;
+        LastWheelPosition = e.GetPosition(this);
+        InteractionObserved?.Invoke();
         if (Bitmap is null)
             return;
         double multiplier = e.Delta.Y > 0 ? 1.2 : 1 / 1.2;
@@ -66,6 +74,8 @@ internal sealed class ImageViewport : Control
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
+        PointerPressCount++;
+        InteractionObserved?.Invoke();
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
             dragOrigin = e.GetPosition(this);
@@ -78,11 +88,13 @@ internal sealed class ImageViewport : Control
 
     protected override void OnPointerMoved(PointerEventArgs e)
     {
+        PointerMoveCount++;
         if (dragOrigin is { } origin && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
             Point current = e.GetPosition(this);
             Pan = dragPan + (current - origin);
             InvalidateVisual();
+            InteractionObserved?.Invoke();
             e.Handled = true;
         }
         base.OnPointerMoved(e);

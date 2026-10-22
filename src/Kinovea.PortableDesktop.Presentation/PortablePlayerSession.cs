@@ -31,18 +31,22 @@ public sealed class PortablePlayerSession : IDisposable
     public bool Open(string path)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
-        CloseCurrent();
-
         var candidate = new PortableReader();
-        PortableOpenResult result = candidate.Open(path);
+        PortableOpenResult result;
+        try
+        {
+            result = candidate.Open(path);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            candidate.Dispose();
+            return RecordOpenFailure(path, $"Could not open '{Path.GetFileName(path)}' ({exception.GetType().Name}).");
+        }
+
         if (result != PortableOpenResult.Success || !candidate.MoveRequest(next: true, target: -1) || candidate.Current.Image is null)
         {
             candidate.Dispose();
-            Status = PortablePlayerStatus.Failed;
-            CurrentPath = path;
-            ErrorMessage = $"Could not open '{Path.GetFileName(path)}' as a supported BMP or PNG image.";
-            Changed?.Invoke(this, EventArgs.Empty);
-            return false;
+            return RecordOpenFailure(path, $"Could not open '{Path.GetFileName(path)}' as a supported BMP or PNG image.");
         }
 
         PixelBitmapResult converted;
@@ -50,16 +54,14 @@ public sealed class PortablePlayerSession : IDisposable
         {
             converted = PixelBufferBitmapAdapter.Create(candidate.Current.Image);
         }
-        catch
+        catch (Exception exception) when (exception is not OutOfMemoryException)
         {
             candidate.Dispose();
-            Status = PortablePlayerStatus.Failed;
-            CurrentPath = path;
-            ErrorMessage = $"Could not present '{Path.GetFileName(path)}'.";
-            Changed?.Invoke(this, EventArgs.Empty);
-            throw;
+            return RecordOpenFailure(path, $"Could not present '{Path.GetFileName(path)}' ({exception.GetType().Name}).");
         }
 
+        PortableReader? previousReader = reader;
+        WriteableBitmap? previousBitmap = presentationBitmap;
         reader = candidate;
         presentationBitmap = converted.Bitmap;
         PresentationCopies++;
@@ -68,6 +70,9 @@ public sealed class PortablePlayerSession : IDisposable
         CurrentPath = path;
         ErrorMessage = null;
         Changed?.Invoke(this, EventArgs.Empty);
+        previousReader?.Close();
+        previousReader?.Dispose();
+        previousBitmap?.Dispose();
         return true;
     }
 
@@ -129,5 +134,16 @@ public sealed class PortablePlayerSession : IDisposable
         if (previousBitmap is not null)
             Changed?.Invoke(this, EventArgs.Empty);
         previousBitmap?.Dispose();
+    }
+
+    private bool RecordOpenFailure(string path, string message)
+    {
+        bool keepCurrent = reader is { IsLoaded: true } && presentationBitmap is not null;
+        Status = keepCurrent ? PortablePlayerStatus.Open : PortablePlayerStatus.Failed;
+        if (!keepCurrent)
+            CurrentPath = path;
+        ErrorMessage = message;
+        Changed?.Invoke(this, EventArgs.Empty);
+        return false;
     }
 }
