@@ -15,6 +15,10 @@
 5. **End-to-end:** open/play/seek/annotate/measure/save/reopen/export, on Linux and Windows.
 6. **Nonfunctional:** memory, seek latency, decode throughput, synchronization, leaks under repeat; report platform-specific baselines rather than inventing thresholds.
 
+### Static platform API inventory
+
+The static scan is a source map, not evidence that a component builds or executes. Record its source commit, project references, target frameworks, native import library/function names, package/native SDK references, and exact source locations. Treat `using System.Drawing` as a search hint rather than proof of GDI+ use because it also supplies geometry/color value types. Separate framework coupling, UI coupling, platform P/Invoke, and native vendor/codec dependencies. Dynamic/reflection-loaded components and indirect native calls remain explicit scan limitations. The 2026-10-22 API inventory is [documented here](evidence/epic01-api-inventory-v1.md); builds, tests, Windows, camera and native execution for that inventory are `NOT_RUN`.
+
 ## Golden master and oracle policy
 - Prefer legacy test or saved output from a verified Windows baseline. Record legacy version, OS, runtime and command.
 - If legacy execution cannot be performed, construct expectations from specs/invariants/independent tools and label `REFERENCE_VALIDATED`, not `REGRESSION_VERIFIED`.

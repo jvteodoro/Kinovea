@@ -31,6 +31,12 @@ Inventory verified against `Kinovea.VS2019.sln` at `cce3013c4c327a9fcd22cdac0b82
 
 These are present in the checkout but are not entries in the original solution and are not included in its build result: `Kinovea.Tests/Kinovea.Tests.csproj` (net48; references ScreenManager, Services, PlayerServer and Video; references WinForms/GDI+; contains legacy test code), `VideoTests/Video.Tests.csproj` (net2.0; old NUnit 2.5.10 reference and a `Video/Video.csproj` reference that does not exist at the referenced path in this checkout), `Tools/UnusedResources/Converter/Converter.csproj`, and `Tools/UnusedResources/UnusedResources/UnusedResources.csproj` (legacy utility projects; no app migration classification made). `Tools/UnusedResources/UnusedResources.sln` is a second solution, not part of the assigned original-solution baseline. These require a separate inventory if brought into the migration build.
 
+## Current production API dependency inventory
+
+The merged integration tree at source commit `78dad5ad3897b12596cdebdb7821454b009b4fe8` has a source-backed project/API graph and native API map in [Epic 01 inventory evidence](evidence/epic01-api-inventory-v1.md). The main coupling path is `Kinovea` -> `ScreenManager` -> `Video`/`Pipeline`/`Services`/C++/CLI `PlayerServer`; `VideoFrame.Image` and `IFrameGenerator.Generate` expose `System.Drawing.Bitmap`, while `ScreenManager` and the legacy host also depend broadly on WinForms. `Services` is not a pure utility assembly: it includes WMI, GDI+, user32/kernel32 interop, TurboJPEG and WinForms helpers. `FileBrowser` uses shell32/uxtheme/user32, and camera extensions add DirectShow, WinMM, vendor SDKs and Windows OpenCV runtime dependencies.
+
+These findings are static source inspection, not runtime coverage. The existing parallel `net10.0` projects remain separate; only `PortablePixels.GdiPlus` targets `net10.0-windows`. No legacy assembly is marked portable by this inventory. See evidence for exact project/source references, scan commands, migration implications and limitations.
+
 ## Parallel portable projects
 
 | Project | Target | Dependencies | Current verification | Scope and limits |
