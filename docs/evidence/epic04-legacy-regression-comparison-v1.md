@@ -3,7 +3,7 @@
 Date: 2026-10-22  
 Comparison base: `ca8d5413a949fdad49e1837c81a6028601dfcfcc`
 
-Final comparison source: `7cc73baa3e77570bdd161d842028330323a34b75`.
+Final comparison source: `1b871b71a91a0caddf7b52c9dd7d12515f899090`.
 Initial comparison commit: `90a4b8c030699899968396b02c40588394852cf5`.
 Host: Gentoo Linux 2.18 x86_64, kernel `6.18.50-gentoo-dist-bin`; .NET SDK `10.0.111`, runtime `10.0.11`  
 Hosted CI and Windows .NET Framework execution: `NOT_RUN`
