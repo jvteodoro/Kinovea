@@ -3,7 +3,7 @@
 Date: 2026-10-22  
 Comparison base: `ca8d5413a949fdad49e1837c81a6028601dfcfcc`
 
-Final comparison source: `1b871b71a91a0caddf7b52c9dd7d12515f899090`.
+Comparison test extension: `7bd932b1fd68a754578f207835469bb8101487b3`.
 Initial comparison commit: `90a4b8c030699899968396b02c40588394852cf5`.
 Host: Gentoo Linux 2.18 x86_64, kernel `6.18.50-gentoo-dist-bin`; .NET SDK `10.0.111`, runtime `10.0.11`  
 Hosted CI and Windows .NET Framework execution: `NOT_RUN`
@@ -29,6 +29,8 @@ Input source hashes:
 d98ff619467e76ddaed7625821daac7a732af3fb9e5ee9f0ed098c4adb565dc8  Calibration.cs
 340dcdb9ee5f4d032c8df5a3c3662350c315794d674532423ff0280c76528f11  HistoryStack.cs
 8ebccf3f0b58722726e2f48d97a8121c1415ebc0d97bdf02831d003b4eb7ae3b  UndoHistory.cs
+20a03a2e86e8f77ff5e8f329865499f61f0fa391b616e2d9a5fca26823ff911e  DrawingTimeSegment.cs (source-inspected; not linked)
+8062ddc639ad9ea1b19a66f602794f9c098bedfe11dad9c7295f0ba1db9fa731  Overlay.cs
 ```
 
 ## Executed comparison
@@ -39,7 +41,7 @@ dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawin
 ```
 
 Exit code: `0`  
-Result: `PASS: 41 legacy-to-portable behavior comparison assertions`
+Result: `PASS: 57 legacy-to-portable behavior comparison assertions`
 
 | Property | Legacy source operation | Portable operation | Cases | Result | Evidence class |
 |---|---|---|---:|---|---|
@@ -50,6 +52,7 @@ Result: `PASS: 41 legacy-to-portable behavior comparison assertions`
 | Calibrated angle | Explicitly map all points, then `GetAngle` | `AffineCalibration` then `AngleRadians` | 1 | `PASS` | `CROSS_SOURCE_MATCH` |
 | Unsigned wrap | `AngleHelper` source rule: add `2π` to a negative signed value | `signed: false` | 1 | `PASS` | `SOURCE_RULE_MATCH` |
 | Rectangular and trapezoid calibration | Exact linked `ProjectiveMapper.Backward` plus the documented `CalibratorPlane` D-origin/Y-up conversion | `PlanarCalibration.ImageToWorld` | 24 coordinate comparisons | `PASS` within `1e-5` | `CROSS_SOURCE_MATCH` |
+| Time-segment slider fraction and marker point | Exact linked `GeometryHelper.GetClosestPoint`, `GetDistance`, and `Mix`, following the source-inspected `DrawingTimeSegment.MoveHandle`/`GetTimePoint` arithmetic | `TimeSegmentOverlay.MoveHandle(3)` and `FractionPoint` | 4 cases / 16 assertions | `PASS` within `1e-5` | `CROSS_SOURCE_MATCH` for fraction placement only |
 | Undo, redo and redo invalidation | Exact linked `HistoryStack` with reversible test mementos | `UndoHistory<string>` | 3 state comparisons | `PASS` for this sequence | `CROSS_SOURCE_MATCH` |
 | History change notifications | Exact linked `HistoryStack.HistoryChanged` | No portable event counterpart | 7 notifications for the tested sequence | `SOURCE_OBSERVED` | `DIFFERENCE` |
 | Duplicate modify-memento suppression | Exact linked `HistoryStack.PushNewCommand`, test `IsSameState` returns true | `UndoHistory<T>` accepts both equal-state pushes | One legacy undo empties stack; portable requires two | `SOURCE_OBSERVED` | `DIFFERENCE` |
@@ -60,7 +63,10 @@ comparison uses the exact linked `ProjectiveMapper` source and applies the legac
 conversion (`worldX = gridX - originX`; `worldY = -gridY + originY`) with origin at
 image quadrilateral D. It compares authored rectangle and trapezoid fixtures. It does
 not exercise calibration initialization, line-axis construction, distortion, tracked
-origin, units, or rounding. The history test exercises the exact generic stack source
+origin, units, or rounding. The time-segment comparison follows source-inspected call
+sites in `DrawingTimeSegment` and executes linked legacy geometric helpers against the
+portable overlay; it does not establish timecode text, timestamp-origin rounding,
+fade/metadata behavior, endpoint edits, rendering, or serialization. The history test exercises the exact generic stack source
 but does not verify UI observer ordering or concrete drawing mutation side effects.
 
 ## Supporting executable characterization
@@ -72,7 +78,7 @@ but does not verify UI observer ordering or concrete drawing mutation side effec
 | `dotnet run --project tests/Kinovea.PortableGeometry.Tests/Kinovea.PortableGeometry.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS: 22 portable geometry assertions` | Portable viewport contract only. |
 | `dotnet run --project tests/PortableDrawing.Tests/PortableDrawing.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS 36 portable drawing assertions` | Portable overlay contract only. |
 | `dotnet run --project tests/Kinovea.PortableAnalysis.Tests/Kinovea.PortableAnalysis.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `Portable analysis contract checks: PASS (34 assertions)` | Portable calibration/history contract only. |
-| `dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS: 41 legacy-to-portable behavior comparison assertions` | Direct linked-source arithmetic, projective mapping, and scoped history comparison. |
+| `dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS: 57 legacy-to-portable behavior comparison assertions` | Direct linked-source arithmetic, projective mapping, time-segment slider fraction/point, and scoped history comparison. |
 
 ## Wine and Windows scope
 
@@ -103,7 +109,8 @@ correspondence with this `2026.1.0.0` checkout remains
 | Area | Status | Required next oracle |
 |---|---|---|
 | GDI+ drawing, rendered angle sweep, viewport-scaled handle hit regions | `NOT_ESTABLISHED` | Windows/net48 or guarded Wine mouse scenario with screenshot review plus source-linked model capture. |
-| `DrawingTimeSegment` fraction/time conversion and 10-pixel edit rule | `NOT_ESTABLISHED` | Actual legacy object characterization with a controlled timestamp mapper. |
+| `DrawingTimeSegment` slider fraction and marker point | `PASS` (source-level geometric sub-behavior only) | Four direct linked-helper comparisons cover interior drag, clamping before/after the segment, and diagonal projection. Actual legacy object/UI still `NOT_RUN`. |
+| `DrawingTimeSegment` timecode conversion, timestamp origin/rounding, fade, endpoint edits and serialization | `NOT_ESTABLISHED` | Actual legacy object and metadata characterization with a controlled timestamp mapper. |
 | `CalibratorPlane`, distortion, units, rounding, tracked calibration | `NOT_ESTABLISHED` | Actual `CalibrationHelper` characterization on Windows; compare a versioned numeric trace. |
 | DrawingTrack nearest-keyframe selection, keyframe persistence and KVA | `NOT_ESTABLISHED` | net48 trace fixture and KVA roundtrip. |
 | Concrete history memento effects, UI event order, drawing-modify equality policy, and system clipboard | `NOT_ESTABLISHED` | Actual legacy mementos plus application-level observer characterization; only generic stack event/dedup source behavior is recorded above. |
