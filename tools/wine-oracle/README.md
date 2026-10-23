@@ -105,6 +105,14 @@ The file-browser double-click path and drag/drop path are present in checked-out
 
 The player appears idle with the play control available. The portrait image is centered on the dark canvas; the 1280x720 image appears 16:9 with side margins and nearly fills the canvas height. Exact scaling was not measured, and no fit-to-window command was activated (`NOT_RUN`). The timeline/navigation strip and drawing toolbar are visible. After `Ctrl+F4`, the same player header remained visible. The shortcut's effect on the active player is therefore `NOT_ESTABLISHED`; no close-then-reopen cycle was achieved. The captured Right/Left key requests changed the file-browser selection region, not a verified player frame or timestamp. Player navigation, zoom, exact fit scale, alpha rendering, and EXIF transforms remain `NOT_ESTABLISHED`. Screenshots cannot establish decoded pixel values or alpha semantics.
 
+`line-tool-probe.v1.json` is a guarded exploratory scenario for the first Epic 04
+annotation observation. It first proves the large PNG player header, then uses the
+window-relative XTest click guard to select the observed diagonal line icon and click two
+canvas points. The output is deliberately `MANUAL_REQUIRED`: a delivered click is not
+evidence of tool selection, a created drawing, geometry, measurement, or persistence.
+The scenario is tied to this installed binary's captured 1920×969 window layout and must
+be recalibrated after a UI or scaling change.
+
 For this Wine environment, generated fixtures under host `/tmp` did not produce a player, while the same hash-verified bytes under the existing home test-data directory did. The cause was not isolated. Keep Wine inputs under a Wine-visible home path and require the header check on every run.
 
 The installed executable is Kinovea `2025.2.0.0`; the checked-out source reports `2026.1.0.0`. Their source correspondence is `NOT_ESTABLISHED`. Wine evidence is distinct from Windows CI evidence and from any future native .NET 10 viewer. See [still-image Wine evidence v2](../../docs/evidence/wine-still-image-gui-v2.json) and the corrected [v1 evidence record](../../docs/evidence/wine-functional-oracle-v1.md).

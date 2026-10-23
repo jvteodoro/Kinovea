@@ -288,3 +288,32 @@ dotnet tests/PortableDrawing.Tests/bin/Release/net10.0/PortableDrawing.Tests.dll
 ```
 
 These are source-derived portable-domain checks, not an execution of the legacy .NET Framework drawing classes or a Wine/Windows visual comparison. `AbstractDrawing.Draw`, GDI+ hit regions, WinForms gesture handling, KVA persistence, fading, tracking, keyframes, and undo/redo remain separate. The initial result is recorded in [Epic 04 evidence](evidence/epic04-portable-drawing-v1.md); legacy parity remains `UNVERIFIED`.
+
+### Epic 04 source-level drawing regression comparison
+
+`tests/PortableDrawing.LegacyComparison.Tests` links unchanged legacy
+`GeometryHelper`, `ProjectiveMapper`, `CalibratorPlane`, `CalibrationAxis`, `SegmentF`,
+and `HistoryStack` sources. It compares image-space distance/angle, line-axis and
+rectangle/trapezoid calibration, calibration offsets/origins, time-segment slider
+projection, and a simple undo/redo/branch sequence using test mementos. Run:
+
+```sh
+dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false
+```
+
+The local comparison passes 109 assertions. This is a `CROSS_SOURCE_MATCH` for those
+scoped numeric results and the simple state sequence, not Windows/.NET Framework
+runtime or GUI evidence. The harness supplies a narrow `QuadrilateralF` seam and
+no-op XML dependencies; it does not test GDI+ geometry validity, rendering, or
+serialization. It records two
+observable history differences: legacy `HistoryStack` fires seven change events for the
+sequence and suppresses equal consecutive modify-drawing mementos; `UndoHistory<T>` has
+no event and retains repeated pushes. Concrete drawing mementos and their effects are
+not linked. For time segments, only legacy closest-point/mix arithmetic for the slider
+fraction and marker is compared; timestamp formatting, metadata, lifecycle, and UI are
+not covered. A guarded Wine line-tool probe opened the still-image player and passed
+header OCR, then failed closed because pointer motion was not delivered; no drawing was
+created. Rendering, GDI+ hit paths, `CalibrationHelper` distortion/tracking/rounding,
+keyframes, KVA, concrete history effects, and clipboard remain uncovered. Complete
+results and evidence categories are in
+[Epic 04 comparison evidence](evidence/epic04-legacy-regression-comparison-v1.md).
