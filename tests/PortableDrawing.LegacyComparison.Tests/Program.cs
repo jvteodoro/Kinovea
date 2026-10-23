@@ -3,6 +3,8 @@ using System.Numerics;
 using Kinovea.PortableDrawing;
 using Kinovea.PortableAnalysis;
 using LegacyGeometry = Kinovea.ScreenManager.GeometryHelper;
+using LegacyHistory = Kinovea.ScreenManager.HistoryStack;
+using LegacyMemento = Kinovea.ScreenManager.HistoryMemento;
 
 // This intentionally links the unchanged legacy arithmetic source. It is an executable
 // source-level comparison, not a Windows/.NET Framework or GUI observation.
@@ -90,17 +92,100 @@ foreach (var item in imageCases)
     }
 }
 
-Console.WriteLine($"PASS: {checks.Count} legacy-to-portable drawing arithmetic comparison assertions");
+// Compare the legacy command stack's state transition sequence with the portable
+// snapshot stack. The test mementos model the before/after action; they do not stand
+// in for Kinovea's concrete drawing mementos or their UI side effects.
+var legacyState = "initial";
+var legacyHistory = new LegacyHistory();
+var portableHistory = new UndoHistory<string>(legacyState);
+int legacyHistoryChanged = 0;
+legacyHistory.HistoryChanged += (_, _) => legacyHistoryChanged++;
+
+legacyState = "one";
+legacyHistory.PushNewCommand(new TestStateMemento("Add", "initial", () => legacyState, value => legacyState = value));
+portableHistory.Push("one", "Add");
+legacyState = "two";
+legacyHistory.PushNewCommand(new TestStateMemento("Move", "one", () => legacyState, value => legacyState = value));
+portableHistory.Push("two", "Move");
+legacyHistory.StepBackward();
+portableHistory.Undo();
+checks.True(legacyState == portableHistory.Current && legacyState == "one", "legacy and portable undo restore the same scoped snapshot");
+legacyHistory.StepForward();
+portableHistory.Redo();
+checks.True(legacyState == portableHistory.Current && legacyState == "two", "legacy and portable redo restore the same scoped snapshot");
+legacyHistory.StepBackward();
+portableHistory.Undo();
+legacyState = "branch";
+legacyHistory.PushNewCommand(new TestStateMemento("Branch", "one", () => legacyState, value => legacyState = value));
+portableHistory.Push("branch", "Branch");
+checks.True(legacyState == portableHistory.Current && !legacyHistory.CanRedo && !portableHistory.CanRedo, "legacy and portable new-branch push invalidates redo");
+checks.True(legacyHistoryChanged == 7, "legacy HistoryStack event count includes separate redo clear and push notifications");
+
+// Production HistoryStack suppresses consecutive modify-drawing mementos when
+// IsSameState says they represent the same state. Portable UndoHistory has no such
+// memento-aware policy; this test pins the source behavior and documents the gap.
+var dedupLegacy = new LegacyHistory();
+var dedupPortable = new UndoHistory<string>("base");
+dedupLegacy.PushNewCommand(new TestModifyMemento("same"));
+dedupLegacy.PushNewCommand(new TestModifyMemento("same"));
+dedupPortable.Push("edit-1", "Edit");
+dedupPortable.Push("edit-2", "Edit");
+dedupLegacy.StepBackward();
+checks.True(!dedupLegacy.CanUndo, "legacy stack discarded the consecutive duplicate modify memento");
+checks.True(dedupPortable.Undo() && dedupPortable.CanUndo, "portable stack retains the second equal-payload push");
+checks.True(dedupPortable.Undo() && !dedupPortable.CanUndo, "portable stack retains both pushes because it has no legacy deduplication policy");
+
+Console.WriteLine($"PASS: {checks.Count} legacy-to-portable behavior comparison assertions");
 
 static PointF ToPoint(Vector2 value) => new(value.X, value.Y);
 
 sealed class Checks
 {
     public int Count { get; private set; }
+    public void True(bool actual, string name)
+    {
+        Count++;
+        if (!actual)
+            throw new InvalidOperationException(name);
+    }
     public void Near(float expected, float actual, string name)
     {
         Count++;
         if (MathF.Abs(expected - actual) > 0.00001f)
             throw new InvalidOperationException($"{name}: legacy <{expected:R}>, portable <{actual:R}>");
     }
+}
+
+sealed class TestStateMemento : LegacyMemento
+{
+    private readonly string name;
+    private readonly string target;
+    private readonly Func<string> read;
+    private readonly Action<string> write;
+
+    public TestStateMemento(string name, string target, Func<string> read, Action<string> write)
+    {
+        this.name = name;
+        this.target = target;
+        this.read = read;
+        this.write = write;
+    }
+
+    public override string CommandName { get; set; }
+    public override LegacyMemento PerformUndo()
+    {
+        string current = read();
+        write(target);
+        return new TestStateMemento(name, current, read, write);
+    }
+}
+
+sealed class TestModifyMemento : Kinovea.ScreenManager.HistoryMementoModifyDrawing
+{
+    private readonly string state;
+    public TestModifyMemento(string state) => this.state = state;
+    public override string CommandName { get; set; } = "Modify drawing";
+    public override LegacyMemento PerformUndo() => this;
+    public override bool IsSameState(Kinovea.ScreenManager.HistoryMementoModifyDrawing other) =>
+        other is TestModifyMemento modify && modify.state == state;
 }

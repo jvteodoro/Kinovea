@@ -2,11 +2,19 @@
 // The empty namespace lets the unmodified source compile in this narrow characterization harness.
 namespace log4net
 {
-    public interface ILog { }
+    public interface ILog
+    {
+        void Debug(object message);
+        void DebugFormat(string format, params object[] args);
+    }
     public static class LogManager
     {
         public static ILog GetLogger(System.Type type) => new NullLog();
-        private sealed class NullLog : ILog { }
+        private sealed class NullLog : ILog
+        {
+            public void Debug(object message) { }
+            public void DebugFormat(string format, params object[] args) { }
+        }
     }
 }
 
@@ -37,5 +45,18 @@ namespace Kinovea.ScreenManager
         public System.Drawing.PointF D => points[3];
         public System.Drawing.PointF this[int index] => points[index];
         public QuadrilateralF(System.Drawing.PointF a, System.Drawing.PointF b, System.Drawing.PointF c, System.Drawing.PointF d) => points = [a, b, c, d];
+    }
+
+    // A minimal stand-in for the class hierarchy that concrete legacy mementos use.
+    // HistoryStack itself is linked from production source and is not substituted.
+    public abstract class HistoryMemento
+    {
+        public abstract string CommandName { get; set; }
+        public abstract HistoryMemento PerformUndo();
+    }
+
+    public abstract class HistoryMementoModifyDrawing : HistoryMemento
+    {
+        public abstract bool IsSameState(HistoryMementoModifyDrawing other);
     }
 }

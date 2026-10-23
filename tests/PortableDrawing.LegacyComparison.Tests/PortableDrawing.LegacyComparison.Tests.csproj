@@ -10,11 +10,13 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Kinovea.PortableDrawing/Kinovea.PortableDrawing.csproj" />
     <Compile Include="../../src/Kinovea.PortableAnalysis/Calibration.cs" Link="Portable/Calibration.cs" />
+    <Compile Include="../../src/Kinovea.PortableAnalysis/UndoHistory.cs" Link="Portable/UndoHistory.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/Vector.cs" Link="Legacy/Vector.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/PointLinePosition.cs" Link="Legacy/PointLinePosition.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/GeometryHelper.cs" Link="Legacy/GeometryHelper.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/Vector3.cs" Link="Legacy/Vector3.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/Ellipse.cs" Link="Legacy/Ellipse.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/ProjectiveMapper.cs" Link="Legacy/ProjectiveMapper.cs" />
+    <Compile Include="../../Kinovea.ScreenManager/UndoRedo/HistoryStack.cs" Link="Legacy/HistoryStack.cs" />
   </ItemGroup>
 </Project>

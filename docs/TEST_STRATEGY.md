@@ -291,21 +291,24 @@ These are source-derived portable-domain checks, not an execution of the legacy 
 
 ### Epic 04 source-level drawing regression comparison
 
-`tests/PortableDrawing.LegacyComparison.Tests` links the unchanged legacy
-`GeometryHelper` and `ProjectiveMapper` sources and compares them to portable drawing
-measurements and planar calibration. It covers image-space distance, signed and
-reversed-leg angles, affine mapped measurements, unsigned `2π` wrapping, and mapped
-coordinates for rectangular and trapezoid calibrations. Run:
+`tests/PortableDrawing.LegacyComparison.Tests` links unchanged legacy
+`GeometryHelper`, `ProjectiveMapper`, and `HistoryStack` sources. It compares image-space
+distance, signed and reversed-leg angles, affine mapped measurements, unsigned `2π`
+wrapping, rectangular/trapezoid mapped coordinates, and a simple undo/redo/branch
+sequence using test mementos. Run:
 
 ```sh
 dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false
 ```
 
-This is a `CROSS_SOURCE_MATCH` test for those specific numeric properties, not
-Windows/.NET Framework runtime or GUI evidence. A guarded Wine line-tool probe opened
-the still-image player and passed header OCR, then failed closed because pointer motion
-was not delivered; no drawing was created. Rendering, GDI+ hit paths,
-`DrawingTimeSegment`, calibration initialization/distortion/rounding, keyframes, KVA,
-history events, and the clipboard remain uncovered. Complete results and evidence
-categories are in
+This is a `CROSS_SOURCE_MATCH` for those scoped numeric results and the simple state
+sequence, not Windows/.NET Framework runtime or GUI evidence. The test records two
+observable history differences: legacy `HistoryStack` fires seven change events for the
+sequence and suppresses equal consecutive modify-drawing mementos; `UndoHistory<T>` has
+no event and retains repeated pushes. Concrete drawing mementos and their effects are
+not linked. A guarded Wine line-tool probe opened the still-image player and passed
+header OCR, then failed closed because pointer motion was not delivered; no drawing was
+created. Rendering, GDI+ hit paths, `DrawingTimeSegment`, calibration initialization/
+distortion/rounding, keyframes, KVA, concrete history effects, and clipboard remain
+uncovered. Complete results and evidence categories are in
 [Epic 04 comparison evidence](evidence/epic04-legacy-regression-comparison-v1.md).

@@ -11,13 +11,13 @@ Hosted CI and Windows .NET Framework execution: `NOT_RUN`
 ## Purpose and oracle boundaries
 
 This evidence starts the Epic 04 regression path without changing legacy production code.
-`tests/PortableDrawing.LegacyComparison.Tests` links the unchanged legacy
-`GeometryHelper.cs`, `Vector.cs`, and `PointLinePosition.cs` directly into a narrow
-`net10.0` executable, and compares its observable arithmetic results to
-`Kinovea.PortableDrawing.Measurements` on the same authored inputs. The linked source
-is a **source-level legacy oracle**, not the net48 application executable. Test-only
-seams supply unrelated compilation dependencies (`log4net`, `MathHelper.Radians`, and
-two geometry extensions) and are not called by the distance or angle comparison paths.
+`tests/PortableDrawing.LegacyComparison.Tests` links unchanged legacy
+`GeometryHelper.cs`, `ProjectiveMapper.cs`, and `HistoryStack.cs` into a narrow
+`net10.0` executable and compares selected numeric/state results to portable contracts.
+This is a **source-level legacy oracle**, not the net48 application executable. Test-only
+seams supply unrelated dependencies: `log4net`, math/geometry helpers, the mapper's
+vertex/indexer-only `QuadrilateralF` surface, and abstract history memento types. Test
+mementos model reversible string-state changes; concrete drawing mementos are not loaded.
 
 Input source hashes:
 
@@ -25,8 +25,10 @@ Input source hashes:
 39ea71d6537936f740428a1b97413f5a9cea310bf9a6dda658c53f08fbf1028c  GeometryHelper.cs
 5837c724bfd7f71b35a62d81a2fde561835a839d0465bf6239a3858fc3ea435d  Vector.cs
 4961fe3b3b80a7733f8436c924defe189f436cd72bfc683253c405285758493e  Measurements.cs
-<recalculate after homography extension commit>  ProjectiveMapper.cs
-<recalculate after homography extension commit>  Calibration.cs
+2c60f0d401a4f3d9825dbb96e0341d12690d403daad9bdf2307b2f08c59a7337  ProjectiveMapper.cs
+d98ff619467e76ddaed7625821daac7a732af3fb9e5ee9f0ed098c4adb565dc8  Calibration.cs
+340dcdb9ee5f4d032c8df5a3c3662350c315794d674532423ff0280c76528f11  HistoryStack.cs
+8ebccf3f0b58722726e2f48d97a8121c1415ebc0d97bdf02831d003b4eb7ae3b  UndoHistory.cs
 ```
 
 ## Executed comparison
@@ -37,7 +39,7 @@ dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawin
 ```
 
 Exit code: `0`  
-Result: `PASS: 34 legacy-to-portable drawing arithmetic comparison assertions`
+Result: `PASS: 41 legacy-to-portable behavior comparison assertions`
 
 | Property | Legacy source operation | Portable operation | Cases | Result | Evidence class |
 |---|---|---|---:|---|---|
@@ -48,14 +50,18 @@ Result: `PASS: 34 legacy-to-portable drawing arithmetic comparison assertions`
 | Calibrated angle | Explicitly map all points, then `GetAngle` | `AffineCalibration` then `AngleRadians` | 1 | `PASS` | `CROSS_SOURCE_MATCH` |
 | Unsigned wrap | `AngleHelper` source rule: add `2π` to a negative signed value | `signed: false` | 1 | `PASS` | `SOURCE_RULE_MATCH` |
 | Rectangular and trapezoid calibration | Exact linked `ProjectiveMapper.Backward` plus the documented `CalibratorPlane` D-origin/Y-up conversion | `PlanarCalibration.ImageToWorld` | 24 coordinate comparisons | `PASS` within `1e-5` | `CROSS_SOURCE_MATCH` |
+| Undo, redo and redo invalidation | Exact linked `HistoryStack` with reversible test mementos | `UndoHistory<string>` | 3 state comparisons | `PASS` for this sequence | `CROSS_SOURCE_MATCH` |
+| History change notifications | Exact linked `HistoryStack.HistoryChanged` | No portable event counterpart | 7 notifications for the tested sequence | `SOURCE_OBSERVED` | `DIFFERENCE` |
+| Duplicate modify-memento suppression | Exact linked `HistoryStack.PushNewCommand`, test `IsSameState` returns true | `UndoHistory<T>` accepts both equal-state pushes | One legacy undo empties stack; portable requires two | `SOURCE_OBSERVED` | `DIFFERENCE` |
 
 The test does not load a `DrawingLine`, `DrawingAngle`, `DrawingTimeSegment`,
-`CalibratorPlane`, `CalibrationHelper`, or `AngleHelper` object. The calibration
+`CalibratorPlane`, `CalibrationHelper`, `AngleHelper`, or a concrete drawing memento. The calibration
 comparison uses the exact linked `ProjectiveMapper` source and applies the legacy plane
 conversion (`worldX = gridX - originX`; `worldY = -gridY + originY`) with origin at
 image quadrilateral D. It compares authored rectangle and trapezoid fixtures. It does
 not exercise calibration initialization, line-axis construction, distortion, tracked
-origin, units, or rounding.
+origin, units, or rounding. The history test exercises the exact generic stack source
+but does not verify UI observer ordering or concrete drawing mutation side effects.
 
 ## Supporting executable characterization
 
@@ -66,7 +72,7 @@ origin, units, or rounding.
 | `dotnet run --project tests/Kinovea.PortableGeometry.Tests/Kinovea.PortableGeometry.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS: 22 portable geometry assertions` | Portable viewport contract only. |
 | `dotnet run --project tests/PortableDrawing.Tests/PortableDrawing.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS 36 portable drawing assertions` | Portable overlay contract only. |
 | `dotnet run --project tests/Kinovea.PortableAnalysis.Tests/Kinovea.PortableAnalysis.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `Portable analysis contract checks: PASS (34 assertions)` | Portable calibration/history contract only. |
-| `dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS: 34 legacy-to-portable drawing arithmetic comparison assertions` | Direct linked-source arithmetic and projective comparison. |
+| `dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS: 41 legacy-to-portable behavior comparison assertions` | Direct linked-source arithmetic, projective mapping, and scoped history comparison. |
 
 ## Wine and Windows scope
 
@@ -100,11 +106,12 @@ correspondence with this `2026.1.0.0` checkout remains
 | `DrawingTimeSegment` fraction/time conversion and 10-pixel edit rule | `NOT_ESTABLISHED` | Actual legacy object characterization with a controlled timestamp mapper. |
 | `CalibratorPlane`, distortion, units, rounding, tracked calibration | `NOT_ESTABLISHED` | Actual `CalibrationHelper` characterization on Windows; compare a versioned numeric trace. |
 | DrawingTrack nearest-keyframe selection, keyframe persistence and KVA | `NOT_ESTABLISHED` | net48 trace fixture and KVA roundtrip. |
-| History memento execution, event order/deduplication and system clipboard | `NOT_ESTABLISHED` | Legacy runtime characterization with explicit observers. |
+| Concrete history memento effects, UI event order, drawing-modify equality policy, and system clipboard | `NOT_ESTABLISHED` | Actual legacy mementos plus application-level observer characterization; only generic stack event/dedup source behavior is recorded above. |
 | Running Windows .NET Framework parity | `NOT_RUN` | Manual Windows job or an economical, manually dispatched workflow after fixture review. |
 
-Status: the listed distance/angle formulas and the six-point-per-fixture calibration
-sample are regression compared against exact checked-out legacy source under `net10.0`.
+Status: the listed distance/angle formulas, six-point-per-fixture calibration sample,
+and simple string-state history sequence are compared against exact checked-out legacy
+source under `net10.0`. The test also records the known event/dedup differences.
 The truncated GUI probe did not reach its click phase. Epic 04 overall remains
 `UNVERIFIED` against a running Windows legacy application; no GUI, rendering,
 calibration, persistence, or ownership parity is claimed.
