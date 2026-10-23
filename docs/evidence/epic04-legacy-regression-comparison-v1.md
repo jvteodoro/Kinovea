@@ -3,7 +3,8 @@
 Date: 2026-10-22  
 Comparison base: `ca8d5413a949fdad49e1837c81a6028601dfcfcc`
 
-Initial implementation: `90a4b8c030699899968396b02c40588394852cf5`; the following commit adds homography comparison coverage.
+Final comparison source: `7cc73baa3e77570bdd161d842028330323a34b75`.
+Initial comparison commit: `90a4b8c030699899968396b02c40588394852cf5`.
 Host: Gentoo Linux 2.18 x86_64, kernel `6.18.50-gentoo-dist-bin`; .NET SDK `10.0.111`, runtime `10.0.11`  
 Hosted CI and Windows .NET Framework execution: `NOT_RUN`
 
@@ -73,13 +74,20 @@ The local Wine oracle definition validation passed for its existing still-image 
 video scenarios. It establishes that the installed Kinovea `2025.2.0.0` can open a
 still image, display the player header, canvas, timeline, and drawing toolbar. A local
 run of `large-png-still.v1.json` passed the visible header OCR (`1280x720`, `25.00 fps`);
+its captured source SHA is `90a4b8c030699899968396b02c40588394852cf5`;
 the window capture was `1920x969`, and the first-visible-image screenshot SHA-256 was
 `e0596a00a6a05bdc0a1d9048c701e45c7c999555815d0dfb402636f2c6f1db55`. A new guarded
 line-tool probe passed the player-header OCR but failed closed before mouse input because
 XTest pointer motion did not reach the requested point (`requested root=(560,846)`,
 `observed root=(540,647)`). No annotation was created or verified; the tool selection
-and drawing outcome are `NOT_ESTABLISHED`. The screenshots and result manifest are
-local under `/tmp/kinovea-epic04-regression-wine/` and are not committed. Its source
+and drawing outcome are `NOT_ESTABLISHED`. The captured source SHA was
+`90a4b8c030699899968396b02c40588394852cf5`; the untracked-at-run scenario content is
+now committed with SHA-256
+`70fd6e4b714409dc42a242e6c356b66b4c1dcc4d9742fb3940fff9d7b6fd73b1`. The result JSON
+SHA-256 is `6f9ebc9e86d15234aef7ca5e985c2decba7265312ad38d11e95a2258b2d8d278`; the
+header screenshot SHA-256 is `5fcfd8852ea0a5dca53f6e70bc166bb55252aee5d349f98e71d30a7cab9c4c66`.
+The screenshots and result manifest are local under `/tmp/kinovea-epic04-regression-wine/`
+and are not committed. Its source
 correspondence with this `2026.1.0.0` checkout remains
 `NOT_ESTABLISHED`. Therefore it cannot promote any row in this evidence to
 `WINDOWS_VERIFIED` or GUI `CROSS_ENVIRONMENT_MATCH`.
