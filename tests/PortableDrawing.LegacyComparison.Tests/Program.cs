@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Numerics;
 using Kinovea.PortableDrawing;
+using Kinovea.PortableAnalysis;
 using LegacyGeometry = Kinovea.ScreenManager.GeometryHelper;
 
 // This intentionally links the unchanged legacy arithmetic source. It is an executable
@@ -55,6 +56,39 @@ checks.Near(calibratedDistanceLegacy, Measurements.Distance(origin, a, calibrati
 float signedNegative = Measurements.AngleRadians(Vector2.Zero, Vector2.UnitX, -Vector2.UnitY);
 float unsignedPortable = Measurements.AngleRadians(Vector2.Zero, Vector2.UnitX, -Vector2.UnitY, signed: false);
 checks.Near((float)(Math.PI * 2) + signedNegative, unsignedPortable, "unsigned portable wrap follows legacy AngleHelper rule");
+
+// Compare actual linked ProjectiveMapper backward mapping, followed by the legacy
+// CalibratorPlane's documented D-origin/Y-up conversion, to the portable homography.
+var imageCases = new[]
+{
+    new { Name = "axis-aligned calibration", A = new Vector2(10, 20), B = new Vector2(110, 20), C = new Vector2(110, 70), D = new Vector2(10, 70), Width = 2f, Height = 1f },
+    new { Name = "projective trapezoid calibration", A = new Vector2(14, 8), B = new Vector2(126, 16), C = new Vector2(102, 91), D = new Vector2(28, 74), Width = 3f, Height = 2f },
+};
+
+foreach (var item in imageCases)
+{
+    var legacyPlane = new Kinovea.ScreenManager.QuadrilateralF(
+        new PointF(0, 0), new PointF(item.Width, 0), new PointF(item.Width, item.Height), new PointF(0, item.Height));
+    var legacyImage = new Kinovea.ScreenManager.QuadrilateralF(ToPoint(item.A), ToPoint(item.B), ToPoint(item.C), ToPoint(item.D));
+    var mapper = new Kinovea.ScreenManager.ProjectiveMapper(legacyPlane, legacyImage);
+    var portable = PlanarCalibration.FromQuadrilateral(item.A, item.B, item.C, item.D, item.Width, item.Height);
+
+    foreach (var imagePoint in new[]
+    {
+        item.A,
+        item.B,
+        item.C,
+        item.D,
+        (item.A + item.B + item.C + item.D) / 4,
+        Vector2.Lerp(item.A, item.C, 0.37f),
+    })
+    {
+        PointF legacyGrid = mapper.Backward(ToPoint(imagePoint));
+        var legacyWorld = new Vector2(legacyGrid.X, item.Height - legacyGrid.Y);
+        checks.Near(legacyWorld.X, portable.ImageToWorld(imagePoint).X, item.Name + " X image-to-world");
+        checks.Near(legacyWorld.Y, portable.ImageToWorld(imagePoint).Y, item.Name + " Y image-to-world");
+    }
+}
 
 Console.WriteLine($"PASS: {checks.Count} legacy-to-portable drawing arithmetic comparison assertions");
 

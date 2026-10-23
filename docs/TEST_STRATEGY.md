@@ -292,16 +292,20 @@ These are source-derived portable-domain checks, not an execution of the legacy 
 ### Epic 04 source-level drawing regression comparison
 
 `tests/PortableDrawing.LegacyComparison.Tests` links the unchanged legacy
-`GeometryHelper` arithmetic source and compares it directly to the portable drawing
-measurement boundary. It currently covers image-space distance, signed and reversed-leg
-angles, mapped endpoint distance/angle, and the unsigned `2π` wrapping rule. Run:
+`GeometryHelper` and `ProjectiveMapper` sources and compares them to portable drawing
+measurements and planar calibration. It covers image-space distance, signed and
+reversed-leg angles, affine mapped measurements, unsigned `2π` wrapping, and mapped
+coordinates for rectangular and trapezoid calibrations. Run:
 
 ```sh
 dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false
 ```
 
-This is a `CROSS_SOURCE_MATCH` test, not Windows/.NET Framework runtime or GUI evidence.
-It does not cover `DrawingLine`/`DrawingAngle` rendering, GDI+ hit paths,
-`DrawingTimeSegment`, calibration/distortion, keyframes, KVA, history events, or the
-clipboard. The complete command results and evidence categories are in
+This is a `CROSS_SOURCE_MATCH` test for those specific numeric properties, not
+Windows/.NET Framework runtime or GUI evidence. A guarded Wine line-tool probe opened
+the still-image player and passed header OCR, then failed closed because pointer motion
+was not delivered; no drawing was created. Rendering, GDI+ hit paths,
+`DrawingTimeSegment`, calibration initialization/distortion/rounding, keyframes, KVA,
+history events, and the clipboard remain uncovered. Complete results and evidence
+categories are in
 [Epic 04 comparison evidence](evidence/epic04-legacy-regression-comparison-v1.md).

@@ -5,11 +5,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS8765;CS8618;CS8603;CS8602;CS8604</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Kinovea.PortableDrawing/Kinovea.PortableDrawing.csproj" />
+    <Compile Include="../../src/Kinovea.PortableAnalysis/Calibration.cs" Link="Portable/Calibration.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/Vector.cs" Link="Legacy/Vector.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/PointLinePosition.cs" Link="Legacy/PointLinePosition.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/GeometryHelper.cs" Link="Legacy/GeometryHelper.cs" />
+    <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/Vector3.cs" Link="Legacy/Vector3.cs" />
+    <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/Ellipse.cs" Link="Legacy/Ellipse.cs" />
+    <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/ProjectiveMapper.cs" Link="Legacy/ProjectiveMapper.cs" />
   </ItemGroup>
 </Project>

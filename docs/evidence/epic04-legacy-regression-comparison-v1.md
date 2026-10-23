@@ -1,7 +1,9 @@
 # Epic 04 legacy-to-portable regression comparison v1
 
 Date: 2026-10-22  
-Comparison source: `ca8d5413a949fdad49e1837c81a6028601dfcfcc`  
+Comparison base: `ca8d5413a949fdad49e1837c81a6028601dfcfcc`
+
+Initial implementation: `90a4b8c030699899968396b02c40588394852cf5`; the following commit adds homography comparison coverage.
 Host: Gentoo Linux 2.18 x86_64, kernel `6.18.50-gentoo-dist-bin`; .NET SDK `10.0.111`, runtime `10.0.11`  
 Hosted CI and Windows .NET Framework execution: `NOT_RUN`
 
@@ -22,6 +24,8 @@ Input source hashes:
 39ea71d6537936f740428a1b97413f5a9cea310bf9a6dda658c53f08fbf1028c  GeometryHelper.cs
 5837c724bfd7f71b35a62d81a2fde561835a839d0465bf6239a3858fc3ea435d  Vector.cs
 4961fe3b3b80a7733f8436c924defe189f436cd72bfc683253c405285758493e  Measurements.cs
+<recalculate after homography extension commit>  ProjectiveMapper.cs
+<recalculate after homography extension commit>  Calibration.cs
 ```
 
 ## Executed comparison
@@ -32,7 +36,7 @@ dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawin
 ```
 
 Exit code: `0`  
-Result: `PASS: 10 legacy-to-portable drawing arithmetic comparison assertions`
+Result: `PASS: 34 legacy-to-portable drawing arithmetic comparison assertions`
 
 | Property | Legacy source operation | Portable operation | Cases | Result | Evidence class |
 |---|---|---|---:|---|---|
@@ -42,10 +46,15 @@ Result: `PASS: 10 legacy-to-portable drawing arithmetic comparison assertions`
 | Calibrated distance | Explicitly map endpoints, then `GetDistance` | `AffineCalibration` then `Distance` | 1 | `PASS` | `CROSS_SOURCE_MATCH` |
 | Calibrated angle | Explicitly map all points, then `GetAngle` | `AffineCalibration` then `AngleRadians` | 1 | `PASS` | `CROSS_SOURCE_MATCH` |
 | Unsigned wrap | `AngleHelper` source rule: add `2π` to a negative signed value | `signed: false` | 1 | `PASS` | `SOURCE_RULE_MATCH` |
+| Rectangular and trapezoid calibration | Exact linked `ProjectiveMapper.Backward` plus the documented `CalibratorPlane` D-origin/Y-up conversion | `PlanarCalibration.ImageToWorld` | 24 coordinate comparisons | `PASS` within `1e-5` | `CROSS_SOURCE_MATCH` |
 
 The test does not load a `DrawingLine`, `DrawingAngle`, `DrawingTimeSegment`,
-`CalibrationHelper`, or `AngleHelper` object. It confirms only the specific scalar
-formula and ordering boundaries above.
+`CalibratorPlane`, `CalibrationHelper`, or `AngleHelper` object. The calibration
+comparison uses the exact linked `ProjectiveMapper` source and applies the legacy plane
+conversion (`worldX = gridX - originX`; `worldY = -gridY + originY`) with origin at
+image quadrilateral D. It compares authored rectangle and trapezoid fixtures. It does
+not exercise calibration initialization, line-axis construction, distortion, tracked
+origin, units, or rounding.
 
 ## Supporting executable characterization
 
@@ -56,14 +65,22 @@ formula and ordering boundaries above.
 | `dotnet run --project tests/Kinovea.PortableGeometry.Tests/Kinovea.PortableGeometry.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS: 22 portable geometry assertions` | Portable viewport contract only. |
 | `dotnet run --project tests/PortableDrawing.Tests/PortableDrawing.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS 36 portable drawing assertions` | Portable overlay contract only. |
 | `dotnet run --project tests/Kinovea.PortableAnalysis.Tests/Kinovea.PortableAnalysis.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `Portable analysis contract checks: PASS (34 assertions)` | Portable calibration/history contract only. |
+| `dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS: 34 legacy-to-portable drawing arithmetic comparison assertions` | Direct linked-source arithmetic and projective comparison. |
 
 ## Wine and Windows scope
 
-The local Wine oracle definition validation passed for its seven existing still-image and
+The local Wine oracle definition validation passed for its existing still-image and
 video scenarios. It establishes that the installed Kinovea `2025.2.0.0` can open a
-still image, display the player header, canvas, timeline, and drawing toolbar. It has
-no executable annotation, measurement, calibration, keyframe, clipboard, or undo/redo
-scenario. Its source correspondence with this `2026.1.0.0` checkout remains
+still image, display the player header, canvas, timeline, and drawing toolbar. A local
+run of `large-png-still.v1.json` passed the visible header OCR (`1280x720`, `25.00 fps`);
+the window capture was `1920x969`, and the first-visible-image screenshot SHA-256 was
+`e0596a00a6a05bdc0a1d9048c701e45c7c999555815d0dfb402636f2c6f1db55`. A new guarded
+line-tool probe passed the player-header OCR but failed closed before mouse input because
+XTest pointer motion did not reach the requested point (`requested root=(560,846)`,
+`observed root=(540,647)`). No annotation was created or verified; the tool selection
+and drawing outcome are `NOT_ESTABLISHED`. The screenshots and result manifest are
+local under `/tmp/kinovea-epic04-regression-wine/` and are not committed. Its source
+correspondence with this `2026.1.0.0` checkout remains
 `NOT_ESTABLISHED`. Therefore it cannot promote any row in this evidence to
 `WINDOWS_VERIFIED` or GUI `CROSS_ENVIRONMENT_MATCH`.
 
@@ -78,7 +95,8 @@ scenario. Its source correspondence with this `2026.1.0.0` checkout remains
 | History memento execution, event order/deduplication and system clipboard | `NOT_ESTABLISHED` | Legacy runtime characterization with explicit observers. |
 | Running Windows .NET Framework parity | `NOT_RUN` | Manual Windows job or an economical, manually dispatched workflow after fixture review. |
 
-Status: the two arithmetic properties listed as `CROSS_SOURCE_MATCH` are regression
-compared against the exact checked-out source under `net10.0`. Epic 04 overall remains
+Status: the listed distance/angle formulas and the six-point-per-fixture calibration
+sample are regression compared against exact checked-out legacy source under `net10.0`.
+The truncated GUI probe did not reach its click phase. Epic 04 overall remains
 `UNVERIFIED` against a running Windows legacy application; no GUI, rendering,
 calibration, persistence, or ownership parity is claimed.
