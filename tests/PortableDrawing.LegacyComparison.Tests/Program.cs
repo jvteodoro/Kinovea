@@ -5,6 +5,7 @@ using Kinovea.PortableAnalysis;
 using LegacyGeometry = Kinovea.ScreenManager.GeometryHelper;
 using LegacyHistory = Kinovea.ScreenManager.HistoryStack;
 using LegacyMemento = Kinovea.ScreenManager.HistoryMemento;
+using LegacyCalibratorPlane = Kinovea.ScreenManager.CalibratorPlane;
 
 // This intentionally links the unchanged legacy arithmetic source. It is an executable
 // source-level comparison, not a Windows/.NET Framework or GUI observation.
@@ -90,6 +91,78 @@ foreach (var item in imageCases)
         checks.Near(legacyWorld.X, portable.ImageToWorld(imagePoint).X, item.Name + " X image-to-world");
         checks.Near(legacyWorld.Y, portable.ImageToWorld(imagePoint).Y, item.Name + " Y image-to-world");
     }
+}
+
+// Exercise the unchanged CalibratorPlane source itself, not only its ProjectiveMapper.
+foreach (var item in imageCases)
+{
+    var imageQuad = new Kinovea.ScreenManager.QuadrilateralF(ToPoint(item.A), ToPoint(item.B), ToPoint(item.C), ToPoint(item.D));
+    var legacy = new LegacyCalibratorPlane();
+    legacy.Initialize(new SizeF(item.Width, item.Height), imageQuad);
+    var portable = PlanarCalibration.FromQuadrilateral(item.A, item.B, item.C, item.D, item.Width, item.Height);
+    var samplePoints = new[]
+    {
+        item.A,
+        item.B,
+        item.C,
+        item.D,
+        (item.A + item.B + item.C + item.D) / 4,
+        Vector2.Lerp(item.A, item.C, 0.37f),
+    };
+
+    foreach (var point in samplePoints)
+    {
+        PointF actual = legacy.Transform(ToPoint(point));
+        Vector2 expected = portable.ImageToWorld(point);
+        checks.Near(actual.X, expected.X, item.Name + " CalibratorPlane X");
+        checks.Near(actual.Y, expected.Y, item.Name + " CalibratorPlane Y");
+    }
+
+    legacy.Offset = new PointF(2.25f, -3.5f);
+    var offsetPortable = portable with { Offset = new Vector2(2.25f, -3.5f) };
+    PointF offsetActual = legacy.Transform(ToPoint(samplePoints[4]));
+    Vector2 offsetExpected = offsetPortable.ImageToWorld(samplePoints[4]);
+    checks.Near(offsetActual.X, offsetExpected.X, item.Name + " CalibratorPlane offset X");
+    checks.Near(offsetActual.Y, offsetExpected.Y, item.Name + " CalibratorPlane offset Y");
+}
+
+// Compare legacy line-axis quadrilateral construction and the full CalibratorPlane
+// transform against the portable planar mapping for each supported calibration axis.
+foreach (var axis in Enum.GetValues<Kinovea.ScreenManager.CalibrationAxis>())
+{
+    const float lineLengthWorld = 5;
+    PointF lineA = new(20, 20);
+    PointF lineB = new(50, 40);
+    var legacy = new LegacyCalibratorPlane();
+    legacy.Initialize(lineLengthWorld, lineA, lineB, axis);
+    var quad = legacy.QuadImage;
+    var portable = PlanarCalibration.FromQuadrilateral(
+        new Vector2(quad.A.X, quad.A.Y), new Vector2(quad.B.X, quad.B.Y),
+        new Vector2(quad.C.X, quad.C.Y), new Vector2(quad.D.X, quad.D.Y),
+        lineLengthWorld, lineLengthWorld);
+
+    foreach (var point in new[]
+    {
+        new Vector2(lineA.X, lineA.Y),
+        new Vector2(lineB.X, lineB.Y),
+        new Vector2((lineA.X + lineB.X) / 2, (lineA.Y + lineB.Y) / 2),
+    })
+    {
+        PointF actual = legacy.Transform(ToPoint(point));
+        Vector2 expected = portable.ImageToWorld(point);
+        checks.Near(actual.X, expected.X, $"line calibration {axis} X");
+        checks.Near(actual.Y, expected.Y, $"line calibration {axis} Y");
+    }
+
+    PointF customOrigin = new(29, 26);
+    legacy.SetOrigin(customOrigin);
+    PointF customOriginGrid = legacy.Mapper.Backward(customOrigin);
+    Vector2 portableOrigin = new(customOriginGrid.X, customOriginGrid.Y);
+    var customOriginPortable = portable with { Origin = portableOrigin };
+    PointF customActual = legacy.Transform(new PointF(37, 31));
+    Vector2 customExpected = customOriginPortable.ImageToWorld(new Vector2(37, 31));
+    checks.Near(customActual.X, customExpected.X, $"line calibration {axis} custom origin X");
+    checks.Near(customActual.Y, customExpected.Y, $"line calibration {axis} custom origin Y");
 }
 
 // DrawingTimeSegment.MoveHandle(handle 3) uses the legacy closest-point helper,

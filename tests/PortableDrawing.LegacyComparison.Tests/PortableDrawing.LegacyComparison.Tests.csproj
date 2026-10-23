@@ -17,6 +17,9 @@
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/Vector3.cs" Link="Legacy/Vector3.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/Ellipse.cs" Link="Legacy/Ellipse.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/ProjectiveMapper.cs" Link="Legacy/ProjectiveMapper.cs" />
+    <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/SegmentF.cs" Link="Legacy/SegmentF.cs" />
+    <Compile Include="../../Kinovea.ScreenManager/Measurement/Calibration/CalibrationAxis.cs" Link="Legacy/CalibrationAxis.cs" />
+    <Compile Include="../../Kinovea.ScreenManager/Measurement/Calibration/CalibratorPlane.cs" Link="Legacy/CalibratorPlane.cs" />
     <Compile Include="../../Kinovea.ScreenManager/UndoRedo/HistoryStack.cs" Link="Legacy/HistoryStack.cs" />
   </ItemGroup>
 </Project>
