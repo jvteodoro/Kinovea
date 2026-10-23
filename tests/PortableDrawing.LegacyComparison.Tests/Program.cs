@@ -92,6 +92,37 @@ foreach (var item in imageCases)
     }
 }
 
+// DrawingTimeSegment.MoveHandle(handle 3) uses the legacy closest-point helper,
+// then derives the slider fraction from distances along AB. Compare that exact
+// linked calculation and GetTimePoint's GeometryHelper.Mix with TimeSegmentOverlay.
+// This covers fraction placement only; the drawing's metadata/time-label lifecycle
+// and 10-pixel endpoint rule are outside this source-linked comparison.
+var timeSegmentCases = new[]
+{
+    new { Name = "midpoint", A = new Vector2(10, 20), B = new Vector2(50, 20), Drag = new Vector2(30, 24) },
+    new { Name = "before A clamps", A = new Vector2(10, 20), B = new Vector2(50, 20), Drag = new Vector2(-5, 20) },
+    new { Name = "after B clamps", A = new Vector2(10, 20), B = new Vector2(50, 20), Drag = new Vector2(80, 20) },
+    new { Name = "diagonal projection", A = new Vector2(-4, 8), B = new Vector2(20, 44), Drag = new Vector2(17, 24) },
+};
+
+foreach (var item in timeSegmentCases)
+{
+    PointF legacyA = ToPoint(item.A);
+    PointF legacyB = ToPoint(item.B);
+    PointF legacyDrag = ToPoint(item.Drag);
+    PointF closest = LegacyGeometry.GetClosestPoint(legacyA, legacyB, legacyDrag,
+        Kinovea.ScreenManager.PointLinePosition.OnSegment, 0);
+    float legacyFraction = LegacyGeometry.GetDistance(legacyA, closest) / LegacyGeometry.GetDistance(legacyA, legacyB);
+
+    var portable = new TimeSegmentOverlay(item.A, item.B, 0, 100);
+    checks.True(portable.MoveHandle(3, item.Drag), $"time segment {item.Name} fraction handle moves");
+    checks.Near(legacyFraction, portable.Fraction, $"time segment {item.Name} fraction");
+
+    PointF legacyFractionPoint = LegacyGeometry.Mix(legacyA, legacyB, legacyFraction);
+    checks.Near(legacyFractionPoint.X, portable.FractionPoint.X, $"time segment {item.Name} point X");
+    checks.Near(legacyFractionPoint.Y, portable.FractionPoint.Y, $"time segment {item.Name} point Y");
+}
+
 // Compare the legacy command stack's state transition sequence with the portable
 // snapshot stack. The test mementos model the before/after action; they do not stand
 // in for Kinovea's concrete drawing mementos or their UI side effects.
