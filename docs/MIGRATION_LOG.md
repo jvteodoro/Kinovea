@@ -302,6 +302,12 @@ Append chronological entries; do not erase unsuccessful experiments.
 - Limits: KVA is preserved but its drawing renderer, calibration/lens transform, filters, camera motion, tracking, keyframe timestamp remapping, and old-version XSL conversion are not applied. `.srt`, OpenPose JSON, and `.trc` import are not implemented. New portable measurements remain in JSON, not KVA. Wine/Windows semantic compatibility and performance are deliberately deferred; no compatibility claim is made.
 - Evidence: [analysis persistence v2](evidence/analysis-persistence-v2.md); legacy source fields and fixture hashes are in [the format inventory](LEGACY_ANALYSIS_FORMAT_INVENTORY.md). The local source-tree digest is recorded in the evidence file; this work is committed on `port/analysis-roundtrip`.
 
+## 2026-10-28 — Resolve analysis persistence PR conflicts
+- Baseline: PR #76 branch `port/analysis-roundtrip` at `856c64409f6db0d96d1481bff77b95e36308dea7`; integrated target `port/net10-linux` at `cf0df8eb`. Conflict-resolution merge commit: `f58b02a718195dd59f01d8e08be9c9f40851edd1`.
+- Change: combine the analysis/KVA persistence controls and state reporting with the incoming Epic 03 browser, transport, state, and capture work. Preserve both sets of desktop tests and add an analysis persistence targeted mode for headless execution.
+- Verification: desktop Release build passed with zero warnings/errors; analysis/KVA tests passed 33 assertions, state/capture tests 52, dual-player timeline 12, and PortableVideo 149. `git diff --check` passed. Full presentation/player suite did not complete because `DISPLAY=:0` was inaccessible; see [merge-resolution evidence](evidence/analysis-persistence-merge-v1.md).
+- Limitations: GUI behavior after integration, Windows/Wine behavior, and hosted CI remain `NOT_RUN`.
+
 
 ## 2026-10-22 — Epic 03 native desktop state and capture boundary
 - Baseline: stacked on `origin/port/epic02-video-playback` at `5b15026dc4bc9454ffabae89ecaa99a5dadf9648`, then fast-forwarded to current `origin/port/net10-linux` `5d0f59f9b1b6f8297af77739d96b2cac3f9211b0` before implementation. The latter includes Epic 02 portable video/player work and issue #72. Legacy WinForms, Registry, camera adapters, and acquisition pipeline remain source-only dependencies for this slice.
