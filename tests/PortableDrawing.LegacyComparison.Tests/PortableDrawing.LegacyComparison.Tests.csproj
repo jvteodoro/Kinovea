@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Kinovea.PortableDrawing/Kinovea.PortableDrawing.csproj" />
     <Compile Include="../../src/Kinovea.PortableAnalysis/Calibration.cs" Link="Portable/Calibration.cs" />
+    <Compile Include="../../src/Kinovea.PortableAnalysis/TimedSeries.cs" Link="Portable/TimedSeries.cs" />
     <Compile Include="../../src/Kinovea.PortableAnalysis/UndoHistory.cs" Link="Portable/UndoHistory.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/Vector.cs" Link="Legacy/Vector.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/PointLinePosition.cs" Link="Legacy/PointLinePosition.cs" />
@@ -20,6 +21,7 @@
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Geometry/SegmentF.cs" Link="Legacy/SegmentF.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Calibration/CalibrationAxis.cs" Link="Legacy/CalibrationAxis.cs" />
     <Compile Include="../../Kinovea.ScreenManager/Measurement/Calibration/CalibratorPlane.cs" Link="Legacy/CalibratorPlane.cs" />
+    <Compile Include="../../Kinovea.Services/Types/TimedPoint.cs" Link="Legacy/TimedPoint.cs" />
     <Compile Include="../../Kinovea.ScreenManager/UndoRedo/HistoryStack.cs" Link="Legacy/HistoryStack.cs" />
   </ItemGroup>
 </Project>

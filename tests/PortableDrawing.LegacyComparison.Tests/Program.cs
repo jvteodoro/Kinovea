@@ -6,6 +6,7 @@ using LegacyGeometry = Kinovea.ScreenManager.GeometryHelper;
 using LegacyHistory = Kinovea.ScreenManager.HistoryStack;
 using LegacyMemento = Kinovea.ScreenManager.HistoryMemento;
 using LegacyCalibratorPlane = Kinovea.ScreenManager.CalibratorPlane;
+using LegacyTrackSelector = Kinovea.ScreenManager.LegacySourceExcerpt.LegacyDrawingTrackSelector;
 
 // This intentionally links the unchanged legacy arithmetic source. It is an executable
 // source-level comparison, not a Windows/.NET Framework or GUI observation.
@@ -194,6 +195,41 @@ foreach (var item in timeSegmentCases)
     PointF legacyFractionPoint = LegacyGeometry.Mix(legacyA, legacyB, legacyFraction);
     checks.Near(legacyFractionPoint.X, portable.FractionPoint.X, $"time segment {item.Name} point X");
     checks.Near(legacyFractionPoint.Y, portable.FractionPoint.Y, $"time segment {item.Name} point Y");
+}
+
+// DrawingTrack's nearest-keyframe selector is compiled from a checked-in excerpt;
+// the verifier command proves its method body matches production DrawingTrack.cs.
+// TimedSeries has different, intentional interpolation semantics, so report those
+// differences explicitly instead of treating interpolated values as nearest points.
+var trackPoints = new List<Kinovea.Services.TimedPoint>
+{
+    new(10, 20, 100),
+    new(20, 40, 200),
+    new(30, 60, 300),
+};
+var trackSeries = new TimedSeries<Vector2>();
+foreach (var point in trackPoints)
+    trackSeries.Set(point.T, new Vector2(point.X, point.Y));
+
+var trackSelectionCases = new[]
+{
+    new { Name = "before first", Timestamp = 50L, LegacyIndex = 0, PortableValue = new Vector2(10, 20), SameSelectedValue = true },
+    new { Name = "between closer to first", Timestamp = 149L, LegacyIndex = 0, PortableValue = new Vector2(14.9f, 29.8f), SameSelectedValue = false },
+    new { Name = "midpoint tie chooses first", Timestamp = 150L, LegacyIndex = 0, PortableValue = new Vector2(15, 30), SameSelectedValue = false },
+    new { Name = "exact sample", Timestamp = 200L, LegacyIndex = 1, PortableValue = new Vector2(20, 40), SameSelectedValue = true },
+    new { Name = "midpoint tie chooses earlier", Timestamp = 250L, LegacyIndex = 1, PortableValue = new Vector2(25, 50), SameSelectedValue = false },
+    new { Name = "after last", Timestamp = 350L, LegacyIndex = 2, PortableValue = new Vector2(30, 60), SameSelectedValue = true },
+};
+
+foreach (var item in trackSelectionCases)
+{
+    int legacyIndex = LegacyTrackSelector.FindClosestPoint(item.Timestamp, trackPoints);
+    Vector2 legacyValue = new(trackPoints[legacyIndex].X, trackPoints[legacyIndex].Y);
+    Vector2 portableValue = trackSeries.InterpolateVector2(item.Timestamp);
+    checks.True(legacyIndex == item.LegacyIndex, $"DrawingTrack selector {item.Name} index");
+    checks.True(item.PortableValue == portableValue, $"TimedSeries {item.Name} interpolation/clamp");
+    checks.True((legacyValue == portableValue) == item.SameSelectedValue,
+        $"nearest keyframe versus TimedSeries {item.Name} scoped equivalence classification");
 }
 
 // Compare the legacy command stack's state transition sequence with the portable
