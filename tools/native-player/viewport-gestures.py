@@ -93,6 +93,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--source-sha", required=True)
     args = parser.parse_args()
+    gui.xwayland_capture.verify_source_sha(REPO, args.source_sha)
     assembly = args.assembly.resolve(); bmp = args.bmp.resolve(); alpha = args.alpha.resolve(); png = args.png.resolve(); output = args.output.resolve()
     if not assembly.is_file() or not bmp.is_file() or not alpha.is_file() or not png.is_file():
         raise FileNotFoundError("app assembly or viewport fixtures unavailable")
@@ -116,7 +117,7 @@ def main() -> int:
         anchor = (viewport_x + viewport_w * 0.61, viewport_y + viewport_h * 0.43)
         pointer_x = round(anchor[0] * render_scale); pointer_y = round(anchor[1] * render_scale)
         wheel_input = gui.point_in_window(window["id"], pointer_x, pointer_y, [4])
-        zoom = gui.wait_for(report_path, lambda value: float(value.get("zoom", 1)) > 1, "real viewport wheel event")
+        zoom = gui.wait_for(report_path, lambda value: value.get("wheelEventCount", 0) > state.get("wheelEventCount", 0) and abs(float(value.get("zoom", 1)) - float(state.get("zoom", 1))) > 0.001, "real viewport wheel event changes zoom")
         state_trace.append({"point": "wheel-zoom", "state": zoom, "anchorViewportLogical": anchor, "windowInput": wheel_input})
         (output / "viewport-state-trace.json").write_text(json.dumps(state_trace, indent=2) + "\n", encoding="utf-8")
         requested_local = (anchor[0] - viewport_x, anchor[1] - viewport_y)

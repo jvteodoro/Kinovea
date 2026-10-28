@@ -17,16 +17,39 @@ internal static class Program
     {
         try
         {
-            TestAnalysisWorkspaceRoundTrip().GetAwaiter().GetResult();
-            TestLegacyFormatInventory().GetAwaiter().GetResult();
+            if (args.Length == 1 && args[0] == "--capture-contract-only")
+            {
+                TestApplicationStatePersistence();
+                TestSyntheticCaptureContract().GetAwaiter().GetResult();
+                Console.WriteLine($"Portable desktop state/capture contract tests: PASS ({assertions} assertions)");
+                return 0;
+            }
+            if (args.Length == 1 && args[0] == "--timeline-only")
+            {
+                TestDualPlayerTimeline();
+                Console.WriteLine($"Dual player timeline tests: PASS ({assertions} assertions)");
+                return 0;
+            }
+            if (args.Length == 1 && args[0] == "--analysis-persistence-only")
+            {
+                TestAnalysisWorkspaceRoundTrip().GetAwaiter().GetResult();
+                TestLegacyFormatInventory().GetAwaiter().GetResult();
+                Console.WriteLine($"Portable analysis persistence tests: PASS ({assertions} assertions)");
+                return 0;
+            }
+
             AppBuilder.Configure<TestApp>().UsePlatformDetect().SetupWithoutStarting();
             if (args.Length == 2 && args[0] == "--measure")
                 return Measure(args[1]);
 
+            TestAnalysisWorkspaceRoundTrip().GetAwaiter().GetResult();
+            TestLegacyFormatInventory().GetAwaiter().GetResult();
             TestViewportTransform();
             TestPixelAdapter();
             TestSessionLifecycle();
             TestOpenFailures();
+            TestApplicationStatePersistence();
+            TestSyntheticCaptureContract().GetAwaiter().GetResult();
             Console.WriteLine($"Portable desktop presentation/player tests: PASS ({assertions} assertions)");
             return 0;
         }
@@ -36,6 +59,85 @@ internal static class Program
             Console.Error.WriteLine(ex);
             return 1;
         }
+    }
+
+    private static void TestApplicationStatePersistence()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "kinovea-portable-state-tests", Guid.NewGuid().ToString("N"));
+        string path = Path.Combine(directory, "state.json");
+        try
+        {
+            var store = new PortableApplicationStateStore(path);
+            PortableApplicationState initial = store.Load();
+            Equal("Default", initial.ActiveWorkspace, "new state selects the default workspace");
+            initial.ActiveWorkspace = "Lab setup";
+            initial.UiCulture = "pt-BR";
+            initial.Theme = "Light";
+            initial.LastOpenPath = "/tmp/session.mp4";
+            initial.LastOpenDirectory = "/tmp";
+            initial.WindowWidth = 1360;
+            initial.WindowHeight = 900;
+            initial.OpenShortcut = "Ctrl+Shift+O";
+            initial.SyntheticCaptureIntervalMilliseconds = 80;
+            store.Save(initial);
+
+            PortableApplicationState reloaded = new PortableApplicationStateStore(path).Load();
+            Equal("Lab setup", reloaded.ActiveWorkspace, "active workspace survives a new store instance");
+            Equal("pt-BR", reloaded.UiCulture, "language preference survives restart");
+            Equal("Light", reloaded.Theme, "theme preference survives restart");
+            Equal("/tmp/session.mp4", reloaded.LastOpenPath, "last open path survives restart");
+            Equal(1360d, reloaded.WindowWidth, "window layout width survives restart");
+            Equal(900d, reloaded.WindowHeight, "window layout height survives restart");
+            Equal("Ctrl+Shift+O", reloaded.OpenShortcut, "keyboard preference survives restart");
+            Equal(80, reloaded.SyntheticCaptureIntervalMilliseconds, "capture interval preference survives restart");
+            Throws<ArgumentOutOfRangeException>(() => store.Save(new PortableApplicationState { WindowWidth = 10 }), "invalid layout rejected");
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static async Task TestSyntheticCaptureContract()
+    {
+        var provider = new SyntheticCaptureSourceProvider();
+        Equal(2, provider.SourceNames.Count, "synthetic provider exposes two independent demo sources");
+        Throws<ArgumentException>(() => provider.Create("device 0", TimeSpan.FromMilliseconds(40)), "unknown source id rejected without device assumptions");
+        await using IPortableCaptureSource left = provider.Create(provider.SourceNames[0], TimeSpan.FromMilliseconds(10));
+        await using IPortableCaptureSource right = provider.Create(provider.SourceNames[1], TimeSpan.FromMilliseconds(10));
+        await ThrowsAsync<InvalidOperationException>(async () => await left.ReadFrameAsync(), "read before start rejected");
+        await Task.WhenAll(left.StartAsync().AsTask(), right.StartAsync().AsTask());
+        PortableCaptureFrame[] frames = await Task.WhenAll(left.ReadFrameAsync().AsTask(), right.ReadFrameAsync().AsTask());
+        using (frames[0])
+        using (frames[1])
+        {
+            Equal(320, frames[0].Width, "synthetic frame width");
+            Equal(180, frames[0].Height, "synthetic frame height");
+            Equal(0L, frames[0].Sequence, "first synthetic sequence number");
+            True(!frames[0].GetRowSpan(0).SequenceEqual(frames[1].GetRowSpan(0)), "dual sources emit distinguishable frames");
+        }
+        await Task.WhenAll(left.StopAsync().AsTask(), right.StopAsync().AsTask());
+        True(!left.IsRunning && !right.IsRunning, "single and dual source stop closes acquisition");
+        await ThrowsAsync<InvalidOperationException>(async () => await left.ReadFrameAsync(), "read after stop rejected");
+    }
+
+    private static void TestDualPlayerTimeline()
+    {
+        var timeline = new DualPlayerTimeline(
+            new MediaClock(0, 50, 1, 25),
+            new MediaClock(90_000, 180_000, 1, 90_000));
+        Near(0, timeline.StartSeconds, 1e-12, "dual timeline earliest start");
+        Near(2, timeline.EndSeconds, 1e-12, "dual timeline latest end");
+        Near(1, timeline.ToCommonSeconds(0, 25), 1e-12, "left frame maps to seconds");
+        Near(1, timeline.ToCommonSeconds(1, 90_000), 1e-12, "right video timebase maps to same seconds");
+        Equal(25L, timeline.ToLocalTimestamp(0, 1), "common second maps to still frame timestamp");
+        Equal(135_000L, timeline.ToLocalTimestamp(1, 1.5), "common seconds map through video timebase");
+        Equal(0L, timeline.ToLocalTimestamp(0, -4), "out of range seek clamps to first player start");
+        Equal(180_000L, timeline.ToLocalTimestamp(1, 20), "out of range seek clamps to second player end");
+        Near(.5, timeline.ToFraction(1), 1e-12, "common time maps to normalized slider value");
+        Near(1, timeline.FromFraction(.5), 1e-12, "normalized slider value maps to common time");
+        Throws<ArgumentOutOfRangeException>(() => timeline.ToCommonSeconds(2, 1), "unknown player index rejected");
+        Throws<ArgumentOutOfRangeException>(() => _ = new DualPlayerTimeline(new MediaClock(0, 1, 0, 1), new MediaClock(0, 1, 1, 1)), "invalid timebase rejected");
     }
 
     private static void TestViewportTransform()

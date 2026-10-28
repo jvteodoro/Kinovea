@@ -15,6 +15,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools" / "wine-oracle"))
 import oracle
+import xwayland_capture
 
 
 def sha256(path: Path) -> str:
@@ -40,6 +41,14 @@ def wait_for(path: Path, predicate, description: str, timeout: float = 10) -> di
     raise RuntimeError(f"timed out waiting for {description}; last report: {last}")
 
 
+def toggle_loop_with_keyboard(window_id: str, tabs_to_loop: int = 0) -> None:
+    # The native toolbar order is Open, Close, Play, Previous, Next, Timeline,
+    # Fit, Zoom out, Zoom in, Speed down, Speed up, Loop.
+    for _ in range(tabs_to_loop):
+        oracle.send_key("Tab", window_id)
+    oracle.send_key("Return", window_id)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--assembly", required=True, type=Path)
@@ -47,6 +56,7 @@ def main() -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--source-sha", required=True)
     args = parser.parse_args()
+    xwayland_capture.verify_source_sha(REPO, args.source_sha)
     assembly = args.assembly.resolve()
     fixture = args.input.resolve()
     output = args.output.resolve()
@@ -86,11 +96,41 @@ def main() -> int:
                 raise RuntimeError(f"unexpected player report: {initial}")
             if initial.get("inputSha256") != sha256(fixture):
                 raise RuntimeError("player input hash does not match fixture")
+            if initial.get("playbackRate") != 1 or initial.get("loopPlayback") is not True:
+                raise RuntimeError(f"legacy-default speed/loop state mismatch: {initial}")
             oracle.activate_window(window["id"])
             time.sleep(0.4)
             opened_image = output / "video-open.png"
-            capture(window, opened_image)
+            opened_capture = capture(window, opened_image)
             actions.append({"action": "open-visible-video", "result": "PASS", "timestamp": initial.get("timestamp")})
+
+            oracle.send_key("Up", window["id"])
+            faster = wait_for(report_path, lambda item: item.get("playbackRate") == 2.0, "legacy large speed increase")
+            oracle.send_key("Shift_L+Down", window["id"])
+            finer = wait_for(report_path, lambda item: item.get("playbackRate") == 1.9, "legacy fine speed decrease")
+            oracle.send_key("Shift_L+Up", window["id"])
+            restored = wait_for(report_path, lambda item: item.get("playbackRate") == 2.0, "legacy fine speed increase")
+            oracle.send_key("Down", window["id"])
+            normal = wait_for(report_path, lambda item: item.get("playbackRate") == 1.0, "legacy large speed decrease")
+            actions.extend([
+                {"action": "speed-Up", "result": "PASS", "rate": faster.get("playbackRate")},
+                {"action": "speed-Shift+Down", "result": "PASS", "rate": finer.get("playbackRate")},
+                {"action": "speed-Shift+Up", "result": "PASS", "rate": restored.get("playbackRate")},
+                {"action": "speed-Down", "result": "PASS", "rate": normal.get("playbackRate")},
+            ])
+
+            toggle_loop_with_keyboard(window["id"], tabs_to_loop=11)
+            loop_off = wait_for(report_path, lambda item: item.get("loopPlayback") is False, "loop disabled")
+            toggle_loop_with_keyboard(window["id"])
+            loop_on = wait_for(report_path, lambda item: item.get("loopPlayback") is True, "loop enabled")
+            # Move keyboard focus off Loop so Space starts playback instead of
+            # also activating the focused button.
+            for _ in range(7):
+                oracle.send_key("Tab", window["id"])
+            actions.extend([
+                {"action": "toggle-loop-off", "result": "PASS", "enabled": loop_off.get("loopPlayback")},
+                {"action": "toggle-loop-on", "result": "PASS", "enabled": loop_on.get("loopPlayback")},
+            ])
 
             oracle.send_key("space", window["id"])
             playing = wait_for(report_path, lambda item: item.get("isPlaying") is True, "play state")
@@ -114,15 +154,40 @@ def main() -> int:
             actions.append({"action": "pause-after-resume", "result": "PASS",
                             "timestamp": paused_after_resume.get("timestamp")})
 
-            # Focus order includes the media controls before the Next button.
-            # the actual frame-step button without relying on slider key focus.
-            for _ in range(5):
-                oracle.send_key("Tab", window["id"])
-            oracle.send_key("Return", window["id"])
+            oracle.send_key("Right", window["id"])
             stepped = wait_for(report_path, lambda item: item.get("timestamp", paused_after_resume.get("timestamp")) > paused_after_resume.get("timestamp"), "frame step")
             actions.append({"action": "step-forward", "result": "PASS", "from": paused_after_resume.get("timestamp"), "to": stepped.get("timestamp")})
             stepped_image = output / "video-stepped.png"
-            capture(window, stepped_image)
+            stepped_capture = capture(window, stepped_image)
+
+            before_loop = stepped.get("timestamp", 0)
+            oracle.send_key("space", window["id"])
+            wait_for(report_path, lambda item: item.get("isPlaying") is True, "loop playback start")
+            wrapped = wait_for(report_path, lambda item: item.get("timestamp", before_loop) < before_loop,
+                               "loop playback wraps to timeline start", timeout=10)
+            actions.append({"action": "loop-wrap", "result": "PASS", "from": before_loop,
+                            "to": wrapped.get("timestamp")})
+            oracle.send_key("space", window["id"])
+            wait_for(report_path, lambda item: item.get("isPlaying") is False, "pause after loop")
+            toggle_loop_with_keyboard(window["id"], tabs_to_loop=6)
+            loop_off = wait_for(report_path, lambda item: item.get("loopPlayback") is False, "loop disabled for EOF check")
+            oracle.send_key("Home", window["id"])
+            at_start = wait_for(report_path, lambda item: item.get("timestamp") == item.get("workingZoneStart"), "Home seeks to timeline start")
+            oracle.send_key("Page_Down", window["id"])
+            large_jump = wait_for(report_path, lambda item: item.get("timestamp", at_start["timestamp"]) > at_start["timestamp"], "Page Down timeline jump")
+            oracle.send_key("Shift_L+Page_Up", window["id"])
+            small_jump = wait_for(report_path, lambda item: item.get("timestamp") == item.get("workingZoneStart"), "Shift+Page Up small jump")
+            oracle.send_key("space", window["id"])
+            wait_for(report_path, lambda item: item.get("isPlaying") is True, "nonloop playback start")
+            stopped_at_eof = wait_for(report_path, lambda item: item.get("isPlaying") is False, "nonloop playback stops at EOF", timeout=10)
+            actions.extend([
+                {"action": "loop-off-confirmed", "result": "PASS", "enabled": loop_off.get("loopPlayback")},
+                {"action": "Home", "result": "PASS", "timestamp": at_start.get("timestamp")},
+                {"action": "PageDown-large-jump", "result": "PASS", "timestamp": large_jump.get("timestamp")},
+                {"action": "Shift+PageUp-small-jump", "result": "PASS", "timestamp": small_jump.get("timestamp")},
+                {"action": "nonloop-EOF", "result": "PASS", "timestamp": stopped_at_eof.get("timestamp"),
+                 "isPlaying": stopped_at_eof.get("isPlaying")},
+            ])
 
             oracle.send_key("Control_L+w", window["id"])
             closed = wait_for(report_path, lambda item: item.get("readerState") == "Empty", "reader close")
@@ -137,8 +202,8 @@ def main() -> int:
                 "finalReport": closed,
                 "actions": actions,
                 "screenshots": [
-                    {"path": opened_image.name, "sha256": sha256(opened_image)},
-                    {"path": stepped_image.name, "sha256": sha256(stepped_image)},
+                    {"path": opened_image.name, "sha256": sha256(opened_image), **opened_capture},
+                    {"path": stepped_image.name, "sha256": sha256(stepped_image), **stepped_capture},
                 ],
                 "nativeFfmpegVersions": initial.get("nativeFfmpegVersions"),
                 "limitations": ["Wine and Windows parity were not tested by this local scenario.",
@@ -165,13 +230,8 @@ def main() -> int:
                     process.wait()
 
 
-def capture(window: dict, output: Path) -> None:
-    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "x11grab",
-                    "-window_id", window["id"], "-i", os.environ["DISPLAY"], "-frames:v", "1", "-y", str(output)], check=True)
-    probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=width,height", "-of", "json", str(output)], check=True, capture_output=True, text=True)
-    size = json.loads(probe.stdout)["streams"][0]
-    if size["width"] <= 0 or size["height"] <= 0:
-        raise RuntimeError("captured video player screenshot has invalid dimensions")
+def capture(window: dict, output: Path) -> dict:
+    return xwayland_capture.capture(window, output)
 
 
 if __name__ == "__main__":
