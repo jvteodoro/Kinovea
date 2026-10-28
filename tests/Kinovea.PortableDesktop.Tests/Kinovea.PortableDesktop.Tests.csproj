@@ -13,5 +13,8 @@
     <None Include="../Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures/png-alpha-13x9.png" Link="Fixtures/png-alpha-13x9.png" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures/corrupt-image.png" Link="Fixtures/corrupt-image.png" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Bitmap.Characterization/golden/candidate/windows-2022-net48-0a9e8a5f/fixtures/unsupported.gif" Link="Fixtures/unsupported.gif" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../Tools/XML/Schema/samples/minimal.kva" Link="Fixtures/legacy-minimal.kva" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../Tools/XML/Schema/samples/simple.kva" Link="Fixtures/legacy-simple.kva" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../Tools/XML/Schema/samples/complete.kva" Link="Fixtures/legacy-complete.kva" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -39,7 +39,10 @@ public sealed class PortableVideoPlayerSession : IAsyncDisposable
     public long PresentationCopies { get; private set; }
     public long PresentationBytesCopied { get; private set; }
 
-    public async Task<bool> OpenAsync(string path)
+    public Task<bool> OpenAsync(string path) => OpenAsync(path, null);
+
+    /// <summary>Opens a video and optionally presents an exact stream PTS as its first frame.</summary>
+    public async Task<bool> OpenAsync(string path, long? initialTimestamp)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -53,8 +56,12 @@ public sealed class PortableVideoPlayerSession : IAsyncDisposable
                 await Task.Run(() =>
                 {
                     candidate.Open(path);
+                    if (initialTimestamp is long target)
+                        candidate.Seek(target);
                     if (!candidate.ReadNext(out first) || first is null)
                         throw new InvalidDataException("The video contains no decodable frame.");
+                    if (initialTimestamp is long expected && first.Timestamp != expected)
+                        throw new InvalidDataException($"The video has no frame at the requested timestamp {expected}.");
                 });
                 PortableVideoFrame firstFrame = first ?? throw new InvalidDataException("The video contains no decodable frame.");
                 PixelBitmapResult converted = PixelBufferBitmapAdapter.Create(firstFrame);

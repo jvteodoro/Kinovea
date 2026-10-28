@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "legacy-kva-content-roundtrip-v1",
+  "app": "Kinovea.PortableDesktop net10.0",
+  "fixture": "Synthetic KVA 2.0 document with a missing media path; the GUI relinks it to the deterministic local video fixture",
+  "steps": [
+    "launch the real Avalonia desktop with the KVA path",
+    "select the source media in the relink picker",
+    "open the document's media in the portable video reader",
+    "report KVA version and persisted section counts",
+    "save the KVA document through the native storage provider",
+    "compare canonical XML before and after save",
+    "close the application"
+  ],
+  "expected": {
+    "formatVersion": "2.0",
+    "keyframeCount": 1,
+    "trackCount": 1,
+    "chronoCount": 1,
+    "recognizedDrawingCount": 3,
+    "preservedUnknownExtension": true,
+    "explicitMediaRelink": true,
+    "readerState": "Open"
+  },
+  "limitations": [
+    "This verifies XML content preservation, not legacy drawing rendering or timestamp remapping.",
+    "The fixture is synthetic and does not establish behavior against an installed Windows Kinovea build."
+  ]
+}

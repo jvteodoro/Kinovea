@@ -9,10 +9,13 @@ namespace Kinovea.PortableDesktop;
 
 internal sealed class ImageViewport : Control
 {
+    private enum AnalysisTool { None, Calibration, Measurement }
     private Point? dragOrigin;
     private Vector dragPan;
+    private AnalysisTool analysisTool;
 
     public WriteableBitmap? Bitmap { get; set; }
+    public PortableDistanceAnalysis? Analysis { get; set; }
     public double Zoom { get; private set; } = 1;
     public Vector Pan { get; private set; }
     public int WheelEventCount { get; private set; }
@@ -22,6 +25,7 @@ internal sealed class ImageViewport : Control
     public event Action? ImageRendered;
     public event Action<double>? ZoomChanged;
     public event Action? InteractionObserved;
+    public event Action<Point>? AnalysisPointSelected;
 
     public ViewportTransform? Transform => Bitmap is null || Bounds.Width <= 0 || Bounds.Height <= 0
         ? null
@@ -57,6 +61,11 @@ internal sealed class ImageViewport : Control
             return;
 
         context.DrawImage(Bitmap, new Rect(0, 0, Bitmap.PixelSize.Width, Bitmap.PixelSize.Height), transform.ImageRectangle);
+        if (Analysis is { } analysis)
+        {
+            DrawSegment(context, transform, analysis.CalibrationStart, analysis.CalibrationEnd, Color.Parse("#4ade80"));
+            DrawSegment(context, transform, analysis.MeasureStart, analysis.MeasureEnd, Color.Parse("#fb7185"));
+        }
         ImageRendered?.Invoke();
     }
 
@@ -76,6 +85,18 @@ internal sealed class ImageViewport : Control
     {
         PointerPressCount++;
         InteractionObserved?.Invoke();
+        if (analysisTool != AnalysisTool.None && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && Transform is { } transform)
+        {
+            Point viewportPoint = e.GetPosition(this);
+            if (transform.ImageRectangle.Contains(viewportPoint))
+            {
+                Point imagePoint = transform.ViewportToImage(viewportPoint);
+                AnalysisPointSelected?.Invoke(new Point(Math.Clamp(imagePoint.X, 0, transform.ImageWidth),
+                    Math.Clamp(imagePoint.Y, 0, transform.ImageHeight)));
+            }
+            e.Handled = true;
+            return;
+        }
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
             dragOrigin = e.GetPosition(this);
@@ -121,5 +142,24 @@ internal sealed class ImageViewport : Control
         Zoom = next;
         ZoomChanged?.Invoke(Zoom);
         InvalidateVisual();
+    }
+
+    public void ArmCalibration() => Arm(AnalysisTool.Calibration);
+    public void ArmMeasurement() => Arm(AnalysisTool.Measurement);
+    public void CancelAnalysisTool() => Arm(AnalysisTool.None);
+
+    private void Arm(AnalysisTool tool)
+    {
+        analysisTool = tool;
+    }
+
+    private static void DrawSegment(DrawingContext context, ViewportTransform transform, PortableImagePoint start, PortableImagePoint end, Color color)
+    {
+        Point a = transform.ImageToViewport(new Point(start.X, start.Y));
+        Point b = transform.ImageToViewport(new Point(end.X, end.Y));
+        var pen = new Pen(new SolidColorBrush(color), 2);
+        context.DrawLine(pen, a, b);
+        context.DrawEllipse(new SolidColorBrush(color), null, a, 4, 4);
+        context.DrawEllipse(new SolidColorBrush(color), null, b, 4, 4);
     }
 }
