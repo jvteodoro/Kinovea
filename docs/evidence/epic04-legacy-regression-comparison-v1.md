@@ -1,10 +1,11 @@
 # Epic 04 legacy-to-portable regression comparison v1
 
-Date: 2026-10-22  
+Started: 2026-10-22; updated: 2026-10-28
 Comparison base: `ca8d5413a949fdad49e1837c81a6028601dfcfcc`
 
 Comparison test extension: `7bd932b1fd68a754578f207835469bb8101487b3`.
 Calibration comparison extension: `02671b4cb1abf365336431d2f6bc4071d1dd9aeb`.
+Track-selection comparison extension: `f186068faed39a53bef1943e06173758539b160e`.
 Initial comparison commit: `90a4b8c030699899968396b02c40588394852cf5`.
 Host: Gentoo Linux 2.18 x86_64, kernel `6.18.50-gentoo-dist-bin`; .NET SDK `10.0.111`, runtime `10.0.11`  
 Hosted CI and Windows .NET Framework execution: `NOT_RUN`
@@ -13,12 +14,15 @@ Hosted CI and Windows .NET Framework execution: `NOT_RUN`
 
 This evidence starts the Epic 04 regression path without changing legacy production code.
 `tests/PortableDrawing.LegacyComparison.Tests` links unchanged legacy
-`GeometryHelper.cs`, `ProjectiveMapper.cs`, and `HistoryStack.cs` into a narrow
-`net10.0` executable and compares selected numeric/state results to portable contracts.
+`GeometryHelper.cs`, `ProjectiveMapper.cs`, `CalibratorPlane.cs`, `CalibrationAxis.cs`,
+`SegmentF.cs`, and `HistoryStack.cs` into a narrow `net10.0` executable. It also compiles
+a verified source excerpt of `DrawingTrack.FindClosestPoint` and compares selected
+numeric/state results to portable contracts.
 This is a **source-level legacy oracle**, not the net48 application executable. Test-only
-seams supply unrelated dependencies: `log4net`, math/geometry helpers, the mapper's
-vertex/indexer-only `QuadrilateralF` surface, and abstract history memento types. Test
-mementos model reversible string-state changes; concrete drawing mementos are not loaded.
+seams supply unrelated dependencies: `log4net`, math/geometry helpers, a narrow
+`QuadrilateralF` vertex/clone/scale/convexity surface, XML-only `XmlHelper` members,
+and abstract history memento types. Test mementos model reversible string-state changes;
+concrete drawing mementos are not loaded.
 
 Input source hashes:
 
@@ -35,9 +39,24 @@ cd1ffde5ad27bb7ef8dd39b479e0b0ff580b600c8f1938eb7d432a42822c3172  CalibrationAxi
 e07688e3156d0bbd63cf4c4ad2da50fdc5cea06ec22c700e463f4f4e7ff79738  SegmentF.cs
 20a03a2e86e8f77ff5e8f329865499f61f0fa391b616e2d9a5fca26823ff911e  DrawingTimeSegment.cs (source-inspected; not linked)
 8062ddc639ad9ea1b19a66f602794f9c098bedfe11dad9c7295f0ba1db9fa731  Overlay.cs
+b73c9b8cb0e1068493b8605b339933e86de15de6d95080376487ba2224397b83  DrawingTrack.cs
+87a9f64ce1ed9e1c7bb0ed62307bd5f9143aca42025872cf4c03381ea6970e91  TimedPoint.cs
+b5c42a5714cc914d50c9a0e522ac5d91122499668f055908ce5ac9cabe9b6bee  TimedSeries.cs
+3b3c69c53758fb9a050dfdfb78d62304887e30e6459fa114692fa56daaaa620e  FindClosestPoint method body SHA-256 (outer brace whitespace trimmed)
 ```
 
 ## Executed comparison
+
+The compiled `DrawingTrack.FindClosestPoint` excerpt was verified against the checked-out
+source method body before test execution:
+
+```sh
+python3 tests/PortableDrawing.LegacyComparison.Tests/verify-drawing-track-selector-excerpt.py
+```
+
+The verifier passed with body SHA-256
+`3b3c69c53758fb9a050dfdfb78d62304887e30e6459fa114692fa56daaaa620e`. It compares
+method-body text after trimming whitespace immediately inside the braces.
 
 ```sh
 dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj \
@@ -45,7 +64,7 @@ dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawin
 ```
 
 Exit code: `0`  
-Result: `PASS: 109 legacy-to-portable behavior comparison assertions`
+Result: `PASS: 127 legacy-to-portable behavior comparison assertions`
 
 | Property | Legacy source operation | Portable operation | Cases | Result | Evidence class |
 |---|---|---|---:|---|---|
@@ -59,11 +78,13 @@ Result: `PASS: 109 legacy-to-portable behavior comparison assertions`
 | Line calibration axes | Linked `CalibratorPlane.Initialize(length, A, B, axis)`, `MakeQuad`, and `Transform` for horizontal, vertical, and image axes | `PlanarCalibration.ImageToWorld` using the produced legacy quadrilateral | 18 coordinate checks | `PASS` within `1e-5` | `CROSS_SOURCE_MATCH` |
 | Custom calibration origin | Linked `CalibratorPlane.SetOrigin` and `Transform`; grid origin read through linked mapper | `PlanarCalibration` with matching grid-space origin | 6 coordinate checks | `PASS` within `1e-5` | `CROSS_SOURCE_MATCH` |
 | Time-segment slider fraction and marker point | Exact linked `GeometryHelper.GetClosestPoint`, `GetDistance`, and `Mix`, following the source-inspected `DrawingTimeSegment.MoveHandle`/`GetTimePoint` arithmetic | `TimeSegmentOverlay.MoveHandle(3)` and `FractionPoint` | 4 cases / 16 assertions | `PASS` within `1e-5` | `CROSS_SOURCE_MATCH` for fraction placement only |
+| Track nearest-keyframe selection vs vector interpolation | `DrawingTrack.FindClosestPoint` excerpt compiled and executed; verifier confirms exact body against `DrawingTrack.cs` (body SHA-256 `3b3c69c53758fb9a050dfdfb78d62304887e30e6459fa114692fa56daaaa620e`) | `TimedSeries<Vector2>.InterpolateVector2` | 6 timestamps / 18 assertions | 3 interior selections differ; exact and clamped exterior values agree | `SOURCE_EXCERPT_VERIFIED` + `DIFFERENCE` |
 | Undo, redo and redo invalidation | Exact linked `HistoryStack` with reversible test mementos | `UndoHistory<string>` | 3 state comparisons | `PASS` for this sequence | `CROSS_SOURCE_MATCH` |
 | History change notifications | Exact linked `HistoryStack.HistoryChanged` | No portable event counterpart | 7 notifications for the tested sequence | `SOURCE_OBSERVED` | `DIFFERENCE` |
 | Duplicate modify-memento suppression | Exact linked `HistoryStack.PushNewCommand`, test `IsSameState` returns true | `UndoHistory<T>` accepts both equal-state pushes | One legacy undo empties stack; portable requires two | `SOURCE_OBSERVED` | `DIFFERENCE` |
 
 The test does not load a `DrawingLine`, `DrawingAngle`, `DrawingTimeSegment`,
+`DrawingTrack`,
 `CalibrationHelper`, `AngleHelper`, or a concrete drawing memento. `CalibratorPlane`
 and `ProjectiveMapper` are linked unchanged. `QuadrilateralF` is a test seam that
 provides the exercised vertex/clone/scale/convexity surface; its production GDI+
@@ -74,7 +95,14 @@ and custom origins. They do not exercise distortion, tracked calibration/origin,
 `CalibrationHelper` units, or rounding. The time-segment comparison follows source-inspected call
 sites in `DrawingTimeSegment` and executes linked legacy geometric helpers against the
 portable overlay; it does not establish timecode text, timestamp-origin rounding,
-fade/metadata behavior, endpoint edits, rendering, or serialization. The history test exercises the exact generic stack source
+fade/metadata behavior, endpoint edits, rendering, or serialization. The checked-in
+`DrawingTrack.FindClosestPoint` excerpt is compiled and tested; run
+`python3 tests/PortableDrawing.LegacyComparison.Tests/verify-drawing-track-selector-excerpt.py`
+before the suite to verify method-body agreement, ignoring only whitespace immediately
+inside the braces. It confirms legacy nearest
+sample selection, with earlier-sample tie breaking, differs from portable interpolation
+for interior timestamps. It does not characterize keyframe edits, tracking, kinematics,
+or KVA. The history test exercises the exact generic stack source
 but does not verify UI observer ordering or concrete drawing mutation side effects.
 
 ## Supporting executable characterization
@@ -86,7 +114,7 @@ but does not verify UI observer ordering or concrete drawing mutation side effec
 | `dotnet run --project tests/Kinovea.PortableGeometry.Tests/Kinovea.PortableGeometry.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS: 22 portable geometry assertions` | Portable viewport contract only. |
 | `dotnet run --project tests/PortableDrawing.Tests/PortableDrawing.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS 36 portable drawing assertions` | Portable overlay contract only. |
 | `dotnet run --project tests/Kinovea.PortableAnalysis.Tests/Kinovea.PortableAnalysis.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `Portable analysis contract checks: PASS (34 assertions)` | Portable calibration/history contract only. |
-| `dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | `PASS: 109 legacy-to-portable behavior comparison assertions` | Direct linked-source arithmetic, CalibratorPlane/ProjectiveMapper mapping, time-segment slider fraction/point, and scoped history comparison. |
+| `python3 tests/PortableDrawing.LegacyComparison.Tests/verify-drawing-track-selector-excerpt.py` then `dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false` | 0 | Exact selector excerpt verified; `PASS: 127 legacy-to-portable behavior comparison assertions` | Direct linked-source arithmetic, calibration, time-segment slider, track-selection difference, and scoped history comparison. |
 
 ## Wine and Windows scope
 
@@ -121,7 +149,8 @@ correspondence with this `2026.1.0.0` checkout remains
 | `DrawingTimeSegment` timecode conversion, timestamp origin/rounding, fade, endpoint edits and serialization | `NOT_ESTABLISHED` | Actual legacy object and metadata characterization with a controlled timestamp mapper. |
 | `CalibratorPlane` mapping, line axes, custom origin, offsets | `PASS` (source-level comparison only) | 52 direct comparisons with linked unchanged source; `CalibrationHelper`, GDI+ quadrilateral validity, distortion, units, rounding, and tracked calibration remain unverified. |
 | Calibration distortion, units, rounding, tracked calibration | `NOT_ESTABLISHED` | Actual `CalibrationHelper` characterization on Windows; compare a versioned numeric trace. |
-| DrawingTrack nearest-keyframe selection, keyframe persistence and KVA | `NOT_ESTABLISHED` | net48 trace fixture and KVA roundtrip. |
+| `DrawingTrack.FindClosestPoint` vs `TimedSeries` | `DIFFERENCE` (verified method-body excerpt) | Legacy chooses the nearest timestamp and earlier item on ties; portable series interpolates between interior samples. This is not a Windows runtime result. |
+| Keyframe editing, tracking/kinematics, persistence and KVA | `NOT_ESTABLISHED` | Actual track operation trace and KVA roundtrip on a supported legacy runtime. |
 | Concrete history memento effects, UI event order, drawing-modify equality policy, and system clipboard | `NOT_ESTABLISHED` | Actual legacy mementos plus application-level observer characterization; only generic stack event/dedup source behavior is recorded above. |
 | Running Windows .NET Framework parity | `NOT_RUN` | Manual Windows job or an economical, manually dispatched workflow after fixture review. |
 

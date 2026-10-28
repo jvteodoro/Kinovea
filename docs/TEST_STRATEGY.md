@@ -293,15 +293,20 @@ These are source-derived portable-domain checks, not an execution of the legacy 
 
 `tests/PortableDrawing.LegacyComparison.Tests` links unchanged legacy
 `GeometryHelper`, `ProjectiveMapper`, `CalibratorPlane`, `CalibrationAxis`, `SegmentF`,
-and `HistoryStack` sources. It compares image-space distance/angle, line-axis and
+and `HistoryStack` sources. It also compiles the extracted body of
+`DrawingTrack.FindClosestPoint` and uses a verifier to check that body against the
+source before the comparison. It compares image-space distance/angle, line-axis and
 rectangle/trapezoid calibration, calibration offsets/origins, time-segment slider
-projection, and a simple undo/redo/branch sequence using test mementos. Run:
+projection, track sample selection/interpolation, and a simple undo/redo/branch
+sequence using test mementos. Run:
 
 ```sh
+python3 tests/PortableDrawing.LegacyComparison.Tests/verify-drawing-track-selector-excerpt.py
 dotnet run --project tests/PortableDrawing.LegacyComparison.Tests/PortableDrawing.LegacyComparison.Tests.csproj --configuration Release -p:NuGetAudit=false -p:MSBuildEnableWorkloadResolver=false
 ```
 
-The local comparison passes 109 assertions. This is a `CROSS_SOURCE_MATCH` for those
+The selector verifier checks exact method-body text and reports its SHA-256. The local
+comparison passes 127 assertions. This is a `CROSS_SOURCE_MATCH` for those
 scoped numeric results and the simple state sequence, not Windows/.NET Framework
 runtime or GUI evidence. The harness supplies a narrow `QuadrilateralF` seam and
 no-op XML dependencies; it does not test GDI+ geometry validity, rendering, or
@@ -309,7 +314,10 @@ serialization. It records two
 observable history differences: legacy `HistoryStack` fires seven change events for the
 sequence and suppresses equal consecutive modify-drawing mementos; `UndoHistory<T>` has
 no event and retains repeated pushes. Concrete drawing mementos and their effects are
-not linked. For time segments, only legacy closest-point/mix arithmetic for the slider
+not linked. For track selection, legacy chooses the closest timestamp and resolves an
+equal-distance tie to the earlier sample; portable `TimedSeries` interpolates interior
+timestamps. This is an observed source-excerpt semantic difference, not parity. It does
+not cover track mutation, tracking, kinematics or KVA. For time segments, only legacy closest-point/mix arithmetic for the slider
 fraction and marker is compared; timestamp formatting, metadata, lifecycle, and UI are
 not covered. A guarded Wine line-tool probe opened the still-image player and passed
 header OCR, then failed closed because pointer motion was not delivered; no drawing was
