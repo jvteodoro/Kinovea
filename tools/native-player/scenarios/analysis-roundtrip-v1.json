@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "analysis-calibrate-measure-save-reopen-v1",
+  "application": "Kinovea.PortableDesktop net10.0",
+  "fixture": {
+    "generator": "tests/PortableVideo.Tests/Program.cs GenerateFixture",
+    "defaultPath": "/tmp/kinovea-portable-video-tests/synthetic-h264.mp4",
+    "sha256": "af04755f612b5eff43791fe1665ee50d34b8888fdbe3eb3f300a94f8e84ca282",
+    "dimensions": [64, 48],
+    "timestamps": [0, 4096, 8192, 12288, 16384, 20480, 24576, 28672]
+  },
+  "calibration": {
+    "imagePoints": [[10, 10], [20, 10]],
+    "knownDistance": 100,
+    "unit": "mm"
+  },
+  "measurement": {
+    "imagePoints": [[10, 20], [30, 20]],
+    "expectedValue": 200,
+    "unit": "mm"
+  },
+  "actions": [
+    "open the clip and confirm a rendered frame",
+    "calibrate 10 image pixels as 100 mm using points [10,10] and [20,10]",
+    "measure using points [10,20] and [30,20], expecting 200 mm",
+    "save through the Avalonia storage provider",
+    "close the clip",
+    "open the saved analysis through the Avalonia storage provider",
+    "verify media identity, frame timestamp, calibration, measurement and overlay"
+  ],
+  "expected": {
+    "initialTimestamp": 0,
+    "measurement": 200,
+    "unit": "mm",
+    "restoredTimestamp": 0,
+    "workspaceFormatId": "kinovea.portable-analysis",
+    "workspaceSchemaVersion": 1
+  },
+  "evidence": "local generated manifest.v1.json includes process state, media/workspace/screenshot hashes",
+  "limitations": [
+    "portable workspace only; not legacy .kva compatibility",
+    "one calibrated line measurement at one timestamp",
+    "no tracking, multiple annotations, keyframes or history"
+  ]
+}

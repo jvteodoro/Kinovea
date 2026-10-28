@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
@@ -29,11 +30,20 @@ internal static class Program
                 Console.WriteLine($"Dual player timeline tests: PASS ({assertions} assertions)");
                 return 0;
             }
+            if (args.Length == 1 && args[0] == "--analysis-persistence-only")
+            {
+                TestAnalysisWorkspaceRoundTrip().GetAwaiter().GetResult();
+                TestLegacyFormatInventory().GetAwaiter().GetResult();
+                Console.WriteLine($"Portable analysis persistence tests: PASS ({assertions} assertions)");
+                return 0;
+            }
 
             AppBuilder.Configure<TestApp>().UsePlatformDetect().SetupWithoutStarting();
             if (args.Length == 2 && args[0] == "--measure")
                 return Measure(args[1]);
 
+            TestAnalysisWorkspaceRoundTrip().GetAwaiter().GetResult();
+            TestLegacyFormatInventory().GetAwaiter().GetResult();
             TestViewportTransform();
             TestPixelAdapter();
             TestSessionLifecycle();
@@ -304,6 +314,105 @@ internal static class Program
         Throws<ObjectDisposedException>(() => replacedBitmap.Lock(), "successful replacement disposes prior presentation bitmap");
     }
 
+    private static async Task TestAnalysisWorkspaceRoundTrip()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "kinovea-analysis-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string mediaPath = Path.Combine(directory, "fixture.bmp");
+            string workspacePath = Path.Combine(directory, "session.kinovea.json");
+            File.Copy(Fixture("bmp-rgb-7x5.bmp"), mediaPath);
+            var analysis = PortableDistanceAnalysisFactory.Create(new PortableImagePoint(0, 0), new PortableImagePoint(3, 4), 100, "mm",
+                new PortableImagePoint(1, 1), new PortableImagePoint(6, 5));
+            Near(Math.Sqrt(41) * 20, analysis.MeasuredDistance, 1e-12, "calibrated distance computed from image coordinates");
+            await PortableAnalysisWorkspaceStore.SaveAsync(workspacePath, mediaPath, 7, 5, -42, analysis);
+            (PortableAnalysisWorkspace loaded, string loadedMedia) = await PortableAnalysisWorkspaceStore.LoadAsync(workspacePath);
+            Equal(1, loaded.SchemaVersion, "workspace schema v1");
+            Equal(Path.GetFullPath(mediaPath), loadedMedia, "relative media reference resolves");
+            Equal(7, loaded.Width, "workspace width");
+            Equal(5, loaded.Height, "workspace height");
+            Equal(-42L, loaded.Timestamp, "signed workspace timestamp preserved");
+            Equal(analysis, loaded.DistanceAnalysis, "calibration and measured line round-trip");
+
+            await File.AppendAllTextAsync(mediaPath, "changed");
+            await ThrowsAsync<InvalidDataException>(() => PortableAnalysisWorkspaceStore.LoadAsync(workspacePath), "changed media rejected by SHA");
+
+            string malformedPath = Path.Combine(directory, "malformed.kinovea.json");
+            string validJson = await File.ReadAllTextAsync(workspacePath);
+            await File.WriteAllTextAsync(malformedPath, validJson.Replace("\"SchemaVersion\": 1", "\"SchemaVersion\": 99", StringComparison.Ordinal));
+            await ThrowsAsync<InvalidDataException>(() => PortableAnalysisWorkspaceStore.LoadAsync(malformedPath), "unsupported schema rejected");
+
+            Throws<ArgumentException>(() => PortableDistanceAnalysisFactory.Create(new PortableImagePoint(0, 0), new PortableImagePoint(0, 0), 5,
+                "mm", new PortableImagePoint(0, 0), new PortableImagePoint(1, 1)), "zero calibration span rejected");
+            var outside = PortableDistanceAnalysisFactory.Create(new PortableImagePoint(-1, 0), new PortableImagePoint(0, 2), 5,
+                "mm", new PortableImagePoint(0, 0), new PortableImagePoint(1, 1));
+            await ThrowsAsync<InvalidDataException>(() => PortableAnalysisWorkspaceStore.SaveAsync(workspacePath, mediaPath, 7, 5, 42, outside),
+                "out of image coordinates rejected when saved");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static async Task TestLegacyFormatInventory()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "kinovea-kva-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        PortableKvaDocument minimalDocument = PortableKvaDocument.Load(Fixture("legacy-minimal.kva"));
+        PortableKvaDocument simpleDocument = PortableKvaDocument.Load(Fixture("legacy-simple.kva"));
+        PortableKvaDocument completeDocument = PortableKvaDocument.Load(Fixture("legacy-complete.kva"));
+        XDocument minimal = minimalDocument.ToXDocument();
+        XDocument simple = simpleDocument.ToXDocument();
+        XDocument complete = completeDocument.ToXDocument();
+        Equal("KinoveaVideoAnalysis", minimal.Root!.Name.LocalName, "legacy minimal KVA root");
+        Equal("2.0", minimal.Root.Element("FormatVersion")!.Value, "legacy minimal format version");
+        Equal<string?>(null, minimalDocument.ResolveMediaPath(), "KVA without a stored media path requires relinking");
+        Equal("2.0", simpleDocument.FormatVersion, "simple KVA version metadata");
+        Equal((848, 480), completeDocument.ImageSize, "legacy complete dimensions extracted");
+        Equal(1, simpleDocument.KeyframeCount, "simple file keyframes indexed");
+        True(simpleDocument.RecognizedDrawingCount > 0, "simple file recognized drawings indexed");
+        True(simpleDocument.HasCalibration, "simple file calibration indexed");
+        Equal("512;384", simple.Root!.Element("ImageSize")!.Value, "legacy simple image dimensions");
+        True(simple.Root.Element("CalibrationHelp") is not null, "legacy simple calibration section");
+        True(simple.Root.Element("Keyframes")?.Element("Keyframe")?.Element("Drawings")?.Element("Angle") is not null,
+            "legacy simple angle drawing section");
+        Equal("2.0", complete.Root!.Element("FormatVersion")!.Value, "legacy complete format version");
+        True(complete.Root.Element("Keyframes")?.Elements("Keyframe").Any() == true, "legacy complete keyframes present");
+
+        try
+        {
+            foreach ((string name, PortableKvaDocument original) in new[]
+                { ("minimal", minimalDocument), ("simple", simpleDocument), ("complete", completeDocument) })
+            {
+                string path = Path.Combine(directory, name + ".kva");
+                await original.SaveAsync(path);
+                PortableKvaDocument reread = PortableKvaDocument.Load(path);
+                True(XNode.DeepEquals(original.ToXDocument(), reread.ToXDocument()), $"{name} KVA XML content preserved through save/reopen");
+            }
+
+            PortableKvaDocument relinked = simpleDocument.RelinkMedia(Path.Combine(directory, "relinked.mp4"), 1234);
+            Equal(Path.Combine(directory, "relinked.mp4"), relinked.FullPath, "KVA relink updates media path");
+            Equal(1234L, relinked.ByteLength, "KVA relink updates stored byte length");
+            True(XNode.DeepEquals(simple, simpleDocument.ToXDocument()), "KVA relink does not mutate source document");
+
+            string invalid = Path.Combine(directory, "wrong-root.kva");
+            await File.WriteAllTextAsync(invalid, "<NotKinovea><FormatVersion>2.0</FormatVersion></NotKinovea>");
+            Throws<InvalidDataException>(() => PortableKvaDocument.Load(invalid), "unknown KVA root rejected");
+            string dtd = Path.Combine(directory, "dtd.kva");
+            await File.WriteAllTextAsync(dtd, "<!DOCTYPE x [<!ENTITY e SYSTEM 'file:///etc/passwd'>]><KinoveaVideoAnalysis><FormatVersion>2.0</FormatVersion>&e;</KinoveaVideoAnalysis>");
+            Throws<System.Xml.XmlException>(() => PortableKvaDocument.Load(dtd), "KVA external entities prohibited");
+            string oldVersion = Path.Combine(directory, "old-version.kva");
+            await File.WriteAllTextAsync(oldVersion, "<KinoveaVideoAnalysis><FormatVersion>1.2</FormatVersion></KinoveaVideoAnalysis>");
+            Throws<InvalidDataException>(() => PortableKvaDocument.Load(oldVersion), "unsupported old KVA version rejected explicitly");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static int Measure(string path)
     {
         var samples = new List<double>();
@@ -356,13 +465,7 @@ internal static class Program
     private static void Near(double expected, double actual, double epsilon, string name) { assertions++; if (Math.Abs(expected - actual) > epsilon) throw new InvalidOperationException($"{name}: expected {expected}, got {actual}."); }
     private static void Same(object? expected, object? actual, string name) { assertions++; if (!ReferenceEquals(expected, actual)) throw new InvalidOperationException(name + ": references differ."); }
     private static void Throws<TException>(Action action, string name) where TException : Exception { assertions++; try { action(); } catch (TException) { return; } throw new InvalidOperationException(name + ": expected " + typeof(TException).Name + "."); }
-    private static async Task ThrowsAsync<TException>(Func<Task> action, string name) where TException : Exception
-    {
-        assertions++;
-        try { await action(); }
-        catch (TException) { return; }
-        throw new InvalidOperationException(name + ": expected " + typeof(TException).Name + ".");
-    }
+    private static async Task ThrowsAsync<TException>(Func<Task> action, string name) where TException : Exception { assertions++; try { await action(); } catch (TException) { return; } throw new InvalidOperationException(name + ": expected " + typeof(TException).Name + "."); }
     private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", name);
 
     private sealed class TestApp : Application { }
